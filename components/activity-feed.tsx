@@ -1,24 +1,18 @@
 import {
-  ShoppingCart,
-  CalendarCheck,
-  Sparkles,
-  UserRound,
-  PackageSearch,
-} from "lucide-react";
-import {
   Card,
   CardHeader,
   CardTitle,
   CardContent,
 } from "@/components/ui/card";
-import { activites } from "@/lib/mock-data";
+import { activites, type ActiviteType } from "@/lib/mock-data";
+import { cn } from "@/lib/utils";
 
-const icons: Record<string, typeof ShoppingCart> = {
-  commande: ShoppingCart,
-  visite: CalendarCheck,
-  studio: Sparkles,
-  client: UserRound,
-  stock: PackageSearch,
+const pastilleColors: Record<ActiviteType, string> = {
+  reservation: "bg-vine",
+  vente: "bg-gold",
+  contenu: "bg-gold",
+  avis: "bg-vine",
+  systeme: "bg-stone",
 };
 
 export function ActivityFeed() {
@@ -29,20 +23,20 @@ export function ActivityFeed() {
       </CardHeader>
       <CardContent className="px-6">
         <ul className="flex flex-col gap-4">
-          {activites.map((activite) => {
-            const Icon = icons[activite.type] ?? ShoppingCart;
-            return (
-              <li key={activite.id} className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-vine/10 text-vine">
-                  <Icon className="size-4" />
-                </span>
-                <div>
-                  <p className="text-sm text-ink">{activite.texte}</p>
-                  <p className="mt-0.5 text-xs text-stone">{activite.temps}</p>
-                </div>
-              </li>
-            );
-          })}
+          {activites.map((activite) => (
+            <li key={activite.id} className="flex items-start gap-3">
+              <span
+                className={cn(
+                  "mt-1.5 size-2 shrink-0 rounded-full",
+                  pastilleColors[activite.type]
+                )}
+              />
+              <div>
+                <p className="text-sm text-ink">{activite.texte}</p>
+                <p className="mt-0.5 text-xs text-stone">{activite.temps}</p>
+              </div>
+            </li>
+          ))}
         </ul>
       </CardContent>
     </Card>

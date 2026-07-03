@@ -194,6 +194,9 @@ export const clients: Client[] = [
   },
 ];
 
+// KPI à delta simple (CA, bouteilles) — les KPI "Visites planifiées" et
+// "Clients actifs" du tableau de bord sont calculés depuis `visites` et
+// `clients` directement dans KpiCards, pas stockés ici.
 export const kpis = [
   {
     id: "ca",
@@ -211,23 +214,13 @@ export const kpis = [
     trend: "up" as const,
     good: true,
   },
-  {
-    id: "visites",
-    label: "Visites œnotourisme",
-    value: "142",
-    delta: "-4,2%",
-    trend: "down" as const,
-    good: false,
-  },
-  {
-    id: "dormants",
-    label: "Clients dormants",
-    value: "37",
-    delta: "-9",
-    trend: "down" as const,
-    good: true,
-  },
 ];
+
+// Total de clients actifs et de dormants à l'échelle du domaine (cohérent
+// avec la maquette de la landing page) — plus grand que l'échantillon
+// visible dans le tableau CRM, qui n'en illustre qu'une partie.
+export const clientsActifsTotal = 684;
+export const clientsDormantsTotal = 37;
 
 export const ventesMensuelles = [
   { mois: "Août", valeur: 210 },
@@ -244,77 +237,85 @@ export const ventesMensuelles = [
   { mois: "Juil", valeur: 312 },
 ];
 
-export const activites = [
+// Campagnes marketing marquantes, en surimpression optionnelle du graphique.
+export const campagnesMarketing = [
+  { mois: "Déc", nom: "Newsletter Noël" },
+  { mois: "Avr", nom: "Post Pâques" },
+];
+
+export type ActiviteType = "reservation" | "vente" | "contenu" | "avis" | "systeme";
+
+export const activites: { id: string; type: ActiviteType; texte: string; temps: string }[] = [
   {
     id: "a1",
-    type: "commande",
-    texte: "Nouvelle commande de Château Montfleur — Hôtellerie (48 bouteilles)",
-    temps: "Il y a 12 min",
+    type: "reservation",
+    texte: "Groupe belge (8 pers.) confirmé pour samedi",
+    temps: "Il y a 20 min",
   },
   {
     id: "a2",
-    type: "visite",
-    texte: "Réservation visite Prestige confirmée pour le 14 juillet",
+    type: "vente",
+    texte: "M. Hartmann a commandé 6 bouteilles",
     temps: "Il y a 47 min",
   },
   {
     id: "a3",
-    type: "studio",
-    texte: "3 publications générées par l'IA en attente de validation",
+    type: "contenu",
+    texte: "Post Instagram sur les vendanges proposé",
     temps: "Il y a 1 h",
   },
   {
     id: "a4",
-    type: "client",
-    texte: "James Whitmore a été déplacé vers le segment VIP",
+    type: "avis",
+    texte: "Nouvel avis 5 étoiles de Yuki Tanaka",
     temps: "Il y a 3 h",
   },
   {
     id: "a5",
-    type: "stock",
-    texte: "Stock du Blanc de Blancs sous le seuil des 20%",
+    type: "vente",
+    texte: "Commande export expédiée vers Sofia Bergqvist (Suède)",
     temps: "Il y a 5 h",
   },
   {
     id: "a6",
-    type: "commande",
-    texte: "Commande export expédiée vers Sofia Bergqvist (Suède)",
+    type: "systeme",
+    texte: "Commande n°247 marquée préparée",
     temps: "Hier à 18:22",
   },
 ];
 
 export const stockCuvees = [
-  { id: "s1", nom: "Brut Réserve", pourcentage: 72, bouteilles: 4320 },
-  { id: "s2", nom: "Blanc de Blancs", pourcentage: 18, bouteilles: 540 },
-  { id: "s3", nom: "Rosé de Saignée", pourcentage: 45, bouteilles: 1290 },
-  { id: "s4", nom: "Millésime 2016", pourcentage: 61, bouteilles: 980 },
-  { id: "s5", nom: "Extra-Brut Vigneron", pourcentage: 33, bouteilles: 760 },
+  { id: "s1", nom: "Brut Réserve", pourcentage: 72, bouteilles: 4320, moisRestants: 8 },
+  { id: "s2", nom: "Blanc de Blancs", pourcentage: 18, bouteilles: 540, moisRestants: 1.5 },
+  { id: "s3", nom: "Rosé de Saignée", pourcentage: 45, bouteilles: 1290, moisRestants: 4 },
+  { id: "s4", nom: "Millésime 2016", pourcentage: 61, bouteilles: 980, moisRestants: 10 },
+  { id: "s5", nom: "Extra-Brut Vigneron", pourcentage: 33, bouteilles: 760, moisRestants: 3 },
 ];
 
 export const briefHebdomadaire = [
   {
     id: "b1",
-    titre: "Relancer 7 clients dormants",
+    titre: `Réactiver ${clientsDormantsTotal} clients dormants, email prêt`,
     description:
-      "Segment identifié avec un dernier achat de plus de 6 mois. Une campagne e-mail ciblée est prête dans Studio.",
-    priorite: "Haute",
-    action: "Relancer",
+      "Segment identifié avec un dernier achat de plus de 18 mois. Une campagne e-mail ciblée est prête dans Studio.",
+    priorite: "Élevé",
+    action: "Envoyer les relances",
   },
   {
     id: "b2",
-    titre: "Réapprovisionner le Blanc de Blancs",
+    titre: "Valider le post Instagram sur les vendanges",
     description:
-      "Stock sous 20%. Au rythme actuel des ventes, rupture estimée sous 3 semaines.",
-    priorite: "Haute",
-    action: "Commander",
+      "Prévu pour le 5 juillet. Photo et légende générées à partir de la charte narrative du domaine.",
+    priorite: "Élevé",
+    action: "Ouvrir le Studio",
   },
   {
     id: "b3",
-    titre: "Valider le calendrier éditorial de juillet",
+    titre: "Confirmer la visite de Sofia Bergqvist (19 juillet)",
     description:
-      "3 publications IA en attente pour Instagram, l'e-mail et les avis Google.",
-    priorite: "Moyenne",
-    action: "Ouvrir Studio",
+      "Demande en attente depuis 3 jours. La confirmation déclenche l'email automatique au visiteur.",
+    priorite: "Moyen",
+    action: "Confirmer",
   },
 ];
 
