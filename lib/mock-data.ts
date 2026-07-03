@@ -202,7 +202,6 @@ export const kpis = [
     delta: "+8,4%",
     trend: "up" as const,
     good: true,
-    periode: "vs mois dernier",
   },
   {
     id: "bouteilles",
@@ -211,7 +210,6 @@ export const kpis = [
     delta: "+3,1%",
     trend: "up" as const,
     good: true,
-    periode: "vs mois dernier",
   },
   {
     id: "visites",
@@ -220,7 +218,6 @@ export const kpis = [
     delta: "-4,2%",
     trend: "down" as const,
     good: false,
-    periode: "vs mois dernier",
   },
   {
     id: "dormants",
@@ -229,7 +226,6 @@ export const kpis = [
     delta: "-9",
     trend: "down" as const,
     good: true,
-    periode: "vs mois dernier",
   },
 ];
 
@@ -460,3 +456,57 @@ export const visitesStats = {
   noteGoogle: 4.8,
   panierMoyen: 340,
 };
+
+// --- Shell : profil domaine, notifications ---
+
+export const domaineProfile = {
+  nomDomaine: "Champagne des Trois Clos",
+  nomVigneron: "Antoine Vasseur",
+  initiales: "CT",
+};
+
+export type Notification = {
+  id: string;
+  type: "reservation" | "avis" | "contenu" | "systeme";
+  message: string;
+  temps: string;
+  lu: boolean;
+};
+
+export const notifications: Notification[] = [
+  {
+    id: "n1",
+    type: "reservation",
+    message: "Groupe belge (8 pers.) confirmé pour samedi",
+    temps: "Il y a 20 min",
+    lu: false,
+  },
+  {
+    id: "n2",
+    type: "avis",
+    message: "Nouvel avis 5 étoiles de Yuki Tanaka",
+    temps: "Il y a 1 h",
+    lu: false,
+  },
+  {
+    id: "n3",
+    type: "contenu",
+    message: "Post Instagram sur les vendanges proposé",
+    temps: "Il y a 2 h",
+    lu: false,
+  },
+  {
+    id: "n4",
+    type: "reservation",
+    message: "Nouvelle demande de visite de Sofia Bergqvist",
+    temps: "Il y a 4 h",
+    lu: true,
+  },
+  {
+    id: "n5",
+    type: "systeme",
+    message: "Commande n°247 marquée préparée",
+    temps: "Hier à 17:10",
+    lu: true,
+  },
+];

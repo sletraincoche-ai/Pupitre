@@ -5,10 +5,13 @@ import {
   Card,
   CardHeader,
   CardTitle,
+  CardAction,
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ventesMensuelles } from "@/lib/mock-data";
+import { periodOptions, usePeriod } from "@/lib/period-context";
 
 type ChartTooltipProps = {
   active?: boolean;
@@ -27,11 +30,19 @@ function ChartTooltip({ active, payload, label }: ChartTooltipProps) {
 }
 
 export function SalesChart() {
+  const { period } = usePeriod();
+  const periodLabel = periodOptions.find((o) => o.value === period)?.label;
+
   return (
     <Card className="border border-border/70 bg-card shadow-none">
       <CardHeader className="px-6">
         <CardTitle>Ventes des 12 derniers mois</CardTitle>
         <CardDescription>Chiffre d&apos;affaires mensuel, en k€</CardDescription>
+        <CardAction>
+          <Badge variant="outline" className="border-gold/40 text-gold">
+            {periodLabel}
+          </Badge>
+        </CardAction>
       </CardHeader>
       <CardContent className="px-6">
         <div className="h-48">

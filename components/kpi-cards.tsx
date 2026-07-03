@@ -1,9 +1,14 @@
+"use client";
+
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { kpis } from "@/lib/mock-data";
+import { periodComparisonLabel, usePeriod } from "@/lib/period-context";
 import { cn } from "@/lib/utils";
 
 export function KpiCards() {
+  const { period } = usePeriod();
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {kpis.map((kpi) => (
@@ -25,7 +30,7 @@ export function KpiCards() {
                 )}
                 {kpi.delta}
               </span>
-              <span className="text-stone">{kpi.periode}</span>
+              <span className="text-stone">{periodComparisonLabel[period]}</span>
             </div>
           </CardContent>
         </Card>

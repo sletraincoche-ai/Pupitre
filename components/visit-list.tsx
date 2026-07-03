@@ -21,6 +21,36 @@ const statusStyles: Record<Visite["statut"], string> = {
   Annulée: "bg-destructive/10 text-destructive",
 };
 
+function VisitActions({
+  visite,
+  onConfirmer,
+}: {
+  visite: Visite;
+  onConfirmer: (visite: Visite) => void;
+}) {
+  return (
+    <>
+      {visite.statut === "En attente" && (
+        <Button
+          size="sm"
+          className="bg-vine text-white hover:bg-vine/90"
+          onClick={() => onConfirmer(visite)}
+        >
+          Confirmer
+        </Button>
+      )}
+      <Button
+        size="sm"
+        variant="ghost"
+        className="text-stone hover:text-vine"
+        onClick={() => toast.info(`Détails de la visite — ${visite.client}`)}
+      >
+        Détails
+      </Button>
+    </>
+  );
+}
+
 export function VisitList() {
   const [visites, setVisites] = useState(initialVisites);
 
@@ -34,66 +64,81 @@ export function VisitList() {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border/70 bg-card">
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="pl-6">Groupe</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Langue</TableHead>
-            <TableHead>Formule</TableHead>
-            <TableHead>Statut</TableHead>
-            <TableHead className="pr-6 text-right">Action</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {visites.map((visite) => (
-            <TableRow key={visite.id}>
-              <TableCell className="pl-6 font-medium text-ink">
-                {visite.client}
-              </TableCell>
-              <TableCell className="text-stone">
-                <span className="whitespace-nowrap">
-                  {visite.date} · {visite.heure}
-                </span>
-              </TableCell>
-              <TableCell className="text-stone">{visite.langue}</TableCell>
-              <TableCell className="text-stone">{visite.formule}</TableCell>
-              <TableCell>
-                <Badge
-                  variant="outline"
-                  className={cn("border-transparent", statusStyles[visite.statut])}
-                >
-                  {visite.statut}
-                </Badge>
-              </TableCell>
-              <TableCell className="pr-6">
-                <div className="flex justify-end gap-2">
-                  {visite.statut === "En attente" && (
-                    <Button
-                      size="sm"
-                      className="bg-vine text-white hover:bg-vine/90"
-                      onClick={() => confirmer(visite)}
-                    >
-                      Confirmer
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-stone hover:text-vine"
-                    onClick={() =>
-                      toast.info(`Détails de la visite — ${visite.client}`)
-                    }
-                  >
-                    Détails
-                  </Button>
-                </div>
-              </TableCell>
+    <>
+      {/* Tableau (>= 640px) */}
+      <div className="hidden overflow-hidden rounded-xl border border-border/70 bg-card sm:block">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="pl-6">Groupe</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Langue</TableHead>
+              <TableHead>Formule</TableHead>
+              <TableHead>Statut</TableHead>
+              <TableHead className="pr-6 text-right">Action</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {visites.map((visite) => (
+              <TableRow key={visite.id}>
+                <TableCell className="pl-6 font-medium text-ink">
+                  {visite.client}
+                </TableCell>
+                <TableCell className="text-stone">
+                  <span className="whitespace-nowrap">
+                    {visite.date} · {visite.heure}
+                  </span>
+                </TableCell>
+                <TableCell className="text-stone">{visite.langue}</TableCell>
+                <TableCell className="text-stone">{visite.formule}</TableCell>
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    className={cn("border-transparent", statusStyles[visite.statut])}
+                  >
+                    {visite.statut}
+                  </Badge>
+                </TableCell>
+                <TableCell className="pr-6">
+                  <div className="flex justify-end gap-2">
+                    <VisitActions visite={visite} onConfirmer={confirmer} />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Cartes empilées (< 640px) */}
+      <div className="flex flex-col gap-3 sm:hidden">
+        {visites.map((visite) => (
+          <div key={visite.id} className="rounded-xl border border-border/70 bg-card p-4">
+            <div className="flex items-start justify-between gap-2">
+              <p className="font-medium text-ink">{visite.client}</p>
+              <Badge
+                variant="outline"
+                className={cn("shrink-0 border-transparent", statusStyles[visite.statut])}
+              >
+                {visite.statut}
+              </Badge>
+            </div>
+            <dl className="mt-3 grid grid-cols-2 gap-y-1.5 text-sm">
+              <dt className="text-stone">Date</dt>
+              <dd className="text-right text-ink">
+                {visite.date} · {visite.heure}
+              </dd>
+              <dt className="text-stone">Langue</dt>
+              <dd className="text-right text-ink">{visite.langue}</dd>
+              <dt className="text-stone">Formule</dt>
+              <dd className="text-right text-ink">{visite.formule}</dd>
+            </dl>
+            <div className="mt-4 flex justify-end gap-2">
+              <VisitActions visite={visite} onConfirmer={confirmer} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }

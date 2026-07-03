@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { clients, type ClientTag } from "@/lib/mock-data";
+import { clients, type Client, type ClientTag } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 type FilterKey = "tous" | ClientTag;
@@ -31,6 +31,35 @@ const statusStyles: Record<string, string> = {
   Actif: "bg-vine/10 text-vine",
   "À relancer": "bg-destructive/10 text-destructive",
 };
+
+function relancer(client: Client) {
+  toast.success(`Relance envoyée à ${client.nom}`, {
+    description: "E-mail de réactivation programmé.",
+  });
+}
+
+function voirFiche(client: Client) {
+  toast.info(`Fiche ouverte : ${client.nom}`);
+}
+
+function ClientActions({ client }: { client: Client }) {
+  return (
+    <>
+      {client.tags.includes("dormant") && (
+        <Button
+          size="sm"
+          className="bg-gold text-white hover:bg-gold/90"
+          onClick={() => relancer(client)}
+        >
+          Relancer
+        </Button>
+      )}
+      <Button variant="outline" size="sm" onClick={() => voirFiche(client)}>
+        Voir la fiche
+      </Button>
+    </>
+  );
+}
 
 export function CrmView() {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("tous");
@@ -65,7 +94,8 @@ export function CrmView() {
         </span>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border/70 bg-card">
+      {/* Tableau (>= 640px) */}
+      <div className="hidden overflow-hidden rounded-xl border border-border/70 bg-card sm:block">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -112,28 +142,7 @@ export function CrmView() {
                 </TableCell>
                 <TableCell className="pr-6">
                   <div className="flex justify-end gap-2">
-                    {client.tags.includes("dormant") && (
-                      <Button
-                        size="sm"
-                        className="bg-gold text-white hover:bg-gold/90"
-                        onClick={() =>
-                          toast.success(`Relance envoyée à ${client.nom}`, {
-                            description: "E-mail de réactivation programmé.",
-                          })
-                        }
-                      >
-                        Relancer
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        toast.success(`Fiche ouverte : ${client.nom}`)
-                      }
-                    >
-                      Voir la fiche
-                    </Button>
+                    <ClientActions client={client} />
                   </div>
                 </TableCell>
               </TableRow>
@@ -147,6 +156,52 @@ export function CrmView() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Cartes empilées (< 640px) */}
+      <div className="flex flex-col gap-3 sm:hidden">
+        {filteredClients.map((client) => (
+          <div
+            key={client.id}
+            className="rounded-xl border border-border/70 bg-card p-4"
+          >
+            <div className="flex items-start gap-3">
+              <Avatar>
+                <AvatarFallback className="bg-vine/10 text-vine">
+                  {client.initiales}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium text-ink">{client.nom}</p>
+                <p className="truncate text-xs text-stone">{client.email}</p>
+              </div>
+              <Badge
+                variant="outline"
+                className={cn("shrink-0 border-transparent", statusStyles[client.statut])}
+              >
+                {client.statut}
+              </Badge>
+            </div>
+            <dl className="mt-3 grid grid-cols-2 gap-y-1.5 text-sm">
+              <dt className="text-stone">Pays</dt>
+              <dd className="text-right text-ink">
+                {client.drapeau} {client.pays}
+              </dd>
+              <dt className="text-stone">Origine</dt>
+              <dd className="text-right text-ink">{client.origine}</dd>
+              <dt className="text-stone">Dernier achat</dt>
+              <dd className="text-right text-ink">{client.derniereCommande}</dd>
+            </dl>
+            <div className="mt-4 flex justify-end gap-2">
+              <ClientActions client={client} />
+            </div>
+          </div>
+        ))}
+        {filteredClients.length === 0 && (
+          <p className="rounded-xl border border-dashed border-border/70 bg-card py-10 text-center text-stone">
+            Aucun client dans ce segment.
+          </p>
+        )}
       </div>
     </div>
   );

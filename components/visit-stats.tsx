@@ -1,31 +1,37 @@
+"use client";
+
 import { Users, Globe2, ShoppingBag, Star } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { visitesStats } from "@/lib/mock-data";
-
-const stats = [
-  {
-    icon: Users,
-    label: "Visiteurs cette semaine",
-    value: visitesStats.totalVisiteurs.toString(),
-  },
-  {
-    icon: Globe2,
-    label: "Groupes étrangers",
-    value: `${visitesStats.pourcentageEtrangers}%`,
-  },
-  {
-    icon: ShoppingBag,
-    label: "Achat post-visite",
-    value: `${visitesStats.tauxAchatPostVisite}%`,
-  },
-  {
-    icon: Star,
-    label: "Note Google",
-    value: `${visitesStats.noteGoogle.toLocaleString("fr-FR")} / 5`,
-  },
-];
+import { periodOptions, usePeriod } from "@/lib/period-context";
 
 export function VisitStats() {
+  const { period } = usePeriod();
+  const periodLabel = periodOptions.find((o) => o.value === period)?.label;
+
+  const stats = [
+    {
+      icon: Users,
+      label: `Visiteurs (${periodLabel})`,
+      value: visitesStats.totalVisiteurs.toString(),
+    },
+    {
+      icon: Globe2,
+      label: "Groupes étrangers",
+      value: `${visitesStats.pourcentageEtrangers}%`,
+    },
+    {
+      icon: ShoppingBag,
+      label: "Achat post-visite",
+      value: `${visitesStats.tauxAchatPostVisite}%`,
+    },
+    {
+      icon: Star,
+      label: "Note Google",
+      value: `${visitesStats.noteGoogle.toLocaleString("fr-FR")} / 5`,
+    },
+  ];
+
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
       <div className="grid grid-cols-2 gap-4 xl:col-span-2 xl:grid-cols-4">

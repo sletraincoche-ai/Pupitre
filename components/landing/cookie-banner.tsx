@@ -22,7 +22,7 @@ export function CookieBanner() {
   function respond(choice: "accepted" | "refused") {
     window.localStorage.setItem(STORAGE_KEY, choice);
     setVisible(false);
-    toast(
+    toast.info(
       choice === "accepted"
         ? "Cookies acceptés, merci !"
         : "Cookies non essentiels refusés."

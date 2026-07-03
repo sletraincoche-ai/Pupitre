@@ -48,7 +48,7 @@ export function StudioQueue() {
   }
 
   function handleIgnorer(item: ContenuStudio) {
-    toast("Publication ignorée", {
+    toast.info("Publication ignorée", {
       description: `${item.plateforme} · ${item.date}`,
     });
     removeItem(item.id);
