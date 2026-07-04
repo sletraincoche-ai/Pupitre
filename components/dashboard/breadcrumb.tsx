@@ -8,6 +8,7 @@ const routeLabels: Record<string, string> = {
   visites: "Œnotourisme",
   studio: "Studio IA",
   cave: "Cave",
+  agenda: "Agenda",
   parametres: "Paramètres",
   international: "Cap International",
 };
