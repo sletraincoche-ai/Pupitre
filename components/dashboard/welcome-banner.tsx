@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { domaineProfile, contenusStudio, AUJOURDHUI } from "@/lib/mock-data";
+import { domaineProfile, totalContenusStudioEnAttente, AUJOURDHUI } from "@/lib/mock-data";
 
 const dateDuJour = (() => {
   const formatted = AUJOURDHUI.toLocaleDateString("fr-FR", {
@@ -25,7 +25,7 @@ export function WelcomeBanner() {
   }, []);
 
   const prenom = domaineProfile.nomVigneron.split(" ")[0];
-  const contenusEnAttente = contenusStudio.length;
+  const contenusEnAttente = totalContenusStudioEnAttente;
 
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

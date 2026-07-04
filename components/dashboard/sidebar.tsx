@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { contenusStudio } from "@/lib/mock-data";
+import { totalContenusStudioEnAttente } from "@/lib/mock-data";
 import { ProfileMenu } from "@/components/dashboard/profile-menu";
 
 type NavItem = {
@@ -46,7 +46,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
         href: "/dashboard/studio",
         label: "Studio IA",
         icon: Sparkles,
-        badge: contenusStudio.length,
+        badge: totalContenusStudioEnAttente,
       },
       {
         href: "/dashboard/international",

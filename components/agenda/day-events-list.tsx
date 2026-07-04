@@ -7,7 +7,6 @@ import {
   GlassWater,
   Camera,
   Mail,
-  MessageCircle,
   Star,
   X,
   CalendarHeart,
@@ -23,13 +22,12 @@ import type {
   EvenementVisite,
 } from "@/lib/agenda";
 import { categorieColors } from "@/lib/agenda";
-import type { ContenuStudio } from "@/lib/mock-data";
+import type { PlateformePublicationCalendrier } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
-const plateformeIcons: Record<ContenuStudio["plateforme"], typeof Camera> = {
+const plateformeIcons: Record<PlateformePublicationCalendrier, typeof Camera> = {
   Instagram: Camera,
   Email: Mail,
-  SMS: MessageCircle,
   "Avis Google": Star,
 };
 

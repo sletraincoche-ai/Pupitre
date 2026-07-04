@@ -438,61 +438,141 @@ export const briefHebdomadaire = [
   },
 ];
 
-export type ContenuStudio = {
+export type ReseauPlateforme = "Instagram" | "Facebook";
+export type FormatContenu = "post" | "story" | "carrousel";
+
+export type PublicationSociale = {
   id: string;
-  plateforme: "Instagram" | "Email" | "SMS" | "Avis Google";
+  plateforme: ReseauPlateforme;
+  format: FormatContenu;
   // Le fait réel, dans un autre module, qui a produit cette suggestion —
-  // affiché sur la carte, jamais une génération sans origine traçable.
-  declencheur: string;
-  destinataire?: string;
-  texte: string;
-  contexte?: string;
+  // absent pour une création manuelle (mode 2.5).
+  declencheur?: string;
+  photos: string[]; // ids référençant photosDomaine
+  legende: string;
+  hashtags: string[];
+  musique?: string;
   date: string;
-  statut: "En attente";
+  statut: "En attente" | "Brouillon";
 };
 
-export const contenusStudio: ContenuStudio[] = [
+export const publicationsSociales: PublicationSociale[] = [
   {
-    id: "st1",
+    id: "pub1",
     plateforme: "Instagram",
+    format: "post",
     declencheur: "Déclenché par la Cave — Millésime 2016 en surstock (28 mois de stock)",
-    texte:
-      "Notre Millésime 2016 se révèle enfin 🥂 Une cuvée de caractère, en quantité limitée en cave. Une bouteille aujourd'hui, un souvenir demain. #ChampagnePupitre #Millesime2016",
+    photos: ["ph2"],
+    legende:
+      "Notre Millésime 2016 se révèle enfin 🥂 Une cuvée de caractère, en quantité limitée en cave. Une bouteille aujourd'hui, un souvenir demain.",
+    hashtags: ["ChampagnePupitre", "Millesime2016"],
     date: "5 juillet",
     statut: "En attente",
   },
   {
-    id: "st2",
-    plateforme: "Email",
+    id: "pub2",
+    plateforme: "Instagram",
+    format: "story",
+    declencheur: "Déclenché par l'Agenda — Vendanges prévisionnelles le 7 septembre",
+    photos: ["ph1"],
+    legende: "Les vendanges approchent 🍇 Rendez-vous début septembre !",
+    hashtags: ["Vendanges2026"],
+    musique: "Golden Hour — instrumental",
+    date: "2 septembre",
+    statut: "En attente",
+  },
+  {
+    id: "pub3",
+    plateforme: "Facebook",
+    format: "post",
+    declencheur: "Déclenché par Clients — segment Fidèles (3 clients)",
+    photos: ["ph6"],
+    legende:
+      "Une pensée pour nos clients les plus fidèles, qui nous suivent depuis plusieurs millésimes. Merci pour votre confiance — la prochaine dégustation est pour vous.",
+    hashtags: [],
+    date: "10 juillet",
+    statut: "En attente",
+  },
+];
+
+export type EmailCampagne = {
+  id: string;
+  declencheur?: string;
+  objet: string;
+  corps: string;
+  segment: string;
+  nombreDestinataires: number;
+  date: string;
+  statut: "En attente" | "Brouillon";
+};
+
+export const emailCampagnes: EmailCampagne[] = [
+  {
+    id: "mail1",
     declencheur: "Déclenché par Clients — segment dormant (37 clients)",
-    destinataire: "37 clients dormants",
-    texte:
-      "Cela fait un moment que nous ne vous avons pas servi... Nous aimerions vous retrouver au domaine ou dans votre cave : -10% sur votre prochaine commande jusqu'au 31 juillet.",
+    objet: "Cela fait un moment...",
+    corps:
+      "Cela fait un moment que nous ne vous avons pas servi. Nous aimerions vous retrouver au domaine ou dans votre cave : -10% sur votre prochaine commande jusqu'au 31 juillet.",
+    segment: "Clients dormants",
+    nombreDestinataires: clientsDormantsTotal,
     date: "7 juillet",
     statut: "En attente",
   },
   {
-    id: "st3",
-    plateforme: "SMS",
-    declencheur: "Déclenché par Visites — visite de Château Montfleur — Hôtellerie terminée avec vente",
-    destinataire: "Château Montfleur — Hôtellerie",
-    texte:
-      "Merci pour votre visite au domaine ! Nous espérons que la dégustation privée vous a plu. Au plaisir de vous resservir bientôt — Champagne des Trois Clos",
-    date: "8 juillet",
-    statut: "En attente",
-  },
-  {
-    id: "st4",
-    plateforme: "Avis Google",
-    declencheur: "Déclenché par un nouvel avis Google (5★, Élodie R.)",
-    texte:
-      "Merci infiniment pour ce message, Élodie ! C'est un plaisir de vous avoir reçue au domaine. Nous avons hâte de vous faire découvrir notre prochaine cuvée. À très bientôt !",
-    contexte:
-      "★★★★★ Élodie R. — \"Accueil chaleureux, dégustation exceptionnelle et un rosé de saignée à tomber. On reviendra avec des amis !\"",
+    id: "mail2",
+    declencheur: "Déclenché par la Cave — Millésime 2016 en surstock (28 mois de stock)",
+    objet: "Millésime 2016 — offre professionnels",
+    corps:
+      "Notre Millésime 2016 est disponible en quantité limitée à des conditions préférentielles pour nos partenaires professionnels. Contactez-nous avant fin juillet pour réserver vos volumes.",
+    segment: "Clients Pros",
+    nombreDestinataires: clients.filter((c) => c.tags.includes("pro")).length,
     date: "9 juillet",
     statut: "En attente",
   },
 ];
+
+export type AvisGoogle = {
+  id: string;
+  auteur: string;
+  note: number;
+  langue: string;
+  texte: string;
+  reponseProposee: string;
+  date: string;
+  statut: "En attente" | "Publiée";
+};
+
+export const avisGoogle: AvisGoogle[] = [
+  {
+    id: "avis1",
+    auteur: "Élodie R.",
+    note: 5,
+    langue: "Français",
+    texte:
+      "Accueil chaleureux, dégustation exceptionnelle et un rosé de saignée à tomber. On reviendra avec des amis !",
+    reponseProposee:
+      "Merci infiniment pour ce message, Élodie ! C'est un plaisir de vous avoir reçue au domaine. Nous avons hâte de vous faire découvrir notre prochaine cuvée. À très bientôt !",
+    date: "9 juillet",
+    statut: "En attente",
+  },
+  {
+    id: "avis2",
+    auteur: "Marc T.",
+    note: 4,
+    langue: "Français",
+    texte:
+      "Très belle visite, cave impressionnante. Un peu d'attente le samedi mais l'accueil valait le détour.",
+    reponseProposee:
+      "Merci Marc pour ce retour sincère ! Nous prenons note de l'attente du samedi et travaillons à mieux fluidifier l'accueil ce jour-là. Au plaisir de vous revoir.",
+    date: "22 juillet",
+    statut: "En attente",
+  },
+];
+
+export const totalContenusStudioEnAttente =
+  publicationsSociales.filter((p) => p.statut === "En attente").length +
+  emailCampagnes.filter((e) => e.statut === "En attente").length +
+  avisGoogle.filter((a) => a.statut === "En attente").length;
 
 // Charte narrative produite par le test d'identité (6.2) — null tant que
 // le vigneron ne l'a pas encore fait.
@@ -514,10 +594,12 @@ export const photosDomaine = [
   { id: "ph6", legende: "Accueil au caveau" },
 ];
 
+export type PlateformePublicationCalendrier = "Instagram" | "Email" | "Avis Google";
+
 export type EvenementCalendrier = {
   jour: number;
   titre: string;
-  plateforme: ContenuStudio["plateforme"];
+  plateforme: PlateformePublicationCalendrier;
 };
 
 export const calendrierJuillet: EvenementCalendrier[] = [
@@ -675,6 +757,9 @@ export const domaineProfile = {
   nomVigneron: "Antoine Vasseur",
   initiales: "CT",
   sluggPublic: "champagne-des-trois-clos",
+  email: "contact@champagne-des-trois-clos.fr",
+  instagramHandle: "champagnedestroisclos",
+  facebookHandle: "Champagne des Trois Clos",
 };
 
 // Configuration secondaire des visites (5.5) — consultée quelques fois par an.

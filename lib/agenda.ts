@@ -3,7 +3,7 @@ import {
   calendrierJuillet,
   visites,
   type Visite,
-  type ContenuStudio,
+  type PlateformePublicationCalendrier,
 } from "@/lib/mock-data";
 import { moisADeclarer, moisLabel, toDateKey } from "@/lib/cave";
 
@@ -52,7 +52,7 @@ export type EvenementVisite = BaseEvent & {
 export type EvenementPublication = BaseEvent & {
   categorie: "publications";
   titre: string;
-  plateforme: ContenuStudio["plateforme"];
+  plateforme: PlateformePublicationCalendrier;
 };
 
 export type EvenementPersonnel = BaseEvent & {

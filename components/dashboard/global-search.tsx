@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Search, Users, GlassWater, Sparkles } from "lucide-react";
-import { visites, contenusStudio } from "@/lib/mock-data";
+import { visites, publicationsSociales, emailCampagnes, avisGoogle } from "@/lib/mock-data";
 import { useClients } from "@/lib/clients-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClickOutside } from "@/lib/use-click-outside";
@@ -88,18 +88,26 @@ export function GlobalSearch() {
         {
           label: "Contenus",
           icon: Sparkles,
-          results: contenusStudio
-            .filter(
-              (c) =>
-                c.texte.toLowerCase().includes(q) ||
-                c.plateforme.toLowerCase().includes(q)
-            )
-            .slice(0, 3)
-            .map((c) => ({ id: c.id, label: c.plateforme, sublabel: c.texte })),
+          results: [
+            ...publicationsSociales
+              .filter((p) => p.legende.toLowerCase().includes(q) || p.plateforme.toLowerCase().includes(q))
+              .map((p) => ({ id: `pub:${p.id}`, label: `${p.plateforme} — ${p.format}`, sublabel: p.legende })),
+            ...emailCampagnes
+              .filter((e) => e.objet.toLowerCase().includes(q) || e.corps.toLowerCase().includes(q))
+              .map((e) => ({ id: `mail:${e.id}`, label: e.objet, sublabel: e.segment })),
+            ...avisGoogle
+              .filter((a) => a.texte.toLowerCase().includes(q) || a.auteur.toLowerCase().includes(q))
+              .map((a) => ({ id: `avis:${a.id}`, label: `Avis de ${a.auteur}`, sublabel: a.texte })),
+          ].slice(0, 3),
           onSelect: (id: string) => {
-            const contenu = contenusStudio.find((c) => c.id === id);
-            router.push("/dashboard/studio");
-            toast.info(`Ouverture du contenu : ${contenu?.plateforme}`);
+            const [type] = id.split(":");
+            const route =
+              type === "pub"
+                ? "/dashboard/studio/reseaux-sociaux"
+                : type === "mail"
+                  ? "/dashboard/studio/mail"
+                  : "/dashboard/studio/avis";
+            router.push(route);
           },
         },
       ].filter((group) => group.results.length > 0)
