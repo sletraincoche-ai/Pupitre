@@ -1,10 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
+import { Receipt, Search, Upload } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ImportWizard } from "@/components/clients/import-wizard";
 import {
   Table,
   TableBody,
@@ -13,7 +17,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { clients, type Client, type ClientTag } from "@/lib/mock-data";
+import { type Client, type ClientTag } from "@/lib/mock-data";
+import { getVentesComptoirDuMois, moisADeclarer } from "@/lib/cave";
+import { useCave } from "@/lib/cave-context";
+import { useClients } from "@/lib/clients-context";
 import { cn } from "@/lib/utils";
 
 type FilterKey = "tous" | ClientTag;
@@ -38,10 +45,6 @@ function relancer(client: Client) {
   });
 }
 
-function voirFiche(client: Client) {
-  toast.info(`Fiche ouverte : ${client.nom}`);
-}
-
 function ClientActions({ client }: { client: Client }) {
   return (
     <>
@@ -54,44 +57,79 @@ function ClientActions({ client }: { client: Client }) {
           Relancer
         </Button>
       )}
-      <Button variant="outline" size="sm" onClick={() => voirFiche(client)}>
-        Voir la fiche
-      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        nativeButton={false}
+        render={<Link href={`/dashboard/clients/${client.id}`}>Voir la fiche</Link>}
+      />
     </>
   );
 }
 
 export function CrmView() {
+  const { mouvements } = useCave();
+  const { clients, ajouterClients } = useClients();
   const [activeFilter, setActiveFilter] = useState<FilterKey>("tous");
+  const [recherche, setRecherche] = useState("");
+  const [importOuvert, setImportOuvert] = useState(false);
 
   const filteredClients = useMemo(() => {
-    if (activeFilter === "tous") return clients;
-    return clients.filter((client) => client.tags.includes(activeFilter));
-  }, [activeFilter]);
+    const q = recherche.trim().toLowerCase();
+    return clients.filter((client) => {
+      if (activeFilter !== "tous" && !client.tags.includes(activeFilter)) return false;
+      if (
+        q &&
+        !client.nom.toLowerCase().includes(q) &&
+        !client.email.toLowerCase().includes(q) &&
+        !client.pays.toLowerCase().includes(q)
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [clients, activeFilter, recherche]);
+
+  const reconciliation = getVentesComptoirDuMois(mouvements, moisADeclarer());
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center gap-2">
-        {filters.map((filter) => {
-          const isActive = activeFilter === filter.key;
-          return (
-            <button
-              key={filter.key}
-              onClick={() => setActiveFilter(filter.key)}
-              className={cn(
-                "rounded-full border px-4 py-1.5 text-sm font-medium transition-colors",
-                isActive
-                  ? "border-vine bg-vine text-white"
-                  : "border-border bg-card text-stone hover:border-vine/40 hover:text-vine"
-              )}
-            >
-              {filter.label}
-            </button>
-          );
-        })}
-        <span className="ml-auto text-sm text-stone">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-stone" />
+          <Input
+            value={recherche}
+            onChange={(e) => setRecherche(e.target.value)}
+            placeholder="Rechercher un nom, un e-mail, un pays…"
+            className="pl-9"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {filters.map((filter) => {
+            const isActive = activeFilter === filter.key;
+            return (
+              <button
+                key={filter.key}
+                onClick={() => setActiveFilter(filter.key)}
+                className={cn(
+                  "rounded-full border px-4 py-1.5 text-sm font-medium transition-colors",
+                  isActive
+                    ? "border-vine bg-vine text-white"
+                    : "border-border bg-card text-stone hover:border-vine/40 hover:text-vine"
+                )}
+              >
+                {filter.label}
+              </button>
+            );
+          })}
+        </div>
+        <span className="text-sm text-stone sm:ml-auto">
           {filteredClients.length} client{filteredClients.length > 1 ? "s" : ""}
         </span>
+        <Button variant="outline" onClick={() => setImportOuvert(true)}>
+          <Upload className="size-4" />
+          Importer
+        </Button>
       </div>
 
       {/* Tableau (>= 640px) */}
@@ -203,6 +241,22 @@ export function CrmView() {
           </p>
         )}
       </div>
+
+      <div className="flex items-center gap-2 self-start rounded-lg border border-border/70 bg-card px-3 py-1.5 text-sm text-stone">
+        <Receipt className="size-4 text-gold" />
+        {reconciliation.nombre} mouvement{reconciliation.nombre > 1 ? "s" : ""} ce mois non
+        rattaché{reconciliation.nombre > 1 ? "s" : ""} à un client ·{" "}
+        <span className="font-medium text-ink">
+          {reconciliation.montant.toLocaleString("fr-FR")} €
+        </span>
+      </div>
+
+      <ImportWizard
+        open={importOuvert}
+        onClose={() => setImportOuvert(false)}
+        clientsExistants={clients}
+        onImporter={ajouterClients}
+      />
     </div>
   );
 }

@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Search, Users, GlassWater, Sparkles } from "lucide-react";
-import { clients, visites, contenusStudio } from "@/lib/mock-data";
+import { visites, contenusStudio } from "@/lib/mock-data";
+import { useClients } from "@/lib/clients-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClickOutside } from "@/lib/use-click-outside";
 
@@ -17,6 +18,7 @@ type ResultGroup = {
 
 export function GlobalSearch() {
   const router = useRouter();
+  const { clients } = useClients();
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -67,9 +69,7 @@ export function GlobalSearch() {
             .slice(0, 3)
             .map((c) => ({ id: c.id, label: c.nom, sublabel: c.pays })),
           onSelect: (id: string) => {
-            const client = clients.find((c) => c.id === id);
-            router.push("/dashboard/clients");
-            toast.info(`Ouverture de la fiche : ${client?.nom}`);
+            router.push(`/dashboard/clients/${id}`);
           },
         },
         {

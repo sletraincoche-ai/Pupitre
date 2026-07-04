@@ -10,7 +10,6 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -19,16 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { MovementQuickEntry } from "@/components/cave/movement-quick-entry";
-import { MovementDetailModal } from "@/components/cave/movement-detail-modal";
+import { MovementsTable, nomCuvee } from "@/components/cave/movements-table";
 import type { Cuvee, Mouvement, MouvementType } from "@/lib/mock-data";
 import {
   getMoisDisponibles,
@@ -37,25 +28,12 @@ import {
   moisADeclarer,
   moisLabel,
 } from "@/lib/cave";
-import { cn } from "@/lib/utils";
-
-const typeBadgeStyles: Record<MouvementType, string> = {
-  entree: "bg-vine/10 text-vine",
-  sortie: "bg-gold/15 text-gold",
-  perte: "bg-destructive/10 text-destructive",
-};
 
 const typeLabels: Record<MouvementType, string> = {
   entree: "Entrée",
   sortie: "Sortie",
   perte: "Perte",
 };
-
-function nomCuvee(cuvees: Cuvee[], cuveeId: string) {
-  const c = cuvees.find((c) => c.id === cuveeId);
-  if (!c) return "—";
-  return c.millesime !== "NV" ? `${c.nom} ${c.millesime}` : c.nom;
-}
 
 function exportCsv(mouvements: Mouvement[], cuvees: Cuvee[]) {
   const header = [
@@ -109,7 +87,6 @@ export function MovementsRegistry({
   const [filterCuvee, setFilterCuvee] = useState("tous");
   const [filterType, setFilterType] = useState("tous");
   const [filterMois, setFilterMois] = useState("tous");
-  const [detail, setDetail] = useState<Mouvement | null>(null);
 
   const moisDisponibles = getMoisDisponibles(mouvements);
   const moisCourant = moisADeclarer();
@@ -246,81 +223,8 @@ export function MovementsRegistry({
           </Button>
         </div>
 
-        {/* Tableau (>= 640px) */}
-        <div className="hidden overflow-hidden rounded-xl border border-border/70 sm:block">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="pl-4">Date</TableHead>
-                <TableHead>Cuvée</TableHead>
-                <TableHead>Quantité</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead className="pr-4">Origine</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mouvementsFiltres.map((m) => (
-                <TableRow
-                  key={m.id}
-                  className="cursor-pointer"
-                  onClick={() => setDetail(m)}
-                >
-                  <TableCell className="pl-4 whitespace-nowrap text-stone">
-                    {m.date.split("-").reverse().join("/")} · {m.heure}
-                  </TableCell>
-                  <TableCell className="text-ink">{nomCuvee(cuvees, m.cuveeId)}</TableCell>
-                  <TableCell className="text-ink">{m.quantite}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={cn("border-transparent", typeBadgeStyles[m.type])}>
-                      {typeLabels[m.type]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="pr-4 text-stone">{m.origine}</TableCell>
-                </TableRow>
-              ))}
-              {mouvementsFiltres.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center text-stone">
-                    Aucun mouvement pour ces filtres.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Cartes empilées (< 640px) */}
-        <div className="flex flex-col gap-3 sm:hidden">
-          {mouvementsFiltres.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => setDetail(m)}
-              className="rounded-xl border border-border/70 bg-background p-4 text-left"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <p className="font-medium text-ink">{nomCuvee(cuvees, m.cuveeId)}</p>
-                <Badge variant="outline" className={cn("shrink-0 border-transparent", typeBadgeStyles[m.type])}>
-                  {typeLabels[m.type]}
-                </Badge>
-              </div>
-              <p className="mt-1 text-sm text-stone">
-                {m.date.split("-").reverse().join("/")} · {m.heure} — {m.quantite} bout. — {m.origine}
-              </p>
-            </button>
-          ))}
-          {mouvementsFiltres.length === 0 && (
-            <p className="rounded-xl border border-dashed border-border/70 py-10 text-center text-stone">
-              Aucun mouvement pour ces filtres.
-            </p>
-          )}
-        </div>
+        <MovementsTable mouvements={mouvementsFiltres} cuvees={cuvees} />
       </CardContent>
-
-      <MovementDetailModal
-        mouvement={detail}
-        cuvee={cuvees.find((c) => c.id === detail?.cuveeId)}
-        onClose={() => setDetail(null)}
-      />
     </Card>
   );
 }
