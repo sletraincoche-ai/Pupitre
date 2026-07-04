@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Send, CalendarClock, FileText } from "lucide-react";
+import { ArrowLeft, Plus, Send, CalendarClock, FileText, Sparkles } from "lucide-react";
 import { InstagramBadge, FacebookBadge } from "@/components/studio/brand-icons";
 import { PostPreview } from "@/components/studio/post-preview";
 import { QueueCard } from "@/components/studio/reseaux/queue-card";
 import { EditPanel, type ContenuEdite } from "@/components/studio/reseaux/edit-panel";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
+import { useIdentity } from "@/lib/identity-context";
 import {
   publicationsSociales as publicationsInitiales,
   type PublicationSociale,
@@ -38,6 +39,7 @@ const vide: ContenuEdite = {
 };
 
 export default function ReseauxSociauxPage() {
+  const { charte } = useIdentity();
   const [queue, setQueue] = useState(publicationsInitiales);
   const [sourceId, setSourceId] = useState<string | null>(queue[0]?.id ?? null);
   const [edited, setEdited] = useState<ContenuEdite | null>(queue[0] ? versContenuEdite(queue[0]) : null);
@@ -49,7 +51,10 @@ export default function ReseauxSociauxPage() {
 
   function creerManuellement() {
     setSourceId(null);
-    setEdited({ ...vide });
+    setEdited({
+      ...vide,
+      hashtags: charte?.vocabulaire.map((v) => v.replace(/[^a-zA-Z0-9À-ÿ]/g, "")).filter(Boolean) ?? [],
+    });
   }
 
   function retirerDeLaFile(message: string) {
@@ -177,6 +182,13 @@ export default function ReseauxSociauxPage() {
                 </div>
 
                 <div className="flex flex-col gap-6">
+                  {charte && (
+                    <p className="flex items-center gap-1.5 rounded-lg bg-gold/10 px-3 py-2 text-xs font-medium text-gold">
+                      <Sparkles className="size-3.5" />
+                      Généré selon votre charte narrative — ton : {charte.ton}
+                    </p>
+                  )}
+
                   <EditPanel edited={edited} onChange={setEdited} />
 
                   <div className="flex flex-wrap gap-2 border-t border-border/60 pt-5">

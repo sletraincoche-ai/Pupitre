@@ -2,7 +2,7 @@ import { Mail, ArrowRight } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { StudioTile } from "@/components/studio/studio-tile";
 import { InstagramBadge, FacebookBadge } from "@/components/studio/brand-icons";
-import { IdentityTest } from "@/components/studio/identity-test";
+import { IdentiteHomeCard } from "@/components/studio/identite-home-card";
 import { ImageBank } from "@/components/studio/image-bank";
 import {
   publicationsSociales,
@@ -94,15 +94,13 @@ export default function StudioPage() {
         </StudioTile>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 border-t border-border/60 pt-8 lg:grid-cols-2">
-        <div>
-          <h2 className="mb-3 font-heading text-lg text-ink">Test d&apos;identité</h2>
-          <IdentityTest />
-        </div>
-        <div>
-          <h2 className="mb-3 font-heading text-lg text-ink">Banque d&apos;images</h2>
-          <ImageBank />
-        </div>
+      <div className="border-t border-border/60 pt-8">
+        <IdentiteHomeCard />
+      </div>
+
+      <div>
+        <h2 className="mb-3 font-heading text-lg text-ink">Banque d&apos;images</h2>
+        <ImageBank />
       </div>
     </div>
   );

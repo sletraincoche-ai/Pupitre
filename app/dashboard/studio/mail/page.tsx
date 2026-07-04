@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Send, TestTube2, FileText } from "lucide-react";
+import { ArrowLeft, Plus, Send, TestTube2, FileText, Sparkles } from "lucide-react";
 import { InboxPreview } from "@/components/studio/mail/inbox-preview";
 import { MailQueueCard } from "@/components/studio/mail/mail-queue-card";
 import {
@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { useClients } from "@/lib/clients-context";
+import { useIdentity } from "@/lib/identity-context";
 import { emailCampagnes as emailCampagnesInitiales, type EmailCampagne } from "@/lib/mock-data";
 
 function versEmailEdite(e: EmailCampagne): EmailEdite {
@@ -22,6 +23,7 @@ function versEmailEdite(e: EmailCampagne): EmailEdite {
 
 export default function MailPage() {
   const { clients } = useClients();
+  const { charte } = useIdentity();
   const [queue, setQueue] = useState(emailCampagnesInitiales);
   const [sourceId, setSourceId] = useState<string | null>(queue[0]?.id ?? null);
   const [edited, setEdited] = useState<EmailEdite | null>(queue[0] ? versEmailEdite(queue[0]) : null);
@@ -104,6 +106,13 @@ export default function MailPage() {
               </div>
 
               <div className="flex flex-col gap-6">
+                {charte && (
+                  <p className="flex items-center gap-1.5 rounded-lg bg-gold/10 px-3 py-2 text-xs font-medium text-gold">
+                    <Sparkles className="size-3.5" />
+                    Généré selon votre charte narrative — ton : {charte.ton}
+                  </p>
+                )}
+
                 <MailEditPanel edited={edited} onChange={setEdited} onChangerSegment={changerSegment} />
 
                 <div className="flex flex-wrap gap-2 border-t border-border/60 pt-5">
