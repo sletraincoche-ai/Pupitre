@@ -284,13 +284,132 @@ export const activites: { id: string; type: ActiviteType; texte: string; temps: 
   },
 ];
 
-export const stockCuvees = [
-  { id: "s1", nom: "Brut Réserve", pourcentage: 72, bouteilles: 4320, moisRestants: 8 },
-  { id: "s2", nom: "Blanc de Blancs", pourcentage: 18, bouteilles: 540, moisRestants: 1.5 },
-  { id: "s3", nom: "Rosé de Saignée", pourcentage: 45, bouteilles: 1290, moisRestants: 4 },
-  { id: "s4", nom: "Millésime 2016", pourcentage: 61, bouteilles: 980, moisRestants: 10 },
-  { id: "s5", nom: "Extra-Brut Vigneron", pourcentage: 33, bouteilles: 760, moisRestants: 3 },
+// --- Cave : référentiel cuvées + registre des mouvements ---
+// Le stock affiché dans toute l'app (dashboard, module Cave) est calculé
+// depuis `cuvees` (solde d'ouverture + réservations/allocations) et
+// `mouvements` (le registre) par les sélecteurs de /lib/cave.ts — jamais
+// une valeur statique séparée.
+
+// "Aujourd'hui" fictif de l'application, partagé par tous les calculs
+// (jours avant échéance DRM, etc.).
+export const AUJOURDHUI = new Date(2026, 6, 3);
+
+export type Cuvee = {
+  id: string;
+  nom: string;
+  millesime: string; // "NV" (non millésimé) ou année
+  prixVenteDefaut: number;
+  stockInitial: number; // bouteilles en cave au 1er juin 2026
+  reserve: number; // commandes non livrées
+  alloue: number; // engagé sur salons / export
+};
+
+export const cuvees: Cuvee[] = [
+  {
+    id: "cv1",
+    nom: "Brut Réserve",
+    millesime: "NV",
+    prixVenteDefaut: 28,
+    stockInitial: 4460,
+    reserve: 120,
+    alloue: 200,
+  },
+  {
+    id: "cv2",
+    nom: "Blanc de Blancs",
+    millesime: "NV",
+    prixVenteDefaut: 34,
+    stockInitial: 430,
+    reserve: 40,
+    alloue: 250,
+  },
+  {
+    id: "cv3",
+    nom: "Rosé de Saignée",
+    millesime: "NV",
+    prixVenteDefaut: 32,
+    stockInitial: 1350,
+    reserve: 60,
+    alloue: 90,
+  },
+  {
+    id: "cv4",
+    nom: "Millésime",
+    millesime: "2016",
+    prixVenteDefaut: 52,
+    stockInitial: 950,
+    reserve: 30,
+    alloue: 50,
+  },
+  {
+    id: "cv5",
+    nom: "Extra-Brut Vigneron",
+    millesime: "NV",
+    prixVenteDefaut: 30,
+    stockInitial: 700,
+    reserve: 20,
+    alloue: 350,
+  },
 ];
+
+export type MouvementType = "entree" | "sortie" | "perte";
+
+export type Mouvement = {
+  id: string;
+  date: string; // AAAA-MM-JJ
+  heure: string; // HH:mm
+  type: MouvementType;
+  cuveeId: string;
+  quantite: number; // bouteilles
+  origine: string;
+  clientId?: string;
+  clientNom?: string;
+  prixUnitaire?: number;
+  auteur: string;
+};
+
+export const mouvements: Mouvement[] = [
+  { id: "m1", date: "2026-06-01", heure: "08:30", type: "entree", cuveeId: "cv1", quantite: 320, origine: "Dégorgement", auteur: "Antoine Vasseur" },
+  { id: "m2", date: "2026-06-01", heure: "09:00", type: "entree", cuveeId: "cv3", quantite: 120, origine: "Dégorgement", auteur: "Antoine Vasseur" },
+  { id: "m3", date: "2026-06-02", heure: "10:15", type: "entree", cuveeId: "cv5", quantite: 60, origine: "Dégorgement", auteur: "Antoine Vasseur" },
+  { id: "m4", date: "2026-06-02", heure: "14:20", type: "sortie", cuveeId: "cv1", quantite: 6, origine: "Vente comptoir", prixUnitaire: 28, auteur: "Antoine Vasseur" },
+  { id: "m5", date: "2026-06-03", heure: "11:00", type: "sortie", cuveeId: "cv2", quantite: 4, origine: "Vente comptoir", prixUnitaire: 34, auteur: "Antoine Vasseur" },
+  { id: "m6", date: "2026-06-03", heure: "16:45", type: "sortie", cuveeId: "cv1", quantite: 48, origine: "Vente client", clientId: "c5", clientNom: "Restaurant Le Clos Doré", prixUnitaire: 26, auteur: "Antoine Vasseur" },
+  { id: "m7", date: "2026-06-04", heure: "09:40", type: "sortie", cuveeId: "cv4", quantite: 6, origine: "Vente comptoir", prixUnitaire: 52, auteur: "Antoine Vasseur" },
+  { id: "m8", date: "2026-06-05", heure: "13:10", type: "sortie", cuveeId: "cv3", quantite: 40, origine: "Vente client", clientId: "c12", clientNom: "Château Montfleur — Hôtellerie", prixUnitaire: 30, auteur: "Antoine Vasseur" },
+  { id: "m9", date: "2026-06-06", heure: "10:30", type: "sortie", cuveeId: "cv1", quantite: 12, origine: "Vente comptoir", prixUnitaire: 28, auteur: "Louis Vasseur" },
+  { id: "m10", date: "2026-06-07", heure: "15:00", type: "sortie", cuveeId: "cv2", quantite: 6, origine: "Vente comptoir", prixUnitaire: 34, auteur: "Antoine Vasseur" },
+  { id: "m11", date: "2026-06-08", heure: "11:20", type: "sortie", cuveeId: "cv1", quantite: 100, origine: "Export", clientId: "c8", clientNom: "Épicerie Fine Bacchus", prixUnitaire: 24, auteur: "Antoine Vasseur" },
+  { id: "m12", date: "2026-06-09", heure: "14:35", type: "sortie", cuveeId: "cv5", quantite: 35, origine: "Vente client", clientId: "c8", clientNom: "Épicerie Fine Bacchus", prixUnitaire: 27, auteur: "Antoine Vasseur" },
+  { id: "m13", date: "2026-06-10", heure: "09:50", type: "sortie", cuveeId: "cv2", quantite: 40, origine: "Vente client", clientId: "c8", clientNom: "Épicerie Fine Bacchus", prixUnitaire: 30, auteur: "Antoine Vasseur" },
+  { id: "m14", date: "2026-06-11", heure: "17:20", type: "sortie", cuveeId: "cv1", quantite: 8, origine: "Vente comptoir", prixUnitaire: 28, auteur: "Antoine Vasseur" },
+  { id: "m15", date: "2026-06-12", heure: "10:05", type: "sortie", cuveeId: "cv1", quantite: 40, origine: "Salon", prixUnitaire: 25, auteur: "Antoine Vasseur" },
+  { id: "m16", date: "2026-06-13", heure: "12:40", type: "sortie", cuveeId: "cv3", quantite: 15, origine: "Salon", prixUnitaire: 28, auteur: "Antoine Vasseur" },
+  { id: "m17", date: "2026-06-14", heure: "16:10", type: "sortie", cuveeId: "cv4", quantite: 24, origine: "Vente client", clientId: "c10", clientNom: "David Okafor", prixUnitaire: 48, auteur: "Antoine Vasseur" },
+  { id: "m18", date: "2026-06-15", heure: "09:25", type: "sortie", cuveeId: "cv1", quantite: 14, origine: "Vente comptoir", prixUnitaire: 28, auteur: "Antoine Vasseur" },
+  { id: "m19", date: "2026-06-16", heure: "11:50", type: "sortie", cuveeId: "cv5", quantite: 20, origine: "Vente client", clientId: "c8", clientNom: "Épicerie Fine Bacchus", prixUnitaire: 27, auteur: "Antoine Vasseur" },
+  { id: "m20", date: "2026-06-18", heure: "15:30", type: "sortie", cuveeId: "cv1", quantite: 60, origine: "Vente client", clientId: "c12", clientNom: "Château Montfleur — Hôtellerie", prixUnitaire: 25, auteur: "Antoine Vasseur" },
+  { id: "m21", date: "2026-06-19", heure: "10:15", type: "perte", cuveeId: "cv2", quantite: 5, origine: "Casse", auteur: "Antoine Vasseur" },
+  { id: "m22", date: "2026-06-20", heure: "14:00", type: "sortie", cuveeId: "cv1", quantite: 10, origine: "Vente comptoir", prixUnitaire: 28, auteur: "Antoine Vasseur" },
+  { id: "m23", date: "2026-06-21", heure: "09:45", type: "sortie", cuveeId: "cv2", quantite: 20, origine: "Salon", prixUnitaire: 32, auteur: "Antoine Vasseur" },
+  { id: "m24", date: "2026-06-22", heure: "11:30", type: "perte", cuveeId: "cv1", quantite: 10, origine: "Casse", auteur: "Antoine Vasseur" },
+  { id: "m25", date: "2026-06-23", heure: "16:20", type: "sortie", cuveeId: "cv3", quantite: 30, origine: "Vente comptoir", prixUnitaire: 32, auteur: "Antoine Vasseur" },
+  { id: "m26", date: "2026-06-25", heure: "10:40", type: "sortie", cuveeId: "cv1", quantite: 60, origine: "Vente comptoir", prixUnitaire: 28, auteur: "Antoine Vasseur" },
+  { id: "m27", date: "2026-06-27", heure: "13:15", type: "sortie", cuveeId: "cv5", quantite: 10, origine: "Vente comptoir", prixUnitaire: 30, auteur: "Antoine Vasseur" },
+  { id: "m28", date: "2026-06-28", heure: "09:30", type: "sortie", cuveeId: "cv1", quantite: 40, origine: "Vente comptoir", prixUnitaire: 28, auteur: "Antoine Vasseur" },
+  { id: "m29", date: "2026-07-01", heure: "10:00", type: "sortie", cuveeId: "cv1", quantite: 8, origine: "Vente comptoir", prixUnitaire: 28, auteur: "Antoine Vasseur" },
+  { id: "m30", date: "2026-07-02", heure: "14:30", type: "sortie", cuveeId: "cv2", quantite: 3, origine: "Vente comptoir", prixUnitaire: 34, auteur: "Antoine Vasseur" },
+  { id: "m31", date: "2026-07-03", heure: "09:15", type: "entree", cuveeId: "cv1", quantite: 200, origine: "Dégorgement", auteur: "Antoine Vasseur" },
+  { id: "m32", date: "2026-07-03", heure: "16:00", type: "sortie", cuveeId: "cv3", quantite: 12, origine: "Vente comptoir", prixUnitaire: 32, auteur: "Antoine Vasseur" },
+];
+
+export const drmHistorique = [
+  { mois: "Mai 2026", preparéeLe: "6 juin 2026" },
+  { mois: "Avril 2026", preparéeLe: "9 mai 2026" },
+  { mois: "Mars 2026", preparéeLe: "7 avril 2026" },
+];
+
+export const numeroAccise = "51-00512-A";
 
 export const briefHebdomadaire = [
   {

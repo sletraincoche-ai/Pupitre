@@ -6,7 +6,7 @@ import {
   LayoutDashboard,
   Users,
   GlassWater,
-  PackageSearch,
+  Warehouse,
   Sparkles,
   Globe2,
   Settings,
@@ -34,7 +34,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
       { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
       { href: "/dashboard/clients", label: "Clients", icon: Users },
       { href: "/dashboard/visites", label: "Visites", icon: GlassWater },
-      { href: "/dashboard/stock", label: "Stock", icon: PackageSearch },
+      { href: "/dashboard/cave", label: "Cave", icon: Warehouse },
     ],
   },
   {

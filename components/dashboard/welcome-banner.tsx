@@ -4,9 +4,17 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { domaineProfile, contenusStudio } from "@/lib/mock-data";
+import { domaineProfile, contenusStudio, AUJOURDHUI } from "@/lib/mock-data";
 
-const AUJOURDHUI = "Vendredi 3 juillet 2026";
+const dateDuJour = (() => {
+  const formatted = AUJOURDHUI.toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+})();
 
 export function WelcomeBanner() {
   const [salutation, setSalutation] = useState("Bonjour");
@@ -25,7 +33,7 @@ export function WelcomeBanner() {
         <h1 className="font-heading text-3xl text-ink">
           {salutation}, {prenom} — {domaineProfile.nomDomaine}
         </h1>
-        <p className="mt-1 text-stone">{AUJOURDHUI}</p>
+        <p className="mt-1 text-stone">{dateDuJour}</p>
       </div>
 
       {contenusEnAttente > 0 && (

@@ -66,7 +66,7 @@ export function KpiCards() {
         <KpiTrend kpi={ca} />
       </KpiCardShell>
 
-      <KpiCardShell href="/dashboard/stock">
+      <KpiCardShell href="/dashboard/cave">
         <KpiLabel>{bouteilles.label}</KpiLabel>
         <p className="mt-2 font-heading text-3xl text-ink">{bouteilles.value}</p>
         <KpiTrend kpi={bouteilles} />
