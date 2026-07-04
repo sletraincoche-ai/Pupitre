@@ -498,6 +498,7 @@ export const calendrierJuillet: EvenementCalendrier[] = [
 export type Visite = {
   id: string;
   client: string;
+  clientId?: string;
   date: string;
   heure: string;
   personnes: number;
@@ -507,9 +508,44 @@ export type Visite = {
 };
 
 export const visites: Visite[] = [
+  // Visites passées (juin), pour démontrer le marquage "Terminée" automatique
+  {
+    id: "v7",
+    client: "Épicerie Fine Bacchus",
+    clientId: "c8",
+    date: "15 juin 2026",
+    heure: "10h00",
+    personnes: 3,
+    langue: "Français",
+    formule: "Découverte",
+    statut: "Confirmée",
+  },
+  {
+    id: "v8",
+    client: "Château Montfleur — Hôtellerie",
+    clientId: "c12",
+    date: "17 juin 2026",
+    heure: "11h00",
+    personnes: 5,
+    langue: "Français",
+    formule: "Dégustation privée",
+    statut: "Confirmée",
+  },
+  {
+    id: "v9",
+    client: "Groupe Tokyo Cellars",
+    clientId: "c3",
+    date: "25 juin 2026",
+    heure: "14h00",
+    personnes: 6,
+    langue: "Anglais",
+    formule: "Prestige",
+    statut: "Confirmée",
+  },
   {
     id: "v1",
     client: "Famille Whitmore",
+    clientId: "c2",
     date: "14 juillet 2026",
     heure: "10h30",
     personnes: 4,
@@ -520,6 +556,7 @@ export const visites: Visite[] = [
   {
     id: "v2",
     client: "Groupe Tokyo Cellars",
+    clientId: "c3",
     date: "16 juillet 2026",
     heure: "14h00",
     personnes: 8,
@@ -530,6 +567,7 @@ export const visites: Visite[] = [
   {
     id: "v3",
     client: "Sofia Bergqvist",
+    clientId: "c6",
     date: "19 juillet 2026",
     heure: "11h00",
     personnes: 2,
@@ -540,6 +578,7 @@ export const visites: Visite[] = [
   {
     id: "v4",
     client: "Comité d'entreprise Delacroix & Fils",
+    clientId: "c4",
     date: "22 juillet 2026",
     heure: "15h30",
     personnes: 15,
@@ -550,6 +589,7 @@ export const visites: Visite[] = [
   {
     id: "v5",
     client: "David Okafor",
+    clientId: "c10",
     date: "25 juillet 2026",
     heure: "09h30",
     personnes: 3,
@@ -560,6 +600,7 @@ export const visites: Visite[] = [
   {
     id: "v6",
     client: "Restaurant Le Clos Doré",
+    clientId: "c5",
     date: "27 juillet 2026",
     heure: "16h00",
     personnes: 6,
@@ -568,6 +609,18 @@ export const visites: Visite[] = [
     statut: "Annulée",
   },
 ];
+
+// Historique du visiteur, pour l'affichage "3e visite, a acheté 18 btl en
+// 2025" (5.1). `bouteilles2025` est une donnée historique antérieure au
+// registre de la Cave (2026) — les autres volumes d'achat viennent, eux,
+// d'un calcul en direct sur `mouvements`.
+export const historiqueVisiteurs: Record<
+  string,
+  { visitesAnterieures: number; bouteilles2025?: number }
+> = {
+  c2: { visitesAnterieures: 2, bouteilles2025: 18 },
+  c10: { visitesAnterieures: 1 },
+};
 
 export const visitesStats = {
   totalVisiteurs: 38,
@@ -583,7 +636,16 @@ export const domaineProfile = {
   nomDomaine: "Champagne des Trois Clos",
   nomVigneron: "Antoine Vasseur",
   initiales: "CT",
+  sluggPublic: "champagne-des-trois-clos",
 };
+
+// Configuration secondaire des visites (5.5) — consultée quelques fois par an.
+export const typesVisite = [
+  { formule: "Découverte", dureeMinutes: 45, prixParPersonne: 15, jaugeMax: 20 },
+  { formule: "Prestige", dureeMinutes: 90, prixParPersonne: 35, jaugeMax: 12 },
+  { formule: "Vendanges", dureeMinutes: 120, prixParPersonne: 45, jaugeMax: 10 },
+  { formule: "Dégustation privée", dureeMinutes: 60, prixParPersonne: 60, jaugeMax: 8 },
+];
 
 export type Notification = {
   id: string;

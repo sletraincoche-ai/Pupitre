@@ -36,6 +36,8 @@ export function MovementQuickEntry({
   type,
   cuvees,
   mouvements,
+  clientPreselectionne,
+  showHeader = true,
   onCreateCuvee,
   onSubmit,
   onCancel,
@@ -43,25 +45,42 @@ export function MovementQuickEntry({
   type: MouvementType;
   cuvees: Cuvee[];
   mouvements: Mouvement[];
+  clientPreselectionne?: { id: string; nom: string };
+  showHeader?: boolean;
   onCreateCuvee: (nom: string) => Cuvee;
   onSubmit: (mouvement: Mouvement) => void;
   onCancel: () => void;
 }) {
-  const [mode, setMode] = useState<"comptoir" | "client">("comptoir");
+  const [mode, setMode] = useState<"comptoir" | "client">(
+    clientPreselectionne ? "client" : "comptoir"
+  );
   const [cuveeId, setCuveeId] = useState<string | null>(null);
   const [cuveeNom, setCuveeNom] = useState("");
   const [quantite, setQuantite] = useState("");
   const [prixUnitaire, setPrixUnitaire] = useState("");
-  const [clientId, setClientId] = useState<string | undefined>(undefined);
-  const [clientNom, setClientNom] = useState("");
+  const [clientId, setClientId] = useState<string | undefined>(clientPreselectionne?.id);
+  const [clientNom, setClientNom] = useState(clientPreselectionne?.nom ?? "");
   const [origine, setOrigine] = useState(
     type !== "sortie" ? origineOptions[type][0] : ""
   );
 
+  function updatePrix(cuvee: Cuvee, pourClientId: string | undefined) {
+    if (pourClientId) {
+      const dernierAchat = [...mouvements]
+        .filter((m) => m.clientId === pourClientId && m.cuveeId === cuvee.id && m.prixUnitaire)
+        .sort((a, b) => `${b.date}T${b.heure}`.localeCompare(`${a.date}T${a.heure}`))[0];
+      if (dernierAchat?.prixUnitaire) {
+        setPrixUnitaire(String(dernierAchat.prixUnitaire));
+        return;
+      }
+    }
+    if (type === "sortie") setPrixUnitaire(String(cuvee.prixVenteDefaut));
+  }
+
   function selectCuvee(cuvee: Cuvee) {
     setCuveeId(cuvee.id);
     setCuveeNom(cuvee.nom);
-    if (type === "sortie") setPrixUnitaire(String(cuvee.prixVenteDefaut));
+    updatePrix(cuvee, clientId);
   }
 
   function creerCuvee(nom: string) {
@@ -75,10 +94,8 @@ export function MovementQuickEntry({
     setClientId(client.id);
     setClientNom(client.nom);
     if (cuveeId) {
-      const dernierAchat = [...mouvements]
-        .filter((m) => m.clientId === client.id && m.cuveeId === cuveeId && m.prixUnitaire)
-        .sort((a, b) => `${b.date}T${b.heure}`.localeCompare(`${a.date}T${a.heure}`))[0];
-      if (dernierAchat?.prixUnitaire) setPrixUnitaire(String(dernierAchat.prixUnitaire));
+      const cuvee = cuvees.find((c) => c.id === cuveeId);
+      if (cuvee) updatePrix(cuvee, client.id);
     }
   }
 
@@ -117,17 +134,19 @@ export function MovementQuickEntry({
   const clientItems = clients.map((c) => ({ id: c.id, label: c.nom, sublabel: c.pays }));
 
   return (
-    <div className="rounded-xl border border-gold/40 bg-gold/5 p-4">
-      <div className="flex items-center justify-between">
-        <p className="font-heading text-base text-ink">{titres[type]}</p>
-        <button
-          onClick={onCancel}
-          aria-label="Annuler"
-          className="flex size-7 items-center justify-center rounded-md text-stone hover:bg-muted"
-        >
-          <X className="size-4" />
-        </button>
-      </div>
+    <div className={showHeader ? "rounded-xl border border-gold/40 bg-gold/5 p-4" : ""}>
+      {showHeader && (
+        <div className="flex items-center justify-between">
+          <p className="font-heading text-base text-ink">{titres[type]}</p>
+          <button
+            onClick={onCancel}
+            aria-label="Annuler"
+            className="flex size-7 items-center justify-center rounded-md text-stone hover:bg-muted"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
 
       {type === "sortie" && (
         <div className="mt-3 flex gap-2">

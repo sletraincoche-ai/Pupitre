@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { TriangleAlert } from "lucide-react";
 import {
@@ -8,7 +10,7 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
-import { cuvees, mouvements } from "@/lib/mock-data";
+import { useCave } from "@/lib/cave-context";
 import { getStockCalcule, type StockCuveeCalcule } from "@/lib/cave";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +23,7 @@ const barColors: Record<StockCuveeCalcule["statut"], string> = {
 const REFERENCE_MOIS = 18; // écoulement au-delà duquel la barre est pleine
 
 export function StockBars() {
+  const { cuvees, mouvements } = useCave();
   const stock = getStockCalcule(cuvees, mouvements);
 
   return (

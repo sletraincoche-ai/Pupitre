@@ -2,18 +2,19 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { PartyPopper } from "lucide-react";
+import { PartyPopper, Star } from "lucide-react";
 import {
   Card,
   CardHeader,
   CardTitle,
   CardDescription,
   CardContent,
+  CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
-import { briefHebdomadaire } from "@/lib/mock-data";
+import { briefHebdomadaire, visitesStats } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 export function WeeklyBrief() {
@@ -89,6 +90,11 @@ export function WeeklyBrief() {
           </ol>
         )}
       </CardContent>
+      <CardFooter className="flex items-center gap-1.5 px-6 text-xs text-stone">
+        <Star className="size-3.5 text-gold" />
+        Œnotourisme : {visitesStats.noteGoogle}/5 sur Google ·{" "}
+        {visitesStats.tauxAchatPostVisite}% d&apos;achat post-visite
+      </CardFooter>
     </Card>
   );
 }
