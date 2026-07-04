@@ -440,7 +440,11 @@ export const briefHebdomadaire = [
 
 export type ContenuStudio = {
   id: string;
-  plateforme: "Instagram" | "Email" | "Avis Google";
+  plateforme: "Instagram" | "Email" | "SMS" | "Avis Google";
+  // Le fait réel, dans un autre module, qui a produit cette suggestion —
+  // affiché sur la carte, jamais une génération sans origine traçable.
+  declencheur: string;
+  destinataire?: string;
   texte: string;
   contexte?: string;
   date: string;
@@ -451,22 +455,36 @@ export const contenusStudio: ContenuStudio[] = [
   {
     id: "st1",
     plateforme: "Instagram",
+    declencheur: "Déclenché par la Cave — Millésime 2016 en surstock (28 mois de stock)",
     texte:
-      "☀️ Les premières grappes rosissent sous le soleil de juillet. Encore quelques semaines avant les vendanges 2026... #ChampagnePupitre #Vignoble",
+      "Notre Millésime 2016 se révèle enfin 🥂 Une cuvée de caractère, en quantité limitée en cave. Une bouteille aujourd'hui, un souvenir demain. #ChampagnePupitre #Millesime2016",
     date: "5 juillet",
     statut: "En attente",
   },
   {
     id: "st2",
     plateforme: "Email",
+    declencheur: "Déclenché par Clients — segment dormant (37 clients)",
+    destinataire: "37 clients dormants",
     texte:
-      "Chers amateurs, découvrez notre Millésime 2016 en édition limitée — 980 bouteilles seulement, disponibles dès cette semaine sur réservation.",
+      "Cela fait un moment que nous ne vous avons pas servi... Nous aimerions vous retrouver au domaine ou dans votre cave : -10% sur votre prochaine commande jusqu'au 31 juillet.",
     date: "7 juillet",
     statut: "En attente",
   },
   {
     id: "st3",
+    plateforme: "SMS",
+    declencheur: "Déclenché par Visites — visite de Château Montfleur — Hôtellerie terminée avec vente",
+    destinataire: "Château Montfleur — Hôtellerie",
+    texte:
+      "Merci pour votre visite au domaine ! Nous espérons que la dégustation privée vous a plu. Au plaisir de vous resservir bientôt — Champagne des Trois Clos",
+    date: "8 juillet",
+    statut: "En attente",
+  },
+  {
+    id: "st4",
     plateforme: "Avis Google",
+    declencheur: "Déclenché par un nouvel avis Google (5★, Élodie R.)",
     texte:
       "Merci infiniment pour ce message, Élodie ! C'est un plaisir de vous avoir reçue au domaine. Nous avons hâte de vous faire découvrir notre prochaine cuvée. À très bientôt !",
     contexte:
@@ -474,6 +492,26 @@ export const contenusStudio: ContenuStudio[] = [
     date: "9 juillet",
     statut: "En attente",
   },
+];
+
+// Charte narrative produite par le test d'identité (6.2) — null tant que
+// le vigneron ne l'a pas encore fait.
+export type CharteNarrative = {
+  ton: string;
+  piliers: string[];
+  vocabulaire: string[];
+  interdits: string[];
+};
+
+// Photos du domaine (6.3) — l'IA pioche dedans pour illustrer les posts,
+// jamais dans une banque d'images générique.
+export const photosDomaine = [
+  { id: "ph1", legende: "Rangs de vigne au petit matin" },
+  { id: "ph2", legende: "Cave et foudres de chêne" },
+  { id: "ph3", legende: "Dégorgement à la volée" },
+  { id: "ph4", legende: "Portrait au pressoir" },
+  { id: "ph5", legende: "Étiquette Brut Réserve" },
+  { id: "ph6", legende: "Accueil au caveau" },
 ];
 
 export type EvenementCalendrier = {

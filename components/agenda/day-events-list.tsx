@@ -7,6 +7,7 @@ import {
   GlassWater,
   Camera,
   Mail,
+  MessageCircle,
   Star,
   X,
   CalendarHeart,
@@ -28,6 +29,7 @@ import { cn } from "@/lib/utils";
 const plateformeIcons: Record<ContenuStudio["plateforme"], typeof Camera> = {
   Instagram: Camera,
   Email: Mail,
+  SMS: MessageCircle,
   "Avis Google": Star,
 };
 

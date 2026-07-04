@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Camera, Mail, Star, Check, Pencil, X } from "lucide-react";
+import { Camera, Mail, MessageCircle, Star, Check, Pencil, X, Zap } from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -11,18 +11,22 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/empty-state";
+import { ContentPreviewModal } from "@/components/studio/content-preview-modal";
 import { contenusStudio, type ContenuStudio } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 const platformIcons: Record<ContenuStudio["plateforme"], typeof Camera> = {
   Instagram: Camera,
   Email: Mail,
+  SMS: MessageCircle,
   "Avis Google": Star,
 };
 
-export function StudioQueue() {
+export function ValidationQueue() {
   const [items, setItems] = useState(contenusStudio);
   const [leavingIds, setLeavingIds] = useState<Set<string>>(new Set());
+  const [previewItem, setPreviewItem] = useState<ContenuStudio | null>(null);
 
   function removeItem(id: string) {
     setLeavingIds((prev) => new Set(prev).add(id));
@@ -57,20 +61,18 @@ export function StudioQueue() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-heading text-xl text-ink">
-          File de validation IA
-        </h2>
+        <h2 className="font-heading text-xl text-ink">File de validation</h2>
         <span className="text-sm text-stone">
-          {items.length} publication{items.length > 1 ? "s" : ""} en attente
+          {items.length} contenu{items.length > 1 ? "s" : ""} en attente
         </span>
       </div>
 
       {items.length === 0 && (
-        <Card className="border border-dashed border-border/70 bg-card shadow-none">
-          <CardContent className="px-6 py-10 text-center text-stone">
-            Toutes les publications ont été traitées. 🎉
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Check}
+          title="File de validation vide"
+          description="Toutes les suggestions ont été traitées. La prochaine arrive avec le brief du lundi."
+        />
       )}
 
       <div className="flex flex-col gap-4">
@@ -97,14 +99,25 @@ export function StudioQueue() {
                     Prévu le {item.date}
                   </Badge>
                 </div>
+                <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-gold">
+                  <Zap className="size-3.5" />
+                  {item.declencheur}
+                </p>
               </CardHeader>
               <CardContent className="px-6">
-                {item.contexte && (
-                  <p className="mb-3 rounded-md border-l-2 border-gold/50 bg-muted/60 px-3 py-2 text-sm italic leading-relaxed text-stone">
-                    {item.contexte}
+                <button
+                  onClick={() => setPreviewItem(item)}
+                  className="block w-full text-left"
+                >
+                  {item.contexte && (
+                    <p className="mb-3 rounded-md border-l-2 border-gold/50 bg-muted/60 px-3 py-2 text-sm italic leading-relaxed text-stone">
+                      {item.contexte}
+                    </p>
+                  )}
+                  <p className="text-sm leading-relaxed text-ink hover:underline">
+                    {item.texte}
                   </p>
-                )}
-                <p className="text-sm leading-relaxed text-ink">{item.texte}</p>
+                </button>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button
                     size="sm"
@@ -137,6 +150,8 @@ export function StudioQueue() {
           );
         })}
       </div>
+
+      <ContentPreviewModal contenu={previewItem} onClose={() => setPreviewItem(null)} />
     </div>
   );
 }
