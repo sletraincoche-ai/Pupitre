@@ -7,6 +7,7 @@ import { PeriodProvider } from "@/lib/period-context";
 import { CaveProvider } from "@/lib/cave-context";
 import { ClientsProvider } from "@/lib/clients-context";
 import { IdentityProvider } from "@/lib/identity-context";
+import { MetaConnectionProvider } from "@/lib/meta-connection-context";
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -16,18 +17,20 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <CaveProvider>
         <ClientsProvider>
           <IdentityProvider>
-            <div className="flex h-screen flex-1 overflow-hidden bg-background">
-              <DashboardSidebar
-                mobileOpen={mobileOpen}
-                onCloseMobile={() => setMobileOpen(false)}
-              />
-              <div className="flex min-w-0 flex-1 flex-col">
-                <DashboardTopbar onOpenMobile={() => setMobileOpen(true)} />
-                <main className="flex-1 overflow-y-auto px-5 py-6 lg:px-8 lg:py-8">
-                  {children}
-                </main>
+            <MetaConnectionProvider>
+              <div className="flex h-screen flex-1 overflow-hidden bg-background">
+                <DashboardSidebar
+                  mobileOpen={mobileOpen}
+                  onCloseMobile={() => setMobileOpen(false)}
+                />
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <DashboardTopbar onOpenMobile={() => setMobileOpen(true)} />
+                  <main className="flex-1 overflow-y-auto px-5 py-6 lg:px-8 lg:py-8">
+                    {children}
+                  </main>
+                </div>
               </div>
-            </div>
+            </MetaConnectionProvider>
           </IdentityProvider>
         </ClientsProvider>
       </CaveProvider>

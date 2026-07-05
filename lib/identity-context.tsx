@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { construireCharte, type ReponsesIdentite } from "@/lib/identity";
 import type { CharteNarrative } from "@/lib/mock-data";
 
@@ -34,8 +34,13 @@ const IdentityContext = createContext<IdentityContextValue | null>(null);
 export function IdentityProvider({ children }: { children: ReactNode }) {
   const [etat, setEtat] = useState<IdentiteStockee>(etatInitial);
   const [hydrated, setHydrated] = useState(false);
-  const hydrateRef = useRef(false);
 
+  // Lit une seule fois au montage. Gate l'effet d'écriture sur l'état
+  // `hydrated` (pas une ref) : sous React Strict Mode, les effets de
+  // montage s'exécutent deux fois avant qu'un re-render ne reflète les
+  // setState — une ref mutée de façon synchrone ferait passer la garde
+  // avant que `etat` ne contienne réellement la valeur lue, écrasant une
+  // progression existante par l'état initial.
   useEffect(() => {
     try {
       const brut = window.localStorage.getItem(STORAGE_KEY);
@@ -45,14 +50,13 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
     } catch {
       // stockage indisponible ou corrompu — on repart de l'état initial
     }
-    hydrateRef.current = true;
     setHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (!hydrateRef.current) return;
+    if (!hydrated) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(etat));
-  }, [etat]);
+  }, [hydrated, etat]);
 
   function accepterConsentement() {
     setEtat((e) => ({ ...e, consentement: true }));
