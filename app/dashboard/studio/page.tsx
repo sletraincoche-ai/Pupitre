@@ -28,7 +28,9 @@ export default function StudioPage() {
         <StudioTile
           href="/dashboard/studio/reseaux-sociaux"
           image="/images/studio/reseaux.png"
-          imagePosition="38% center"
+          imagePosition="left center"
+          imageScale={1.8}
+          imageTransformOrigin="left center"
           badge={reseauxEnAttente.length}
           icons={
             <>
@@ -67,6 +69,7 @@ export default function StudioPage() {
         <StudioTile
           href="/dashboard/studio/mail"
           image="/images/studio/mail.jpg"
+          imagePosition="center 25%"
           badge={mailEnAttente.length}
           icons={
             <span className="flex size-8 items-center justify-center rounded-lg bg-gold text-white">

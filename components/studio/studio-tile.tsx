@@ -6,6 +6,8 @@ export function StudioTile({
   href,
   image,
   imagePosition = "center",
+  imageScale = 1,
+  imageTransformOrigin = "center",
   className,
   badge,
   icons,
@@ -14,6 +16,8 @@ export function StudioTile({
   href: string;
   image: string;
   imagePosition?: string;
+  imageScale?: number;
+  imageTransformOrigin?: string;
   className?: string;
   badge?: number;
   icons?: React.ReactNode;
@@ -33,7 +37,11 @@ export function StudioTile({
         fill
         sizes="(min-width: 768px) 50vw, 100vw"
         className="object-cover"
-        style={{ objectPosition: imagePosition }}
+        style={{
+          objectPosition: imagePosition,
+          transform: imageScale !== 1 ? `scale(${imageScale})` : undefined,
+          transformOrigin: imageTransformOrigin,
+        }}
       />
       <div
         className="pointer-events-none absolute inset-x-0 bottom-0 h-3/4"
