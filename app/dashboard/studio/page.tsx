@@ -27,70 +27,75 @@ export default function StudioPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <StudioTile
           href="/dashboard/studio/reseaux-sociaux"
+          image="/images/studio/reseaux.png"
+          imagePosition="38% center"
           badge={reseauxEnAttente.length}
-          className="row-span-2 bg-gradient-to-br from-[#FEDA75]/25 via-[#D62976]/15 to-[#4F5BD5]/20 md:min-h-[280px]"
+          icons={
+            <>
+              <InstagramBadge className="size-8" />
+              <FacebookBadge className="size-8" />
+            </>
+          }
+          className="row-span-2 min-h-[240px] md:min-h-[280px]"
         >
-          <div className="flex items-center gap-2">
-            <InstagramBadge className="size-9" />
-            <FacebookBadge className="size-9" />
+          <p className="font-heading text-2xl">Réseaux sociaux</p>
+          <p className="text-sm text-white/85">
+            {reseauxEnAttente.length} contenu{reseauxEnAttente.length > 1 ? "s" : ""} prêt
+            {reseauxEnAttente.length > 1 ? "s" : ""} à valider
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {reseauxEnAttente.slice(0, 3).map((p) => (
+              <span
+                key={p.id}
+                className="flex items-center gap-1.5 rounded-full bg-card/90 px-3 py-1 text-xs font-medium text-ink"
+              >
+                {p.plateforme === "Instagram" ? (
+                  <InstagramBadge className="size-3.5" />
+                ) : (
+                  <FacebookBadge className="size-3.5" />
+                )}
+                {p.format === "post" ? "Post" : p.format === "story" ? "Story" : "Carrousel"}
+              </span>
+            ))}
           </div>
-          <div>
-            <p className="font-heading text-2xl text-ink">Réseaux sociaux</p>
-            <p className="mt-1 text-sm text-stone">
-              {reseauxEnAttente.length} contenu{reseauxEnAttente.length > 1 ? "s" : ""} prêt
-              {reseauxEnAttente.length > 1 ? "s" : ""} à valider
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {reseauxEnAttente.slice(0, 3).map((p) => (
-                <span
-                  key={p.id}
-                  className="flex items-center gap-1.5 rounded-full bg-card/70 px-3 py-1 text-xs font-medium text-ink"
-                >
-                  {p.plateforme === "Instagram" ? (
-                    <InstagramBadge className="size-3.5" />
-                  ) : (
-                    <FacebookBadge className="size-3.5" />
-                  )}
-                  {p.format === "post" ? "Post" : p.format === "story" ? "Story" : "Carrousel"}
-                </span>
-              ))}
-            </div>
-            <span className="mt-4 flex items-center gap-1 text-sm font-medium text-ink">
-              Ouvrir l&apos;atelier
-              <ArrowRight className="size-4" />
-            </span>
-          </div>
+          <span className="mt-1 flex items-center gap-1 text-sm font-medium">
+            Ouvrir l&apos;atelier
+            <ArrowRight className="size-4" />
+          </span>
         </StudioTile>
 
         <StudioTile
           href="/dashboard/studio/mail"
+          image="/images/studio/mail.jpg"
           badge={mailEnAttente.length}
-          className="bg-gradient-to-br from-gold/25 to-gold/10"
+          icons={
+            <span className="flex size-8 items-center justify-center rounded-lg bg-gold text-white">
+              <Mail className="size-4" />
+            </span>
+          }
+          className="min-h-[150px]"
         >
-          <span className="flex size-9 items-center justify-center rounded-lg bg-gold text-white">
-            <Mail className="size-5" />
-          </span>
-          <div>
-            <p className="font-heading text-xl text-ink">Mail</p>
-            <p className="mt-1 text-sm text-stone">
-              {mailEnAttente.length} campagne{mailEnAttente.length > 1 ? "s" : ""} prête
-              {mailEnAttente.length > 1 ? "s" : ""}
-            </p>
-          </div>
+          <p className="font-heading text-xl">Mail</p>
+          <p className="text-sm text-white/85">
+            {mailEnAttente.length} campagne{mailEnAttente.length > 1 ? "s" : ""} prête
+            {mailEnAttente.length > 1 ? "s" : ""}
+          </p>
         </StudioTile>
 
         <StudioTile
           href="/dashboard/studio/avis"
+          image="/images/studio/avis.jpg"
+          imagePosition="center 30%"
           badge={avisEnAttente.length}
-          className="border border-border/70 bg-card"
+          icons={
+            <span className="flex size-8 items-center justify-center rounded-lg bg-white">
+              <FcGoogle className="size-5" />
+            </span>
+          }
+          className="min-h-[150px]"
         >
-          <FcGoogle className="size-9" />
-          <div>
-            <p className="font-heading text-xl text-ink">Avis Google</p>
-            <p className="mt-1 text-sm text-stone">
-              {avisEnAttente.length} avis à traiter
-            </p>
-          </div>
+          <p className="font-heading text-xl">Avis Google</p>
+          <p className="text-sm text-white/85">{avisEnAttente.length} avis à traiter</p>
         </StudioTile>
       </div>
 
