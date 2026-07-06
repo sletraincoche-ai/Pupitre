@@ -1,5 +1,6 @@
 "use client";
 
+import { NotebookPen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Mouvement, Visite } from "@/lib/mock-data";
 import { estPassee, estTerminee, formatHistorique } from "@/lib/visites";
@@ -16,11 +17,13 @@ export function RetreatList({
   mouvements,
   toutesLesVisites,
   onOuvrirConfirmation,
+  onOuvrirAnecdote,
 }: {
   visites: Visite[];
   mouvements: Mouvement[];
   toutesLesVisites: Visite[];
   onOuvrirConfirmation: (visite: Visite) => void;
+  onOuvrirAnecdote: (visite: Visite) => void;
 }) {
   if (visites.length === 0) {
     return (
@@ -57,9 +60,21 @@ export function RetreatList({
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {terminee && (
-                <Badge variant="outline" className="border-transparent bg-vine/10 text-vine">
-                  Terminée
-                </Badge>
+                <>
+                  <Badge variant="outline" className="border-transparent bg-vine/10 text-vine">
+                    Terminée
+                  </Badge>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOuvrirAnecdote(visite);
+                    }}
+                    className="flex items-center gap-1 text-xs font-medium text-gold hover:underline"
+                  >
+                    <NotebookPen className="size-3.5" />
+                    {visite.noteAnecdote ? "Voir la note" : "Ajouter une note"}
+                  </button>
+                </>
               )}
               <Badge variant="outline" className={cn("border-transparent", statutStyles[visite.statut])}>
                 {visite.statut}

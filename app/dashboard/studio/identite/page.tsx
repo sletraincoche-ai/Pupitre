@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ConsentScreen } from "@/components/studio/identite/consent-screen";
 import { IdentityQuiz } from "@/components/studio/identite/quiz";
+import { CharteProposal } from "@/components/studio/identite/charte-proposal";
 import { CharteSummary } from "@/components/studio/identite/charte-summary";
 import { useIdentity } from "@/lib/identity-context";
 
@@ -36,9 +37,20 @@ function InvitationScreen({ onCommencer }: { onCommencer: () => void }) {
 }
 
 export default function IdentitePage() {
-  const { hydrated, consentement, charte, accepterConsentement, recommencerEdition } = useIdentity();
+  const {
+    hydrated,
+    consentement,
+    charte,
+    charteProposee,
+    enGeneration,
+    erreurGeneration,
+    accepterConsentement,
+    genererCharte,
+  } = useIdentity();
   const [montrerConsentement, setMontrerConsentement] = useState(false);
   const [modeEdition, setModeEdition] = useState(false);
+
+  const enProposition = !!charteProposee || enGeneration || !!erreurGeneration;
 
   return (
     <div className="flex flex-col gap-6">
@@ -52,15 +64,16 @@ export default function IdentitePage() {
         <p className="mt-1 text-stone">La charte narrative qui rend chaque génération crédible sous votre nom.</p>
       </div>
 
-      {!hydrated ? null : charte && !modeEdition ? (
-        <CharteSummary
-          onModifier={() => {
-            recommencerEdition();
-            setModeEdition(true);
-          }}
+      {!hydrated ? null : charte && !modeEdition && !enProposition ? (
+        <CharteSummary onModifier={() => setModeEdition(true)} />
+      ) : enProposition ? (
+        <CharteProposal
+          onValide={() => setModeEdition(false)}
+          onRefaire={() => setModeEdition(true)}
+          onAnnuler={() => setModeEdition(false)}
         />
       ) : consentement ? (
-        <IdentityQuiz onTermine={() => setModeEdition(false)} />
+        <IdentityQuiz onTermine={() => genererCharte()} />
       ) : montrerConsentement ? (
         <ConsentScreen onAccepter={accepterConsentement} />
       ) : (

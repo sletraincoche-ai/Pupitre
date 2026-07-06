@@ -38,10 +38,15 @@ export type EvenementReglementaire = BaseEvent & {
   description: string;
 };
 
+export type EtapeCycleViticole = "debourrement" | "floraison" | "veraison" | "vendanges" | "degorgement";
+
 export type EvenementCave = BaseEvent & {
   categorie: "cave";
   titre: string;
   description: string;
+  // Marque les étapes clés du cycle viticole réutilisables comme
+  // déclencheur d'enrichissement de la charte narrative (section 3.1).
+  etapeCycle?: EtapeCycleViticole;
 };
 
 export type EvenementVisite = BaseEvent & {
@@ -116,11 +121,35 @@ const evenementsReglementaires: EvenementReglementaire[] = [
 
 const evenementsCave: EvenementCave[] = [
   {
+    id: "cave-debourrement",
+    date: "2026-04-08",
+    categorie: "cave",
+    titre: "Débourrement",
+    description: "Premiers bourgeons observés sur les parcelles de Chardonnay.",
+    etapeCycle: "debourrement",
+  },
+  {
+    id: "cave-floraison",
+    date: "2026-06-12",
+    categorie: "cave",
+    titre: "Floraison",
+    description: "Floraison observée sur l'ensemble des parcelles.",
+    etapeCycle: "floraison",
+  },
+  {
     id: "cave-effeuillage",
     date: "2026-07-08",
     categorie: "cave",
     titre: "Effeuillage suggéré",
     description: "Par analogie avec 2025 à la même période sur les parcelles de Chardonnay.",
+  },
+  {
+    id: "cave-degorgement",
+    date: "2026-07-10",
+    categorie: "cave",
+    titre: "Dégorgement du Millésime 2019",
+    description: "Fin de l'élevage sur lattes, dégorgement prévu pour le Millésime 2019.",
+    etapeCycle: "degorgement",
   },
   {
     id: "cave-traitement",
@@ -130,13 +159,46 @@ const evenementsCave: EvenementCave[] = [
     description: "Fenêtre météo favorable identifiée d'après l'historique du domaine.",
   },
   {
+    id: "cave-veraison",
+    date: "2026-08-12",
+    categorie: "cave",
+    titre: "Véraison",
+    description: "Changement de couleur des baies observé sur les parcelles de Pinot Noir.",
+    etapeCycle: "veraison",
+  },
+  {
     id: "cave-vendanges",
     date: "2026-09-07",
     categorie: "cave",
     titre: "Vendanges prévisionnelles (estimation)",
     description: "Date estimée par analogie avec les millésimes précédents.",
+    etapeCycle: "vendanges",
   },
 ];
+
+const libellesEtapeCycle: Record<EtapeCycleViticole, string> = {
+  debourrement: "Le débourrement commence",
+  floraison: "La floraison commence",
+  veraison: "La véraison commence",
+  vendanges: "Les vendanges commencent",
+  degorgement: "Le dégorgement commence",
+};
+
+// Étapes du cycle viticole à venir dans les `joursFenetre` prochains
+// jours — alimente la notification légère d'enrichissement (section 3.1).
+export function getEtapesCycleProches(joursFenetre = 10): (EvenementCave & { libelle: string; dansJours: number })[] {
+  const aujourdhui = toDateKey(AUJOURDHUI);
+  return evenementsCave
+    .filter((e): e is EvenementCave & { etapeCycle: EtapeCycleViticole } => !!e.etapeCycle)
+    .map((e) => {
+      const dansJours = Math.round(
+        (new Date(e.date).getTime() - new Date(aujourdhui).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      return { ...e, libelle: libellesEtapeCycle[e.etapeCycle], dansJours };
+    })
+    .filter((e) => e.dansJours >= 0 && e.dansJours <= joursFenetre)
+    .sort((a, b) => a.dansJours - b.dansJours);
+}
 
 function visitesEnEvenements(): EvenementVisite[] {
   return visites.map((v) => ({

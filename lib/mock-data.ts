@@ -574,11 +574,23 @@ export const totalContenusStudioEnAttente =
   emailCampagnes.filter((e) => e.statut === "En attente").length +
   avisGoogle.filter((a) => a.statut === "En attente").length;
 
-// Charte narrative produite par le test d'identité (6.2) — null tant que
-// le vigneron ne l'a pas encore fait.
+// Charte narrative produite par le test d'identité — null tant que le
+// vigneron ne l'a pas encore fait. Les piliers d'histoires forment une
+// liste append-only : le test initial pose les 3-4 premiers, puis chaque
+// enrichissement (saison, nouvelle cuvée, anecdote de visite) en ajoute
+// un nouveau, horodaté et tracé à son origine — jamais d'écrasement.
+export type OrigineEnrichissement = "test" | "saison" | "cuvee" | "visite";
+
+export type PilierHistoire = {
+  id: string;
+  texte: string;
+  origine: OrigineEnrichissement;
+  date: string;
+};
+
 export type CharteNarrative = {
   ton: string;
-  piliers: string[];
+  piliers: PilierHistoire[];
   vocabulaire: string[];
   interdits: string[];
 };
@@ -625,6 +637,9 @@ export type Visite = {
   langue: string;
   formule: "Découverte" | "Prestige" | "Vendanges" | "Dégustation privée";
   statut: "Confirmée" | "En attente" | "Annulée";
+  // Note ou anecdote laissée après une visite terminée — réutilisable par
+  // l'IA pour enrichir la charte narrative (piliers d'histoires).
+  noteAnecdote?: string;
 };
 
 export const visites: Visite[] = [

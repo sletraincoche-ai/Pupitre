@@ -11,6 +11,21 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useIdentity } from "@/lib/identity-context";
+import type { OrigineEnrichissement } from "@/lib/mock-data";
+
+const libellesOrigine: Record<OrigineEnrichissement, string> = {
+  test: "Test initial",
+  saison: "Saison",
+  cuvee: "Nouvelle cuvée",
+  visite: "Visite",
+};
+
+const stylesOrigine: Record<OrigineEnrichissement, string> = {
+  test: "border-vine/30 text-vine",
+  saison: "border-gold/40 text-gold",
+  cuvee: "border-[#5C7A99]/40 text-[#5C7A99]",
+  visite: "border-destructive/30 text-destructive",
+};
 
 export function CharteSummary({ onModifier }: { onModifier: () => void }) {
   const { charte } = useIdentity();
@@ -30,20 +45,28 @@ export function CharteSummary({ onModifier }: { onModifier: () => void }) {
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 px-6">
-        <div>
-          <p className="text-xs font-medium tracking-wide text-stone uppercase">Ton</p>
-          <p className="mt-1 text-sm text-ink">{charte.ton}</p>
-        </div>
+        {charte.ton && (
+          <div>
+            <p className="text-xs font-medium tracking-wide text-stone uppercase">Ton</p>
+            <p className="mt-1 text-sm text-ink">{charte.ton}</p>
+          </div>
+        )}
 
         {charte.piliers.length > 0 && (
           <div>
             <p className="text-xs font-medium tracking-wide text-stone uppercase">
-              Piliers d&apos;histoires
+              Piliers d&apos;histoires ({charte.piliers.length})
             </p>
-            <ul className="mt-1 flex flex-col gap-1">
+            <ul className="mt-2 flex flex-col gap-2.5">
               {charte.piliers.map((p) => (
-                <li key={p} className="text-sm text-ink">
-                  {p}
+                <li key={p.id} className="text-sm text-ink">
+                  <div className="mb-1 flex items-center gap-2">
+                    <Badge variant="outline" className={stylesOrigine[p.origine]}>
+                      {libellesOrigine[p.origine]}
+                    </Badge>
+                    <span className="text-xs text-stone">{p.date}</span>
+                  </div>
+                  {p.texte}
                 </li>
               ))}
             </ul>

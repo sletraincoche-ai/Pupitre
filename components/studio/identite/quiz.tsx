@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, ImagePlus } from "lucide-react";
+import { ArrowLeft, ArrowRight, ImagePlus, SkipForward } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { useIdentity } from "@/lib/identity-context";
 import { cn } from "@/lib/utils";
 
 export function IdentityQuiz({ onTermine }: { onTermine: () => void }) {
-  const { etapeCourante, reponses, setReponse, setEtape, terminerQuiz } = useIdentity();
+  const { etapeCourante, reponses, setReponse, setEtape } = useIdentity();
   const question = questionsIdentite[etapeCourante];
   const [brouillon, setBrouillon] = useState(reponses[question.id] ?? "");
 
@@ -25,14 +25,12 @@ export function IdentityQuiz({ onTermine }: { onTermine: () => void }) {
   const dernierePage = etapeCourante === questionsIdentite.length - 1;
 
   function allerA(index: number) {
-    setReponse(question.id, brouillon);
     setEtape(Math.max(0, Math.min(questionsIdentite.length - 1, index)));
   }
 
-  function suivant() {
-    setReponse(question.id, brouillon);
+  function soumettre(valeur: string) {
+    setReponse(question.id, valeur);
     if (dernierePage) {
-      terminerQuiz();
       onTermine();
       return;
     }
@@ -99,15 +97,23 @@ export function IdentityQuiz({ onTermine }: { onTermine: () => void }) {
           </motion.div>
         </AnimatePresence>
 
-        <div className="flex justify-between border-t border-border/60 pt-5">
+        <div className="flex items-center justify-between border-t border-border/60 pt-5">
           <Button variant="ghost" onClick={() => allerA(etapeCourante - 1)} disabled={etapeCourante === 0}>
             <ArrowLeft className="size-4" />
             Précédent
           </Button>
-          <Button className="bg-vine text-white hover:bg-vine/90" onClick={suivant}>
-            {dernierePage ? "Terminer" : "Suivant"}
-            <ArrowRight className="size-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {question.type !== "photos" && (
+              <Button variant="ghost" className="text-stone" onClick={() => soumettre("")}>
+                <SkipForward className="size-4" />
+                Passer
+              </Button>
+            )}
+            <Button className="bg-vine text-white hover:bg-vine/90" onClick={() => soumettre(brouillon)}>
+              {dernierePage ? "Terminer" : "Suivant"}
+              <ArrowRight className="size-4" />
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

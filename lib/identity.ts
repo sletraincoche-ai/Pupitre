@@ -1,4 +1,12 @@
-import type { CharteNarrative } from "@/lib/mock-data";
+// Forme brute d'une charte générée, commune au vrai appel Anthropic et à
+// la simulation — la route API l'enrichit ensuite en PilierHistoire[]
+// horodaté (voir lib/mock-data.ts).
+export type CharteBrute = {
+  ton: string;
+  piliers: string[];
+  vocabulaire: string[];
+  interdits: string[];
+};
 
 export type TypeQuestionIdentite = "texte" | "choix" | "photos";
 
@@ -100,31 +108,41 @@ export const questionsIdentite: QuestionIdentite[] = [
 
 export type ReponsesIdentite = Record<string, string>;
 
-export function construireCharte(reponses: ReponsesIdentite): CharteNarrative {
-  const ton = reponses.ton || "Équilibré";
+function decouper(valeur: string | undefined): string[] {
+  return (valeur ?? "")
+    .split(/[,;]/)
+    .map((m) => m.trim())
+    .filter(Boolean);
+}
+
+// Simulation utilisée tant qu'ANTHROPIC_API_KEY n'est pas configurée —
+// même contrat de sortie qu'un vrai appel IA, mais dérivée par heuristique
+// plutôt que par analyse de langage. Deux jeux de réponses différents
+// produisent toujours deux chartes différentes : rien n'est figé.
+export function genererCharteSimulee(reponses: ReponsesIdentite): CharteBrute {
+  const tonChoisi = reponses.ton || "Équilibré";
   const style = reponses.style?.trim();
 
-  const piliers = [
+  const piliersCandidats = [
     reponses.annee_debut &&
       `Domaine fondé en ${reponses.annee_debut}${reponses.generations ? ` — ${reponses.generations} générations` : ""}`,
     reponses.anecdote,
     reponses.parcelle,
     reponses.cuvee_fierte,
+    reponses.distinction && `Une distinction claire : ${reponses.distinction}`,
+    reponses.superficie && `Un terroir précis : ${reponses.superficie}`,
   ].filter((p): p is string => !!p && p.trim().length > 0);
 
-  const vocabulaire = (reponses.accueil_mots ?? "")
-    .split(/[,;]/)
-    .map((m) => m.trim())
-    .filter(Boolean);
+  let vocabulaire = decouper(reponses.accueil_mots);
+  if (vocabulaire.length === 0 && reponses.distinction) {
+    vocabulaire = decouper(reponses.distinction);
+  }
 
-  const interdits = (reponses.interdits ?? "")
-    .split(/[,;]/)
-    .map((m) => m.trim())
-    .filter(Boolean);
+  const interdits = decouper(reponses.interdits);
 
   return {
-    ton: style ? `${ton} — ${style}` : ton,
-    piliers: piliers.slice(0, 4),
+    ton: style ? `${tonChoisi} — ${style}` : tonChoisi,
+    piliers: piliersCandidats.slice(0, 4),
     vocabulaire,
     interdits,
   };

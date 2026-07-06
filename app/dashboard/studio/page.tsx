@@ -1,9 +1,14 @@
+"use client";
+
 import { Mail, ArrowRight } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { StudioTile } from "@/components/studio/studio-tile";
 import { InstagramBadge, FacebookBadge } from "@/components/studio/brand-icons";
 import { IdentiteHomeCard } from "@/components/studio/identite-home-card";
 import { ImageBank } from "@/components/studio/image-bank";
+import { NotificationCycle } from "@/components/studio/enrichissement/notification-cycle";
+import { TunnelSequence } from "@/components/studio/tunnel/tunnel-sequence";
+import { useOnboarding } from "@/lib/onboarding-context";
 import {
   publicationsSociales,
   emailCampagnes,
@@ -11,9 +16,20 @@ import {
 } from "@/lib/mock-data";
 
 export default function StudioPage() {
+  const { hydrated, tunnelTermine } = useOnboarding();
   const reseauxEnAttente = publicationsSociales.filter((p) => p.statut === "En attente");
   const mailEnAttente = emailCampagnes.filter((e) => e.statut === "En attente");
   const avisEnAttente = avisGoogle.filter((a) => a.statut === "En attente");
+
+  if (!hydrated) return null;
+
+  if (!tunnelTermine) {
+    return (
+      <div className="flex flex-col gap-8">
+        <TunnelSequence />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -23,6 +39,8 @@ export default function StudioPage() {
           Chaque suggestion vient d&apos;un fait réel des autres modules — vous validez, rien ne part sans vous.
         </p>
       </div>
+
+      <NotificationCycle />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <StudioTile

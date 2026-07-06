@@ -1,12 +1,26 @@
 "use client";
 
+import { useState } from "react";
+import { toast } from "sonner";
 import { DrmBanner } from "@/components/cave/drm-banner";
 import { MovementsRegistry } from "@/components/cave/movements-registry";
 import { StockTable } from "@/components/cave/stock-table";
+import { CuveeStoryModal } from "@/components/cave/cuvee-story-modal";
 import { useCave } from "@/lib/cave-context";
+import type { Cuvee } from "@/lib/mock-data";
 
 export default function CavePage() {
   const { cuvees, mouvements, ajouterMouvement, creerCuvee } = useCave();
+  const [cuveePourHistoire, setCuveePourHistoire] = useState<Cuvee | null>(null);
+
+  function creerCuveeEtProposerHistoire(nom: string): Cuvee {
+    const nouvelle = creerCuvee(nom);
+    toast.success(`Nouvelle cuvée créée : ${nom}`, {
+      description: "Racontez son histoire pour enrichir votre charte narrative.",
+      action: { label: "Raconter l'histoire", onClick: () => setCuveePourHistoire(nouvelle) },
+    });
+    return nouvelle;
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -23,10 +37,12 @@ export default function CavePage() {
         cuvees={cuvees}
         mouvements={mouvements}
         onAddMouvement={ajouterMouvement}
-        onCreateCuvee={creerCuvee}
+        onCreateCuvee={creerCuveeEtProposerHistoire}
       />
 
       <StockTable cuvees={cuvees} mouvements={mouvements} />
+
+      <CuveeStoryModal cuvee={cuveePourHistoire} onClose={() => setCuveePourHistoire(null)} />
     </div>
   );
 }

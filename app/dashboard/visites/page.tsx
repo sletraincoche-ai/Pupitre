@@ -6,18 +6,25 @@ import { HeroCard } from "@/components/visites/hero-card";
 import { RetreatList } from "@/components/visites/retreat-list";
 import { QuickSaleModal } from "@/components/visites/quick-sale-modal";
 import { ConfirmationModal } from "@/components/visites/confirmation-modal";
+import { AnecdoteModal } from "@/components/visites/anecdote-modal";
 import { ConfigurationTab } from "@/components/visites/configuration-tab";
 import { useCave } from "@/lib/cave-context";
-import { visites, type Visite } from "@/lib/mock-data";
+import { visites as visitesInitiales, type Visite } from "@/lib/mock-data";
 import { getProchaineVisite } from "@/lib/visites";
 
 export default function VisitesPage() {
   const { mouvements } = useCave();
+  const [visites, setVisites] = useState(visitesInitiales);
   const [venteVisite, setVenteVisite] = useState<Visite | null>(null);
   const [confirmationVisite, setConfirmationVisite] = useState<Visite | null>(null);
+  const [anecdoteVisite, setAnecdoteVisite] = useState<Visite | null>(null);
 
   const prochaine = getProchaineVisite(visites);
   const autres = visites.filter((v) => v.id !== prochaine?.id);
+
+  function enregistrerAnecdote(visiteId: string, note: string) {
+    setVisites((prev) => prev.map((v) => (v.id === visiteId ? { ...v, noteAnecdote: note } : v)));
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -53,6 +60,7 @@ export default function VisitesPage() {
                 mouvements={mouvements}
                 toutesLesVisites={visites}
                 onOuvrirConfirmation={setConfirmationVisite}
+                onOuvrirAnecdote={setAnecdoteVisite}
               />
             </div>
           </div>
@@ -65,6 +73,11 @@ export default function VisitesPage() {
 
       <QuickSaleModal visite={venteVisite} onClose={() => setVenteVisite(null)} />
       <ConfirmationModal visite={confirmationVisite} onClose={() => setConfirmationVisite(null)} />
+      <AnecdoteModal
+        visite={anecdoteVisite}
+        onClose={() => setAnecdoteVisite(null)}
+        onEnregistrer={enregistrerAnecdote}
+      />
     </div>
   );
 }
