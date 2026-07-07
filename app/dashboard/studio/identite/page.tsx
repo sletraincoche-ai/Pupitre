@@ -51,6 +51,14 @@ export default function IdentitePage() {
   const [modeEdition, setModeEdition] = useState(false);
 
   const enProposition = !!charteProposee || enGeneration || !!erreurGeneration;
+  const affichageCharte = !!charte && !modeEdition && !enProposition;
+  // Le quiz est plein écran avec son propre logo/fil d'Ariane : le
+  // bandeau de titre de cette page ne doit jamais se répéter derrière.
+  const enQuiz = hydrated && consentement && !affichageCharte && !enProposition;
+
+  if (enQuiz) {
+    return <IdentityQuiz onTermine={() => genererCharte()} />;
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -64,7 +72,7 @@ export default function IdentitePage() {
         <p className="mt-1 text-stone">La charte narrative qui rend chaque génération crédible sous votre nom.</p>
       </div>
 
-      {!hydrated ? null : charte && !modeEdition && !enProposition ? (
+      {!hydrated ? null : affichageCharte ? (
         <CharteSummary onModifier={() => setModeEdition(true)} />
       ) : enProposition ? (
         <CharteProposal
@@ -72,8 +80,6 @@ export default function IdentitePage() {
           onRefaire={() => setModeEdition(true)}
           onAnnuler={() => setModeEdition(false)}
         />
-      ) : consentement ? (
-        <IdentityQuiz onTermine={() => genererCharte()} />
       ) : montrerConsentement ? (
         <ConsentScreen onAccepter={accepterConsentement} />
       ) : (
