@@ -8,7 +8,7 @@ import {
   GlassWater,
   Warehouse,
   CalendarDays,
-  Sparkles,
+  FileText,
   Globe2,
   Settings,
   Wine,
@@ -44,8 +44,8 @@ const navGroups: { label: string; items: NavItem[] }[] = [
     items: [
       {
         href: "/dashboard/studio",
-        label: "Studio IA",
-        icon: Sparkles,
+        label: "Studio",
+        icon: FileText,
         badge: totalContenusStudioEnAttente,
       },
       {

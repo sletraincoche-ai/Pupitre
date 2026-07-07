@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Sparkles, ArrowRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { FileText, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIdentity } from "@/lib/identity-context";
 
@@ -15,10 +14,10 @@ export function IdentiteHomeCard() {
 
   if (charte) {
     return (
-      <Card className="border border-border/70 bg-card shadow-none">
-        <CardContent className="flex items-center gap-3 px-6">
-          <span className="flex size-9 items-center justify-center rounded-full bg-gold/10 text-gold">
-            <Sparkles className="size-4" />
+      <div className="border border-border bg-card">
+        <div className="flex items-center gap-3 px-6 py-4">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-[3px] border border-gold/30 text-gold">
+            <FileText className="size-4" />
           </span>
           <div className="min-w-0 flex-1">
             <p className="font-medium text-ink">Charte narrative prête</p>
@@ -27,11 +26,12 @@ export function IdentiteHomeCard() {
           <Button
             variant="outline"
             size="sm"
+            className="rounded-[3px]"
             render={<Link href="/dashboard/studio/identite">Consulter</Link>}
             nativeButton={false}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
@@ -41,7 +41,7 @@ export function IdentiteHomeCard() {
         href="/dashboard/studio/identite"
         className="flex items-center gap-2 text-sm text-stone hover:text-vine"
       >
-        <Sparkles className="size-4 text-gold" />
+        <FileText className="size-4 text-gold" />
         Test d&apos;identité — pas encore complété
         <ArrowRight className="size-3.5" />
       </Link>
@@ -49,10 +49,10 @@ export function IdentiteHomeCard() {
   }
 
   return (
-    <Card className="border border-border/70 bg-card shadow-none">
-      <CardContent className="flex flex-col items-start gap-3 px-6 sm:flex-row sm:items-center">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gold/10 text-gold">
-          <Sparkles className="size-4" />
+    <div className="border border-border bg-card">
+      <div className="flex flex-col items-start gap-3 px-6 py-4 sm:flex-row sm:items-center">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-[3px] border border-gold/30 text-gold">
+          <FileText className="size-4" />
         </span>
         <div className="flex-1">
           <p className="font-medium text-ink">Testez votre identité éditoriale</p>
@@ -63,15 +63,15 @@ export function IdentiteHomeCard() {
         <div className="flex shrink-0 gap-2">
           <Button
             size="sm"
-            className="bg-gold text-white hover:bg-gold/90"
+            className="rounded-[3px] bg-gold text-white hover:bg-gold/90"
             render={<Link href="/dashboard/studio/identite">Commencer le test</Link>}
             nativeButton={false}
           />
-          <Button size="sm" variant="ghost" onClick={() => setMasque(true)}>
+          <Button size="sm" variant="ghost" className="rounded-[3px]" onClick={() => setMasque(true)}>
             Plus tard
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

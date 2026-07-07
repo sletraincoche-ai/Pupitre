@@ -6,7 +6,7 @@ const routeLabels: Record<string, string> = {
   dashboard: "Tableau de bord",
   clients: "Clients",
   visites: "Œnotourisme",
-  studio: "Studio IA",
+  studio: "Studio",
   cave: "Cave",
   agenda: "Agenda",
   parametres: "Paramètres",

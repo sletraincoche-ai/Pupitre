@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Sprout, X } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getEtapesCycleProches } from "@/lib/agenda";
@@ -51,10 +50,10 @@ export function NotificationCycle() {
   }
 
   return (
-    <Card className="border border-gold/30 bg-gold/5 shadow-none">
-      <CardContent className="flex flex-col gap-3 px-5 py-4">
+    <div className="border border-gold/40 bg-gold/5">
+      <div className="flex flex-col gap-3 px-5 py-4">
         <div className="flex items-start gap-3">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gold/15 text-gold">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-[3px] border border-gold/30 text-gold">
             <Sprout className="size-4" />
           </span>
           <div className="min-w-0 flex-1">
@@ -65,10 +64,10 @@ export function NotificationCycle() {
             </p>
             {!reponseOuverte && (
               <div className="mt-2 flex gap-2">
-                <Button size="sm" className="bg-gold text-white hover:bg-gold/90" onClick={() => setReponseOuverte(true)}>
+                <Button size="sm" className="rounded-[3px] bg-gold text-white hover:bg-gold/90" onClick={() => setReponseOuverte(true)}>
                   Répondre
                 </Button>
-                <Button size="sm" variant="ghost" className="text-stone" onClick={() => marquerTraitee(etape.id)}>
+                <Button size="sm" variant="ghost" className="rounded-[3px] text-stone" onClick={() => marquerTraitee(etape.id)}>
                   Pas maintenant
                 </Button>
               </div>
@@ -91,14 +90,14 @@ export function NotificationCycle() {
               value={texte}
               onChange={(e) => setTexte(e.target.value)}
               placeholder="Un mot, une anecdote de cette période…"
-              className="flex-1"
+              className="flex-1 rounded-[3px]"
             />
-            <Button size="sm" className="bg-vine text-white hover:bg-vine/90" onClick={enregistrer}>
+            <Button size="sm" className="rounded-[3px] bg-vine text-white hover:bg-vine/90" onClick={enregistrer}>
               Enregistrer
             </Button>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

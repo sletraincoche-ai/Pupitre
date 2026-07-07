@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { ImagePlus, Wine, X } from "lucide-react";
 import {
-  Card,
   CardHeader,
   CardTitle,
   CardDescription,
@@ -31,7 +30,7 @@ export function ImageBank() {
     setUploads((prev) => [...nouvelles, ...prev]);
     toast.success(
       `${nouvelles.length} photo${nouvelles.length > 1 ? "s ajoutées" : " ajoutée"}`,
-      { description: "Le Studio pourra désormais y piocher pour illustrer ses posts." }
+      { description: "Disponibles pour illustrer vos prochaines publications." }
     );
   }
 
@@ -40,12 +39,12 @@ export function ImageBank() {
   }
 
   return (
-    <Card className="mx-auto max-w-3xl border border-border/70 bg-card shadow-none">
+    <div className="mx-auto max-w-3xl border border-border bg-card">
       <CardHeader className="px-6">
         <CardTitle>Banque d&apos;images du domaine</CardTitle>
         <CardDescription>
-          L&apos;IA pioche uniquement ici pour illustrer vos posts — jamais dans une
-          banque d&apos;images générique.
+          Seules ces photos illustrent vos publications — jamais une banque d&apos;images
+          générique.
         </CardDescription>
       </CardHeader>
       <CardContent className="px-6">
@@ -59,7 +58,7 @@ export function ImageBank() {
         />
         <button
           onClick={() => inputRef.current?.click()}
-          className="flex w-full flex-col items-center gap-2 rounded-xl border border-dashed border-border/70 bg-background px-6 py-8 text-center hover:border-gold/50"
+          className="flex w-full flex-col items-center gap-2 rounded-[3px] border border-dashed border-border bg-background px-6 py-8 text-center hover:border-gold/50"
         >
           <ImagePlus className="size-6 text-gold" />
           <p className="text-sm font-medium text-ink">Ajouter des photos</p>
@@ -68,13 +67,13 @@ export function ImageBank() {
 
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {uploads.map((photo) => (
-            <div key={photo.id} className="group relative aspect-square overflow-hidden rounded-lg border border-border/70">
+            <div key={photo.id} className="group relative aspect-square overflow-hidden rounded-[3px] border border-border">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={photo.url} alt={photo.legende} className="size-full object-cover" />
               <button
                 onClick={() => supprimer(photo.id)}
                 aria-label="Retirer"
-                className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full bg-ink/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-[3px] bg-ink/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
               >
                 <X className="size-3.5" />
               </button>
@@ -84,7 +83,7 @@ export function ImageBank() {
             <div
               key={photo.id}
               title={photo.legende}
-              className="flex aspect-square flex-col items-center justify-center gap-2 rounded-lg border border-border/70 bg-gradient-to-br from-vine/10 to-gold/10 p-2 text-center"
+              className="flex aspect-square flex-col items-center justify-center gap-2 rounded-[3px] border border-border bg-muted/40 p-2 text-center"
             >
               <Wine className="size-6 text-vine/60" />
               <p className="text-xs text-stone">{photo.legende}</p>
@@ -92,6 +91,6 @@ export function ImageBank() {
           ))}
         </div>
       </CardContent>
-    </Card>
+    </div>
   );
 }
