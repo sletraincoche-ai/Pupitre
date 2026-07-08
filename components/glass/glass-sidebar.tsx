@@ -147,7 +147,7 @@ export function GlassSidebar({ groups }: { groups: GlassNavGroup[] }) {
       <button
         onClick={() => setTiroirOuvert(true)}
         aria-label="Ouvrir le menu"
-        className="fixed top-5 left-5 z-30 flex size-11 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white shadow-[0_8px_32px_rgba(0,0,0,0.28)] backdrop-blur-xl backdrop-saturate-150 lg:hidden"
+        className="fixed top-5 left-5 z-30 flex size-11 items-center justify-center rounded-full border border-white/15 bg-black/25 text-white shadow-[0_8px_32px_rgba(0,0,0,0.28)] backdrop-blur-xl backdrop-saturate-150 lg:hidden"
       >
         <Menu className="size-5" />
       </button>
