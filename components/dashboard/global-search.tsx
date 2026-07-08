@@ -1,24 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { Search, Users, GlassWater, Sparkles } from "lucide-react";
-import { visites, publicationsSociales, emailCampagnes, avisGoogle } from "@/lib/mock-data";
-import { useClients } from "@/lib/clients-context";
+import { Search } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClickOutside } from "@/lib/use-click-outside";
-
-type ResultGroup = {
-  label: string;
-  icon: typeof Users;
-  results: { id: string; label: string; sublabel: string }[];
-  onSelect: (id: string) => void;
-};
+import { useGlobalSearchGroups } from "@/lib/use-global-search";
 
 export function GlobalSearch() {
-  const router = useRouter();
-  const { clients } = useClients();
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -52,68 +40,8 @@ export function GlobalSearch() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  const q = query.trim().toLowerCase();
-
-  const groups: ResultGroup[] = q
-    ? [
-        {
-          label: "Clients",
-          icon: Users,
-          results: clients
-            .filter(
-              (c) =>
-                c.nom.toLowerCase().includes(q) ||
-                c.email.toLowerCase().includes(q) ||
-                c.pays.toLowerCase().includes(q)
-            )
-            .slice(0, 3)
-            .map((c) => ({ id: c.id, label: c.nom, sublabel: c.pays })),
-          onSelect: (id: string) => {
-            router.push(`/dashboard/clients/${id}`);
-          },
-        },
-        {
-          label: "Visites",
-          icon: GlassWater,
-          results: visites
-            .filter((v) => v.client.toLowerCase().includes(q))
-            .slice(0, 3)
-            .map((v) => ({ id: v.id, label: v.client, sublabel: v.date })),
-          onSelect: (id: string) => {
-            const visite = visites.find((v) => v.id === id);
-            router.push("/dashboard/visites");
-            toast.info(`Ouverture de la visite : ${visite?.client}`);
-          },
-        },
-        {
-          label: "Contenus",
-          icon: Sparkles,
-          results: [
-            ...publicationsSociales
-              .filter((p) => p.legende.toLowerCase().includes(q) || p.plateforme.toLowerCase().includes(q))
-              .map((p) => ({ id: `pub:${p.id}`, label: `${p.plateforme} — ${p.format}`, sublabel: p.legende })),
-            ...emailCampagnes
-              .filter((e) => e.objet.toLowerCase().includes(q) || e.corps.toLowerCase().includes(q))
-              .map((e) => ({ id: `mail:${e.id}`, label: e.objet, sublabel: e.segment })),
-            ...avisGoogle
-              .filter((a) => a.texte.toLowerCase().includes(q) || a.auteur.toLowerCase().includes(q))
-              .map((a) => ({ id: `avis:${a.id}`, label: `Avis de ${a.auteur}`, sublabel: a.texte })),
-          ].slice(0, 3),
-          onSelect: (id: string) => {
-            const [type] = id.split(":");
-            const route =
-              type === "pub"
-                ? "/dashboard/studio/reseaux-sociaux"
-                : type === "mail"
-                  ? "/dashboard/studio/mail"
-                  : "/dashboard/studio/avis";
-            router.push(route);
-          },
-        },
-      ].filter((group) => group.results.length > 0)
-    : [];
-
-  const showPanel = focused && q.length > 0;
+  const groups = useGlobalSearchGroups(query);
+  const showPanel = focused && query.trim().length > 0;
 
   return (
     <div ref={containerRef} className="relative w-full max-w-md">

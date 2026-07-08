@@ -34,15 +34,15 @@ export function GlassNotifications() {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label="Notifications"
-        className="relative flex size-10 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-black/30 text-white shadow-[0_8px_32px_rgba(0,0,0,0.28)] backdrop-blur-xl backdrop-saturate-150"
+        className="flex size-10 items-center justify-center rounded-full border border-white/15 bg-black/30 text-white shadow-[0_8px_32px_rgba(0,0,0,0.28)] backdrop-blur-xl backdrop-saturate-150"
       >
         <Bell className="size-4.5" />
-        {unreadCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[0.6rem] font-medium text-white ring-2 ring-black/40">
-            {unreadCount}
-          </span>
-        )}
       </button>
+      {unreadCount > 0 && (
+        <span className="pointer-events-none absolute -top-1 -right-1 flex size-4.5 items-center justify-center rounded-full bg-destructive text-[0.6rem] font-medium text-white ring-2 ring-black/40">
+          {unreadCount}
+        </span>
+      )}
 
       {open && (
         <div className="absolute top-full right-0 z-40 mt-2 w-80 overflow-hidden rounded-2xl border border-white/15 bg-black/60 shadow-[0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-2xl backdrop-saturate-150">

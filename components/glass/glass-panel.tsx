@@ -1,15 +1,14 @@
 import { cn } from "@/lib/utils";
 
 // Système de verre réutilisable — teinte neutre (noir à opacité partielle,
-// jamais teintée dans la palette de marque). Volontairement plus légère
-// que la première version : le fond doit rester bien visible en
-// transparence. Le contraste AA du texte n'est plus porté par l'opacité
-// globale du bloc mais par un voile ciblé (voir GlassTextScrim), plus
-// fin et localisé juste derrière le texte.
+// jamais teintée dans la palette de marque). Pas de voile superposé pour
+// le contraste du texte : uniquement ce verre translucide. "strong" sert
+// pour les blocs dont le texte tombe sur une zone claire de la photo de
+// fond (choisi au cas par cas, pas systématique).
 const intensites = {
   light: "bg-black/22 backdrop-blur-lg backdrop-saturate-150",
   regular: "bg-black/30 backdrop-blur-xl backdrop-saturate-150",
-  strong: "bg-black/42 backdrop-blur-xl backdrop-saturate-150",
+  strong: "bg-black/55 backdrop-blur-xl backdrop-saturate-150",
 } as const;
 
 export type GlassIntensity = keyof typeof intensites;

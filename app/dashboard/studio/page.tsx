@@ -8,7 +8,7 @@ import { GlassBackground } from "@/components/glass/glass-background";
 import { GlassSearchBar } from "@/components/glass/glass-search";
 import { GlassSidebar, type GlassNavGroup } from "@/components/glass/glass-sidebar";
 import { GlassPanel } from "@/components/glass/glass-panel";
-import { GlassBlock, GlassTextScrim } from "@/components/glass/glass-block";
+import { GlassBlock } from "@/components/glass/glass-block";
 import { GlassSheen } from "@/components/glass/glass-sheen";
 import { GlassNotifications } from "@/components/glass/glass-notifications";
 import { GlassProfile } from "@/components/glass/glass-profile";
@@ -89,14 +89,14 @@ export default function StudioPage() {
               <GlassBlock
                 href="/dashboard/studio/reseaux-sociaux"
                 area="reseaux"
-                intensity="regular"
+                intensity="strong"
                 badge={reseauxEnAttente.length}
                 backgroundImage="/images/glass/instagram-post.png"
                 backgroundImageAlt=""
                 icon={
-                  <span className="flex items-center gap-0.5">
-                    <InstagramBadge className="size-4" />
-                    <FacebookBadge className="size-4" />
+                  <span className="flex items-center gap-1.5">
+                    <InstagramBadge className="size-5" />
+                    <FacebookBadge className="size-5" />
                   </span>
                 }
                 title="Réseaux sociaux"
@@ -106,7 +106,7 @@ export default function StudioPage() {
               <GlassBlock
                 href="/dashboard/studio/mail"
                 area="email"
-                intensity="regular"
+                intensity="strong"
                 badge={mailEnAttente.length}
                 backgroundImage="/images/glass/mail-preview.png"
                 backgroundImageAlt=""
@@ -133,7 +133,6 @@ export default function StudioPage() {
                     intensity="regular"
                     className="relative flex h-full items-center justify-between gap-3 overflow-hidden px-6 py-5 transition-transform duration-300 ease-out hover:-translate-y-0.5"
                   >
-                    <GlassTextScrim className="h-full rounded-[28px]" />
                     <GlassSheen />
                     <div className="relative z-10">
                       <p className="text-base font-semibold tracking-tight text-white">Le test</p>
@@ -149,7 +148,6 @@ export default function StudioPage() {
                     intensity="regular"
                     className="relative flex h-full items-center justify-between gap-3 overflow-hidden px-6 py-5 transition-transform duration-300 ease-out hover:-translate-y-0.5"
                   >
-                    <GlassTextScrim className="h-full rounded-[28px]" />
                     <GlassSheen />
                     <div className="relative z-10">
                       <p className="text-base font-semibold tracking-tight text-white">Création</p>
@@ -161,8 +159,7 @@ export default function StudioPage() {
               </div>
 
               <div data-area="photos" className="group min-h-0">
-                <GlassPanel intensity="regular" className="relative flex h-full flex-col gap-4 overflow-hidden p-6">
-                  <GlassTextScrim className="h-20 rounded-t-[28px]" />
+                <GlassPanel intensity="strong" className="relative flex h-full flex-col gap-4 overflow-hidden p-6">
                   <GlassSheen />
                   <p className="relative z-10 text-lg font-semibold tracking-tight text-white">Photos</p>
                   <div className="grid grid-cols-3 gap-2">
