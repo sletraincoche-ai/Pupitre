@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Send, TestTube2, FileText, Sparkles } from "lucide-react";
+import { ArrowLeft, Plus, Send, TestTube2, FileText } from "lucide-react";
 import { InboxPreview } from "@/components/studio/mail/inbox-preview";
 import { MailQueueCard } from "@/components/studio/mail/mail-queue-card";
 import {
@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { useClients } from "@/lib/clients-context";
-import { useIdentity } from "@/lib/identity-context";
+import { getNumeroParId, formatOrigine } from "@/lib/fiches";
 import { emailCampagnes as emailCampagnesInitiales, type EmailCampagne } from "@/lib/mock-data";
 
 function versEmailEdite(e: EmailCampagne): EmailEdite {
@@ -23,7 +23,6 @@ function versEmailEdite(e: EmailCampagne): EmailEdite {
 
 export default function MailPage() {
   const { clients } = useClients();
-  const { charte } = useIdentity();
   const [queue, setQueue] = useState(emailCampagnesInitiales);
   const [sourceId, setSourceId] = useState<string | null>(queue[0]?.id ?? null);
   const [edited, setEdited] = useState<EmailEdite | null>(queue[0] ? versEmailEdite(queue[0]) : null);
@@ -61,6 +60,9 @@ export default function MailPage() {
     setEdited({ ...edited, segment: suivant.label, nombreDestinataires: nombre });
   }
 
+  const source = sourceId ? queue.find((e) => e.id === sourceId) : undefined;
+  const numero = sourceId ? getNumeroParId(sourceId) : undefined;
+
   return (
     <div className="flex flex-col gap-6">
       <Link href="/dashboard/studio" className="flex w-fit items-center gap-1.5 text-sm text-stone hover:text-vine">
@@ -73,23 +75,28 @@ export default function MailPage() {
           <h1 className="font-heading text-3xl text-ink">Atelier e-mail</h1>
           <p className="mt-1 text-stone">Campagnes prêtes, ou composez la vôtre.</p>
         </div>
-        <Button className="bg-vine text-white hover:bg-vine/90" onClick={creerManuellement}>
+        <Button variant="outline" className="rounded-[3px]" onClick={creerManuellement}>
           <Plus className="size-4" />
           Créer un email
         </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
-        <div className="flex flex-col gap-3">
-          <p className="text-sm font-medium text-stone">File d&apos;attente ({queue.length})</p>
-          {queue.length === 0 && (
-            <p className="rounded-xl border border-dashed border-border/70 bg-card py-8 text-center text-sm text-stone">
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-medium tracking-wide text-stone uppercase">
+            File d&apos;attente ({queue.length})
+          </p>
+          {queue.length === 0 ? (
+            <p className="border border-dashed border-border py-8 text-center text-sm text-stone">
               File vide. Créez un email.
             </p>
+          ) : (
+            <div className="divide-y divide-border border border-border">
+              {queue.map((e) => (
+                <MailQueueCard key={e.id} campagne={e} active={sourceId === e.id} onClick={() => charger(e)} />
+              ))}
+            </div>
           )}
-          {queue.map((e) => (
-            <MailQueueCard key={e.id} campagne={e} active={sourceId === e.id} onClick={() => charger(e)} />
-          ))}
         </div>
 
         <div>
@@ -106,28 +113,30 @@ export default function MailPage() {
               </div>
 
               <div className="flex flex-col gap-6">
-                {charte && (
-                  <p className="flex items-center gap-1.5 rounded-lg bg-gold/10 px-3 py-2 text-xs font-medium text-gold">
-                    <Sparkles className="size-3.5" />
-                    Généré selon votre charte narrative — ton : {charte.ton}
+                <div>
+                  <p className="font-heading text-lg text-ink">
+                    {numero ? `Fiche N°${numero}` : "Nouvelle fiche"}
                   </p>
-                )}
+                  <p className="font-mono text-xs text-stone">
+                    {formatOrigine(source?.declencheur)}
+                  </p>
+                </div>
 
                 <MailEditPanel edited={edited} onChange={setEdited} onChangerSegment={changerSegment} />
 
-                <div className="flex flex-wrap gap-2 border-t border-border/60 pt-5">
+                <div className="flex flex-wrap gap-2 border-t border-border pt-5">
                   <Button
-                    className="bg-vine text-white hover:bg-vine/90"
+                    className="rounded-[3px] bg-vine text-white hover:bg-vine/90"
                     onClick={() => terminer(`Envoyé à ${edited.nombreDestinataires} clients`)}
                   >
                     <Send className="size-4" />
                     Envoyer aux {edited.nombreDestinataires} clients
                   </Button>
-                  <Button variant="outline" onClick={() => toast.success("Test envoyé à votre adresse")}>
+                  <Button variant="outline" className="rounded-[3px]" onClick={() => toast.success("Test envoyé à votre adresse")}>
                     <TestTube2 className="size-4" />
                     M&apos;envoyer un test
                   </Button>
-                  <Button variant="ghost" onClick={() => toast.success("Brouillon enregistré")}>
+                  <Button variant="ghost" className="rounded-[3px]" onClick={() => toast.success("Brouillon enregistré")}>
                     <FileText className="size-4" />
                     Enregistrer brouillon
                   </Button>

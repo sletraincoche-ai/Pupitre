@@ -10,7 +10,7 @@ export function InboxPreview({ objet, corps }: { objet: string; corps: string })
       </div>
 
       <div className="flex items-start gap-3 border-b border-border/50 px-5 py-4">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-gold to-vine text-sm font-medium text-white">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-vine text-sm font-medium text-white">
           {domaineProfile.initiales}
         </span>
         <div className="min-w-0 flex-1">

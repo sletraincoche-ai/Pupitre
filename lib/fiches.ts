@@ -18,6 +18,7 @@ export type StatutFiche = "En attente" | "Publiée" | "Envoyée";
 export type CanalFiche = "Instagram" | "Facebook" | "Email" | "Avis Google";
 
 export type Fiche = {
+  id?: string;
   numero: string;
   date: string;
   canal: CanalFiche;
@@ -26,6 +27,13 @@ export type Fiche = {
   origine: string;
   lien: string;
 };
+
+// "Déclenché par la Cave — X" -> "Origine : la Cave — X". Un seul format
+// factuel et sobre, réutilisé par le registre et par chaque atelier.
+export function formatOrigine(declencheur?: string): string {
+  if (!declencheur) return "Origine : création manuelle";
+  return `Origine : ${declencheur.replace(/^Déclenché par /, "")}`;
+}
 
 const moisFr: Record<string, number> = {
   janvier: 1, février: 2, mars: 3, avril: 4, mai: 5, juin: 6,
@@ -115,22 +123,25 @@ function apercuAvis(a: (typeof avisGoogle)[number]): string {
 export function getFiches(): Fiche[] {
   const vivantes: Omit<Fiche, "numero">[] = [
     ...publicationsSociales.map((p) => ({
+      id: p.id,
       date: p.date,
       canal: p.plateforme,
       statut: p.statut === "Brouillon" ? ("En attente" as StatutFiche) : (p.statut as StatutFiche),
       apercu: apercuPublication(p),
-      origine: p.declencheur ?? "Origine : création manuelle",
+      origine: formatOrigine(p.declencheur),
       lien: "/dashboard/studio/reseaux-sociaux",
     })),
     ...emailCampagnes.map((e) => ({
+      id: e.id,
       date: e.date,
       canal: "Email" as CanalFiche,
       statut: e.statut === "Brouillon" ? ("En attente" as StatutFiche) : (e.statut as StatutFiche),
       apercu: apercuEmail(e),
-      origine: e.declencheur ?? "Origine : création manuelle",
+      origine: formatOrigine(e.declencheur),
       lien: "/dashboard/studio/mail",
     })),
     ...avisGoogle.map((a) => ({
+      id: a.id,
       date: a.date,
       canal: "Avis Google" as CanalFiche,
       statut: a.statut as StatutFiche,
@@ -143,4 +154,15 @@ export function getFiches(): Fiche[] {
   const toutes = [...fichesHistoriques, ...vivantes].sort((a, b) => cleDate(a.date) - cleDate(b.date));
 
   return toutes.map((f, i) => ({ ...f, numero: String(i + 1).padStart(3, "0") }));
+}
+
+let numerosParId: Map<string, string> | null = null;
+
+// Fait correspondre le numéro de fiche affiché sur l'accueil du Studio à
+// l'élément d'une file d'atelier — même référence des deux côtés.
+export function getNumeroParId(id: string): string | undefined {
+  if (!numerosParId) {
+    numerosParId = new Map(getFiches().filter((f) => f.id).map((f) => [f.id as string, f.numero]));
+  }
+  return numerosParId.get(id);
 }

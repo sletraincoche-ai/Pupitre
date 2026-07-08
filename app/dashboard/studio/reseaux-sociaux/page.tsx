@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Send, CalendarClock, FileText, Sparkles, Link2 } from "lucide-react";
+import { ArrowLeft, Plus, Send, CalendarClock, FileText, Link2 } from "lucide-react";
 import { InstagramBadge, FacebookBadge } from "@/components/studio/brand-icons";
 import { PostPreview } from "@/components/studio/post-preview";
 import { QueueCard } from "@/components/studio/reseaux/queue-card";
@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { useIdentity } from "@/lib/identity-context";
 import { useMetaConnection } from "@/lib/meta-connection-context";
+import { getNumeroParId, formatOrigine } from "@/lib/fiches";
+import { suggestionsHashtags } from "@/lib/hashtags";
 import {
   publicationsSociales as publicationsInitiales,
   type PublicationSociale,
@@ -53,10 +55,7 @@ export default function ReseauxSociauxPage() {
 
   function creerManuellement() {
     setSourceId(null);
-    setEdited({
-      ...vide,
-      hashtags: charte?.vocabulaire.map((v) => v.replace(/[^a-zA-Z0-9À-ÿ]/g, "")).filter(Boolean) ?? [],
-    });
+    setEdited({ ...vide, hashtags: suggestionsHashtags(charte).slice(0, 2) });
   }
 
   function retirerDeLaFile(message: string) {
@@ -83,6 +82,9 @@ export default function ReseauxSociauxPage() {
     setEdited({ ...edited, format });
   }
 
+  const source = sourceId ? queue.find((p) => p.id === sourceId) : undefined;
+  const numero = sourceId ? getNumeroParId(sourceId) : undefined;
+
   return (
     <div className="flex flex-col gap-6">
       <Link href="/dashboard/studio" className="flex w-fit items-center gap-1.5 text-sm text-stone hover:text-vine">
@@ -95,25 +97,28 @@ export default function ReseauxSociauxPage() {
           <h1 className="font-heading text-3xl text-ink">Atelier réseaux sociaux</h1>
           <p className="mt-1 text-stone">Instagram et Facebook, un seul éditeur.</p>
         </div>
-        <Button className="bg-vine text-white hover:bg-vine/90" onClick={creerManuellement}>
+        <Button variant="outline" className="rounded-[3px]" onClick={creerManuellement}>
           <Plus className="size-4" />
           Créer une publication
         </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
-        <div className="flex flex-col gap-3">
-          <p className="text-sm font-medium text-stone">
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-medium tracking-wide text-stone uppercase">
             File d&apos;attente ({queue.length})
           </p>
-          {queue.length === 0 && (
-            <p className="rounded-xl border border-dashed border-border/70 bg-card py-8 text-center text-sm text-stone">
+          {queue.length === 0 ? (
+            <p className="border border-dashed border-border py-8 text-center text-sm text-stone">
               File vide. Créez une publication.
             </p>
+          ) : (
+            <div className="divide-y divide-border border border-border">
+              {queue.map((p) => (
+                <QueueCard key={p.id} publication={p} active={sourceId === p.id} onClick={() => charger(p)} />
+              ))}
+            </div>
           )}
-          {queue.map((p) => (
-            <QueueCard key={p.id} publication={p} active={sourceId === p.id} onClick={() => charger(p)} />
-          ))}
         </div>
 
         <div>
@@ -126,11 +131,11 @@ export default function ReseauxSociauxPage() {
           ) : (
             <div className="flex flex-col gap-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-1 rounded-full border border-border/70 bg-card p-1">
+                <div className="flex items-center gap-1 border border-border p-1">
                   <button
                     onClick={() => setPlateforme("Instagram")}
                     className={cn(
-                      "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+                      "flex items-center gap-1.5 rounded-[2px] px-3 py-1.5 text-sm font-medium transition-colors",
                       edited.plateforme === "Instagram" ? "bg-vine text-white" : "text-stone"
                     )}
                   >
@@ -140,7 +145,7 @@ export default function ReseauxSociauxPage() {
                   <button
                     onClick={() => setPlateforme("Facebook")}
                     className={cn(
-                      "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+                      "flex items-center gap-1.5 rounded-[2px] px-3 py-1.5 text-sm font-medium transition-colors",
                       edited.plateforme === "Facebook" ? "bg-vine text-white" : "text-stone"
                     )}
                   >
@@ -149,11 +154,11 @@ export default function ReseauxSociauxPage() {
                   </button>
                 </div>
 
-                <div className="flex items-center gap-1 rounded-full border border-border/70 bg-card p-1">
+                <div className="flex items-center gap-1 border border-border p-1">
                   <button
                     onClick={() => setFormat("post")}
                     className={cn(
-                      "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+                      "rounded-[2px] px-3 py-1.5 text-sm font-medium transition-colors",
                       edited.format !== "story" ? "bg-vine text-white" : "text-stone"
                     )}
                   >
@@ -162,7 +167,7 @@ export default function ReseauxSociauxPage() {
                   <button
                     onClick={() => setFormat("story")}
                     className={cn(
-                      "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+                      "rounded-[2px] px-3 py-1.5 text-sm font-medium transition-colors",
                       edited.format === "story" ? "bg-vine text-white" : "text-stone"
                     )}
                   >
@@ -184,19 +189,21 @@ export default function ReseauxSociauxPage() {
                 </div>
 
                 <div className="flex flex-col gap-6">
-                  {charte && (
-                    <p className="flex items-center gap-1.5 rounded-lg bg-gold/10 px-3 py-2 text-xs font-medium text-gold">
-                      <Sparkles className="size-3.5" />
-                      Généré selon votre charte narrative — ton : {charte.ton}
+                  <div>
+                    <p className="font-heading text-lg text-ink">
+                      {numero ? `Fiche N°${numero}` : "Nouvelle fiche"}
                     </p>
-                  )}
+                    <p className="font-mono text-xs text-stone">
+                      {formatOrigine(source?.declencheur)}
+                    </p>
+                  </div>
 
-                  <EditPanel edited={edited} onChange={setEdited} />
+                  <EditPanel edited={edited} onChange={setEdited} suggestionsHashtags={suggestionsHashtags(charte)} />
 
-                  <div className="flex flex-wrap gap-2 border-t border-border/60 pt-5">
+                  <div className="flex flex-wrap gap-2 border-t border-border pt-5">
                     {connecte ? (
                       <Button
-                        className="bg-vine text-white hover:bg-vine/90"
+                        className="rounded-[3px] bg-vine text-white hover:bg-vine/90"
                         onClick={() =>
                           retirerDeLaFile(
                             `Publié sur ${edited.plateforme}${info?.demo ? " (démo)" : ""}`
@@ -208,7 +215,7 @@ export default function ReseauxSociauxPage() {
                       </Button>
                     ) : (
                       <Button
-                        className="bg-vine text-white hover:bg-vine/90"
+                        className="rounded-[3px] bg-vine text-white hover:bg-vine/90"
                         nativeButton={false}
                         render={
                           <Link href="/dashboard/parametres">
@@ -218,12 +225,13 @@ export default function ReseauxSociauxPage() {
                         }
                       />
                     )}
-                    <Button variant="outline" onClick={() => retirerDeLaFile("Publication programmée")}>
+                    <Button variant="outline" className="rounded-[3px]" onClick={() => retirerDeLaFile("Publication programmée")}>
                       <CalendarClock className="size-4" />
                       Programmer
                     </Button>
                     <Button
                       variant="ghost"
+                      className="rounded-[3px]"
                       onClick={() => toast.success("Brouillon enregistré")}
                     >
                       <FileText className="size-4" />

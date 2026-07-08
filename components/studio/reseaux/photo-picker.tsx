@@ -42,7 +42,7 @@ export function PhotoPicker({
           </p>
           <div className="flex flex-wrap gap-2">
             {selection.map((id, index) => (
-              <div key={id} className="relative size-16 overflow-hidden rounded-lg border border-border/70">
+              <div key={id} className="relative size-16 overflow-hidden rounded-[3px] border border-border">
                 <PhotoTile photoId={id} className="size-full" />
                 <button
                   onClick={() => toggle(id)}
@@ -86,7 +86,7 @@ export function PhotoPicker({
               <button
                 key={photo.id}
                 onClick={() => toggle(photo.id)}
-                className="relative aspect-square overflow-hidden rounded-lg border border-border/70"
+                className="relative aspect-square overflow-hidden rounded-[3px] border border-border"
               >
                 <PhotoTile photoId={photo.id} className="size-full" />
                 {selected && (

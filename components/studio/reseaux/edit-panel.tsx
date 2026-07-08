@@ -2,6 +2,7 @@
 
 import { Music2 } from "lucide-react";
 import { PhotoPicker } from "@/components/studio/reseaux/photo-picker";
+import { HashtagInput } from "@/components/studio/reseaux/hashtag-input";
 import type { FormatContenu, ReseauPlateforme } from "@/lib/mock-data";
 
 const suggestionsMusique = [
@@ -23,34 +24,38 @@ export type ContenuEdite = {
 export function EditPanel({
   edited,
   onChange,
+  suggestionsHashtags = [],
 }: {
   edited: ContenuEdite;
   onChange: (next: ContenuEdite) => void;
+  suggestionsHashtags?: string[];
 }) {
-  const hashtagsTexte = edited.hashtags.join(", ");
-
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <p className="mb-2 text-sm font-medium text-ink">Photos</p>
+        <p className="mb-2 text-xs font-medium tracking-wide text-stone uppercase">Photos</p>
         <PhotoPicker selection={edited.photos} onChange={(photos) => onChange({ ...edited, photos })} />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-medium text-ink">Légende</label>
+        <label className="mb-2 block text-xs font-medium tracking-wide text-stone uppercase">
+          Légende
+        </label>
         <textarea
           value={edited.legende}
           onChange={(e) => onChange({ ...edited, legende: e.target.value })}
           rows={4}
           placeholder="Écrivez votre légende…"
-          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-ink outline-none placeholder:text-stone focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="w-full rounded-[3px] border border-input bg-background px-3 py-2 text-sm text-ink outline-none placeholder:text-stone focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         />
       </div>
 
       {edited.format === "story" && (
         <div>
-          <label className="mb-2 block text-sm font-medium text-ink">Musique</label>
-          <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-background px-3 py-2">
+          <label className="mb-2 block text-xs font-medium tracking-wide text-stone uppercase">
+            Musique
+          </label>
+          <div className="flex items-center gap-2 rounded-[3px] border border-border bg-background px-3 py-2">
             <Music2 className="size-4 text-gold" />
             <span className="flex-1 text-sm text-ink">{edited.musique ?? "Aucune"}</span>
             <button
@@ -69,20 +74,13 @@ export function EditPanel({
 
       {edited.format !== "story" && edited.plateforme === "Instagram" && (
         <div>
-          <label className="mb-2 block text-sm font-medium text-ink">Hashtags</label>
-          <input
-            value={hashtagsTexte}
-            onChange={(e) =>
-              onChange({
-                ...edited,
-                hashtags: e.target.value
-                  .split(",")
-                  .map((h) => h.trim().replace(/^#/, ""))
-                  .filter(Boolean),
-              })
-            }
-            placeholder="ChampagnePupitre, Vendanges2026"
-            className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm text-ink outline-none placeholder:text-stone focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          <label className="mb-2 block text-xs font-medium tracking-wide text-stone uppercase">
+            Hashtags
+          </label>
+          <HashtagInput
+            hashtags={edited.hashtags}
+            suggestions={suggestionsHashtags}
+            onChange={(hashtags) => onChange({ ...edited, hashtags })}
           />
         </div>
       )}
