@@ -1,14 +1,6 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIdentity } from "@/lib/identity-context";
 import type { OrigineEnrichissement } from "@/lib/mock-data";
@@ -20,52 +12,41 @@ const libellesOrigine: Record<OrigineEnrichissement, string> = {
   visite: "Visite",
 };
 
-const stylesOrigine: Record<OrigineEnrichissement, string> = {
-  test: "border-vine/30 text-vine",
-  saison: "border-gold/40 text-gold",
-  cuvee: "border-[#5C7A99]/40 text-[#5C7A99]",
-  visite: "border-destructive/30 text-destructive",
-};
-
 export function CharteSummary({ onModifier }: { onModifier: () => void }) {
   const { charte } = useIdentity();
   if (!charte) return null;
 
+  const piliersInitiaux = charte.piliers.filter((p) => p.origine === "test");
+  const journal = charte.piliers.filter((p) => p.origine !== "test");
+
   return (
-    <Card className="mx-auto max-w-xl border border-border/70 bg-card shadow-none">
-      <CardHeader className="px-6">
-        <div className="flex items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-full bg-gold/10 text-gold">
-            <Sparkles className="size-4" />
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+      <div className="border border-border bg-card">
+        <div className="flex items-center gap-2 border-b border-border px-6 py-4">
+          <span className="flex size-8 items-center justify-center rounded-[3px] border border-gold/30 text-gold">
+            <FileText className="size-4" />
           </span>
           <div>
-            <CardTitle>Votre charte narrative</CardTitle>
-            <CardDescription>Utilisée pour chaque génération du Studio IA</CardDescription>
+            <p className="font-heading text-lg text-ink">Charte narrative</p>
+            <p className="font-mono text-xs text-stone">Utilisée pour chaque génération du Studio</p>
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4 px-6">
+
         {charte.ton && (
-          <div>
+          <div className="border-b border-border px-6 py-4">
             <p className="text-xs font-medium tracking-wide text-stone uppercase">Ton</p>
-            <p className="mt-1 text-sm text-ink">{charte.ton}</p>
+            <p className="mt-1.5 text-sm text-ink">{charte.ton}</p>
           </div>
         )}
 
-        {charte.piliers.length > 0 && (
-          <div>
+        {piliersInitiaux.length > 0 && (
+          <div className="border-b border-border px-6 py-4">
             <p className="text-xs font-medium tracking-wide text-stone uppercase">
-              Piliers d&apos;histoires ({charte.piliers.length})
+              Piliers d&apos;histoires ({piliersInitiaux.length})
             </p>
-            <ul className="mt-2 flex flex-col gap-2.5">
-              {charte.piliers.map((p) => (
+            <ul className="mt-2 flex flex-col gap-2">
+              {piliersInitiaux.map((p) => (
                 <li key={p.id} className="text-sm text-ink">
-                  <div className="mb-1 flex items-center gap-2">
-                    <Badge variant="outline" className={stylesOrigine[p.origine]}>
-                      {libellesOrigine[p.origine]}
-                    </Badge>
-                    <span className="text-xs text-stone">{p.date}</span>
-                  </div>
                   {p.texte}
                 </li>
               ))}
@@ -74,35 +55,57 @@ export function CharteSummary({ onModifier }: { onModifier: () => void }) {
         )}
 
         {charte.vocabulaire.length > 0 && (
-          <div>
+          <div className="border-b border-border px-6 py-4">
             <p className="text-xs font-medium tracking-wide text-stone uppercase">Vocabulaire</p>
-            <div className="mt-1 flex flex-wrap gap-1.5">
-              {charte.vocabulaire.map((v) => (
-                <Badge key={v} variant="outline" className="border-vine/30 text-vine">
-                  {v}
-                </Badge>
-              ))}
-            </div>
+            <p className="mt-1.5 text-sm text-ink">{charte.vocabulaire.join(" · ")}</p>
           </div>
         )}
 
         {charte.interdits.length > 0 && (
-          <div>
+          <div className="px-6 py-4">
             <p className="text-xs font-medium tracking-wide text-stone uppercase">Interdits</p>
-            <div className="mt-1 flex flex-wrap gap-1.5">
-              {charte.interdits.map((i) => (
-                <Badge key={i} variant="outline" className="border-destructive/30 text-destructive">
-                  {i}
-                </Badge>
-              ))}
-            </div>
+            <p className="mt-1.5 text-sm text-ink">{charte.interdits.join(" · ")}</p>
           </div>
         )}
 
-        <Button variant="outline" className="mt-2 self-start" onClick={onModifier}>
-          Modifier mes réponses
-        </Button>
-      </CardContent>
-    </Card>
+        <div className="border-t border-border px-6 py-4">
+          <Button variant="outline" className="rounded-[3px]" onClick={onModifier}>
+            Modifier mes réponses
+          </Button>
+        </div>
+      </div>
+
+      {journal.length > 0 && (
+        <div>
+          <p className="mb-2 text-xs font-medium tracking-wide text-stone uppercase">
+            Journal d&apos;enrichissement ({journal.length})
+          </p>
+          <div className="overflow-x-auto border border-border">
+            <table className="w-full min-w-[480px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40 text-left text-xs tracking-wide text-stone uppercase">
+                  <th className="px-4 py-2.5 font-medium">Date</th>
+                  <th className="px-4 py-2.5 font-medium">Origine</th>
+                  <th className="px-4 py-2.5 font-medium">Entrée</th>
+                </tr>
+              </thead>
+              <tbody>
+                {journal.map((p) => (
+                  <tr key={p.id} className="border-b border-border/60 last:border-b-0">
+                    <td className="px-4 py-2.5 font-mono text-xs whitespace-nowrap text-stone tabular-nums">
+                      {p.date}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs whitespace-nowrap text-ink">
+                      {libellesOrigine[p.origine]}
+                    </td>
+                    <td className="px-4 py-2.5 text-ink">{p.texte}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

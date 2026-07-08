@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, ImagePlus, SkipForward, Wine } from "lucide-react";
+import { ImagePlus, Wine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImageBank } from "@/components/studio/image-bank";
-import { StepPills } from "@/components/studio/identite/step-pills";
-import { QuizIllustration } from "@/components/studio/identite/quiz-illustration";
+import { QuizProgress } from "@/components/studio/identite/quiz-progress";
+import { QuizMotif } from "@/components/studio/identite/quiz-motifs";
 import { questionsIdentite } from "@/lib/identity";
 import { useIdentity } from "@/lib/identity-context";
 import { cn } from "@/lib/utils";
@@ -39,33 +39,25 @@ export function IdentityQuiz({ onTermine }: { onTermine: () => void }) {
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col overflow-y-auto bg-background">
-      <QuizIllustration etapeIndex={etapeCourante} />
-
-      {/* Voile crème : plein et uni sur mobile (une seule colonne, pas
-          d'espace pour "éviter" le fond), dégradé gauche→droite sur
-          desktop pour laisser le fond respirer à droite. */}
-      <div className="pointer-events-none absolute inset-0 bg-background/85 lg:hidden" />
-      <div
-        className="pointer-events-none absolute inset-0 hidden lg:block"
-        style={{
-          background: "linear-gradient(to right, #F5F0E8 0%, #F5F0E8 40%, rgba(245,240,232,0) 78%)",
-        }}
-      />
-
-      <div className="relative z-10 flex shrink-0 items-center justify-between bg-background/60 px-6 py-4 backdrop-blur-[2px] lg:px-12">
+      <div className="flex shrink-0 items-center justify-between px-6 py-4 lg:px-12">
         <Link href="/dashboard" className="flex items-center gap-2">
           <Wine className="size-5 text-gold" />
           <span className="font-heading text-xl tracking-wide text-vine">PUPITRE</span>
         </Link>
         <p className="text-sm text-stone">
-          Studio IA <span className="mx-1.5 text-border">/</span>
+          Studio <span className="mx-1.5 text-border">/</span>
           <span className="font-medium text-ink">Identité</span>
         </p>
       </div>
 
-      <div className="relative z-10 flex flex-1 items-center">
-        <div className="w-full px-6 py-10 lg:w-1/2 lg:px-12">
-          <StepPills total={questionsIdentite.length} courant={etapeCourante} />
+      <div className="relative flex flex-1 items-center justify-center px-6 py-10 lg:px-12">
+        <QuizMotif
+          groupe={question.groupe}
+          className="pointer-events-none absolute top-8 right-8 hidden size-40 text-vine opacity-[0.16] lg:block"
+        />
+
+        <div className="w-full max-w-xl">
+          <QuizProgress total={questionsIdentite.length} courant={etapeCourante} />
 
           <AnimatePresence mode="wait">
             <motion.div
@@ -74,12 +66,12 @@ export function IdentityQuiz({ onTermine }: { onTermine: () => void }) {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -12 }}
               transition={{ duration: 0.2 }}
-              className="mt-8"
+              className="mt-10"
             >
               <p className="text-xs font-semibold tracking-[0.15em] text-gold uppercase">
                 {question.groupe}
               </p>
-              <p className="mt-3 font-heading text-3xl leading-snug text-ink italic lg:text-4xl">
+              <p className="mt-3 font-heading text-3xl leading-snug text-ink lg:text-4xl">
                 {question.texte}
               </p>
 
@@ -99,7 +91,7 @@ export function IdentityQuiz({ onTermine }: { onTermine: () => void }) {
                       key={option}
                       onClick={() => setBrouillon(option)}
                       className={cn(
-                        "rounded-lg border px-4 py-2.5 text-left text-sm font-medium transition-colors",
+                        "rounded-[3px] border px-4 py-2.5 text-left text-sm font-medium transition-colors",
                         brouillon === option
                           ? "border-vine bg-vine text-white"
                           : "border-border bg-background text-ink hover:border-vine/40"
@@ -123,21 +115,29 @@ export function IdentityQuiz({ onTermine }: { onTermine: () => void }) {
             </motion.div>
           </AnimatePresence>
 
-          <div className="mt-12 flex items-center justify-between">
-            <Button variant="ghost" onClick={() => allerA(etapeCourante - 1)} disabled={etapeCourante === 0}>
-              <ArrowLeft className="size-4" />
-              Précédent
-            </Button>
-            <div className="flex items-center gap-2">
+          <div className="mt-12 flex items-center justify-between border-t border-border pt-5">
+            <button
+              onClick={() => allerA(etapeCourante - 1)}
+              disabled={etapeCourante === 0}
+              className="text-sm text-stone hover:text-ink disabled:pointer-events-none disabled:opacity-30"
+            >
+              ← Précédent
+            </button>
+            <div className="flex items-center gap-5">
               {question.type !== "photos" && (
-                <Button variant="ghost" className="text-stone" onClick={() => soumettre("")}>
-                  <SkipForward className="size-4" />
+                <button
+                  onClick={() => soumettre("")}
+                  className="text-sm text-stone hover:text-ink"
+                >
                   Passer
-                </Button>
+                </button>
               )}
-              <Button className="bg-vine text-white hover:bg-vine/90" onClick={() => soumettre(brouillon)}>
-                {dernierePage ? "Terminer" : "Suivant"}
-                <ArrowRight className="size-4" />
+              <Button
+                variant="outline"
+                className="rounded-[3px] border-ink text-ink hover:bg-ink hover:text-background"
+                onClick={() => soumettre(brouillon)}
+              >
+                {dernierePage ? "Terminer" : "Suivant →"}
               </Button>
             </div>
           </div>
