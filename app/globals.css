@@ -144,3 +144,45 @@
     font-family: var(--font-heading);
   }
 }
+
+/* Grille du tableau de bord Studio en verre — réseaux sociaux occupe
+   toute la hauteur à gauche, e-mail/avis empilés au centre avec le
+   bandeau test/création dessous, photos pleine hauteur à droite.
+   Empilement simple en dessous de lg. */
+.studio-glass-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 64rem) {
+  .studio-glass-grid {
+    display: grid;
+    gap: 1rem;
+    /* minmax(0, …) plutôt que Nfr seul : sans ça, la taille minimale
+       implicite d'une piste "fr" vaut son min-content, et un long texte
+       tronqué (truncate) dans le bloc réseaux suffit à le faire gonfler
+       bien au-delà de sa part, écrasant les colonnes email/avis/photos. */
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 0.85fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-areas:
+      "reseaux email photos"
+      "reseaux avis photos"
+      "bande bande photos";
+  }
+  .studio-glass-grid > [data-area="reseaux"] {
+    grid-area: reseaux;
+  }
+  .studio-glass-grid > [data-area="email"] {
+    grid-area: email;
+  }
+  .studio-glass-grid > [data-area="avis"] {
+    grid-area: avis;
+  }
+  .studio-glass-grid > [data-area="bande"] {
+    grid-area: bande;
+  }
+  .studio-glass-grid > [data-area="photos"] {
+    grid-area: photos;
+  }
+}

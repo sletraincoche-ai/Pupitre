@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Send, CalendarClock, FileText, Link2 } from "lucide-react";
 import { InstagramBadge, FacebookBadge } from "@/components/studio/brand-icons";
@@ -42,8 +43,17 @@ const vide: ContenuEdite = {
 };
 
 export default function ReseauxSociauxPage() {
+  return (
+    <Suspense fallback={null}>
+      <ReseauxSociauxContent />
+    </Suspense>
+  );
+}
+
+function ReseauxSociauxContent() {
   const { charte } = useIdentity();
   const { connecte, info } = useMetaConnection();
+  const searchParams = useSearchParams();
   const [queue, setQueue] = useState(publicationsInitiales);
   const [sourceId, setSourceId] = useState<string | null>(queue[0]?.id ?? null);
   const [edited, setEdited] = useState<ContenuEdite | null>(queue[0] ? versContenuEdite(queue[0]) : null);
@@ -57,6 +67,15 @@ export default function ReseauxSociauxPage() {
     setSourceId(null);
     setEdited({ ...vide, hashtags: suggestionsHashtags(charte).slice(0, 2) });
   }
+
+  // Le bloc "Création" du Studio ouvre directement l'éditeur vierge, sans
+  // passer par la sélection d'une suggestion dans la file.
+  useEffect(() => {
+    if (searchParams.get("nouveau") === "1") {
+      creerManuellement();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function retirerDeLaFile(message: string) {
     if (sourceId) {
