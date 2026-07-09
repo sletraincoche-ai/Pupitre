@@ -8,6 +8,8 @@ import { ConsentScreen } from "@/components/studio/identite/consent-screen";
 import { IdentityQuiz } from "@/components/studio/identite/quiz";
 import { CharteProposal } from "@/components/studio/identite/charte-proposal";
 import { CharteSummary } from "@/components/studio/identite/charte-summary";
+import { GlassPageShell } from "@/components/glass/glass-page-shell";
+import { GlassPageHeader } from "@/components/glass/glass-page-header";
 import { useIdentity } from "@/lib/identity-context";
 
 function InvitationScreen({ onCommencer }: { onCommencer: () => void }) {
@@ -62,6 +64,30 @@ export default function IdentitePage() {
     return <IdentityQuiz onTermine={() => genererCharte()} />;
   }
 
+  // La charte (consultation et proposition à valider) passe elle aussi au
+  // Liquid Glass : même coquille plein écran (fond, verre, nav) que le
+  // reste du Studio déjà converti, pour ne pas retomber sur le thème clair
+  // juste après le test qui, lui, est déjà en verre.
+  if (hydrated && (affichageCharte || enProposition)) {
+    return (
+      <GlassPageShell>
+        <GlassPageHeader
+          title="Charte narrative"
+          subtitle="La charte narrative qui rend chaque génération crédible sous votre nom."
+        />
+        {affichageCharte ? (
+          <CharteSummary onModifier={() => setModeEdition(true)} />
+        ) : (
+          <CharteProposal
+            onValide={() => setModeEdition(false)}
+            onRefaire={() => setModeEdition(true)}
+            onAnnuler={() => setModeEdition(false)}
+          />
+        )}
+      </GlassPageShell>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <Link href="/dashboard/studio" className="flex w-fit items-center gap-1.5 text-sm text-stone hover:text-vine">
@@ -74,15 +100,7 @@ export default function IdentitePage() {
         <p className="mt-1 text-stone">La charte narrative qui rend chaque génération crédible sous votre nom.</p>
       </div>
 
-      {!hydrated ? null : affichageCharte ? (
-        <CharteSummary onModifier={() => setModeEdition(true)} />
-      ) : enProposition ? (
-        <CharteProposal
-          onValide={() => setModeEdition(false)}
-          onRefaire={() => setModeEdition(true)}
-          onAnnuler={() => setModeEdition(false)}
-        />
-      ) : montrerConsentement ? (
+      {!hydrated ? null : montrerConsentement ? (
         <ConsentScreen onAccepter={accepterConsentement} />
       ) : (
         <InvitationScreen onCommencer={() => setMontrerConsentement(true)} />

@@ -41,8 +41,12 @@ export default function StudioPage() {
   const avisEnAttente = avisGoogle.filter((a) => a.statut === "En attente");
 
   return (
-    <GlassPageShell>
-      <div className="studio-glass-grid" style={{ minHeight: "calc(100vh - 8.5rem)" }}>
+    <GlassPageShell fill>
+      {/* Grille contrainte à la hauteur restante du viewport (lg:flex-1
+          dans la coquille en mode `fill`) — les rangées de blocs sont donc
+          compressées, pas seulement leur largeur, pour tenir sans scroll
+          à 1440×900. */}
+      <div className="studio-glass-grid lg:min-h-0 lg:flex-1">
         <GlassBlock
           href="/dashboard/studio/reseaux-sociaux"
           area="reseaux"
@@ -50,10 +54,12 @@ export default function StudioPage() {
           badge={reseauxEnAttente.length}
           backgroundImage="/images/glass/instagram-post.png"
           backgroundImageAlt=""
+          imageMinHeight={90}
+          panelClassName="gap-2 p-4"
           icon={
             <span className="flex items-center gap-1">
-              <InstagramBadge className="size-5" />
-              <FacebookBadge className="size-5" />
+              <InstagramBadge className="size-4" />
+              <FacebookBadge className="size-4" />
             </span>
           }
           title="Réseaux sociaux"
@@ -67,7 +73,9 @@ export default function StudioPage() {
           badge={mailEnAttente.length}
           backgroundImage="/images/glass/mail-preview.png"
           backgroundImageAlt=""
-          icon={<Mail className="size-5" />}
+          imageMinHeight={70}
+          panelClassName="gap-2 p-4"
+          icon={<Mail className="size-4" />}
           title="Email"
           subtitle={`${mailEnAttente.length} campagne${mailEnAttente.length > 1 ? "s" : ""} prête${mailEnAttente.length > 1 ? "s" : ""}`}
         />
@@ -79,21 +87,23 @@ export default function StudioPage() {
           badge={avisEnAttente.length}
           backgroundImage="/images/glass/avis-google.png"
           backgroundImageAlt=""
-          icon={<FcGoogle className="size-5" />}
+          imageMinHeight={70}
+          panelClassName="gap-2 p-4"
+          icon={<FcGoogle className="size-4" />}
           title="Avis Google"
           subtitle={`${avisEnAttente.length} avis à traiter`}
         />
 
-        <div data-area="bande" className="flex flex-col gap-4 lg:flex-row">
+        <div data-area="bande" className="flex flex-col gap-2 lg:flex-row">
           <Link href="/dashboard/studio/identite" className="group flex-1">
             <GlassPanel
               intensity="regular"
-              className="relative flex h-full items-center justify-between gap-3 overflow-hidden px-6 py-5 transition-transform duration-300 ease-out hover:-translate-y-0.5"
+              className="relative flex h-full items-center justify-between gap-3 overflow-hidden px-5 py-3 transition-transform duration-300 ease-out hover:-translate-y-0.5"
             >
               <GlassSheen />
               <div className="relative z-10">
-                <p className="text-base font-semibold tracking-tight text-white">Le test</p>
-                <p className="mt-0.5 text-sm text-white/70">
+                <p className="text-sm font-semibold tracking-tight text-white">Le test</p>
+                <p className="mt-0.5 text-xs text-white/70">
                   {!identiteHydratee ? "—" : charte ? "Charte narrative prête" : "À compléter"}
                 </p>
               </div>
@@ -103,12 +113,12 @@ export default function StudioPage() {
           <Link href="/dashboard/studio/creation" className="group flex-1">
             <GlassPanel
               intensity="regular"
-              className="relative flex h-full items-center justify-between gap-3 overflow-hidden px-6 py-5 transition-transform duration-300 ease-out hover:-translate-y-0.5"
+              className="relative flex h-full items-center justify-between gap-3 overflow-hidden px-5 py-3 transition-transform duration-300 ease-out hover:-translate-y-0.5"
             >
               <GlassSheen />
               <div className="relative z-10">
-                <p className="text-base font-semibold tracking-tight text-white">Création</p>
-                <p className="mt-0.5 text-sm text-white/70">Nouvelle publication</p>
+                <p className="text-sm font-semibold tracking-tight text-white">Création</p>
+                <p className="mt-0.5 text-xs text-white/70">Nouvelle publication</p>
               </div>
               <Plus className="relative z-10 size-4 shrink-0 text-white/60" />
             </GlassPanel>
@@ -118,13 +128,13 @@ export default function StudioPage() {
         <Link href="/dashboard/studio/photos" data-area="photos" className="group block min-h-0">
           <GlassPanel
             intensity="strong"
-            className="relative flex h-full flex-col gap-4 overflow-hidden p-6 transition-transform duration-300 ease-out hover:-translate-y-0.5"
+            className="relative flex h-full flex-col gap-2 overflow-hidden p-4 transition-transform duration-300 ease-out hover:-translate-y-0.5"
           >
             <GlassSheen />
-            <p className="relative z-10 text-lg font-semibold tracking-tight text-white">Photos</p>
-            <div className="grid grid-cols-3 gap-2">
+            <p className="relative z-10 text-sm font-semibold tracking-tight text-white">Photos</p>
+            <div className="grid grid-cols-3 gap-1.5">
               {photosDomaine.slice(0, 6).map((photo, i) => (
-                <div key={photo.id} className="relative aspect-square overflow-hidden rounded-xl border border-white/10">
+                <div key={photo.id} className="relative aspect-square overflow-hidden rounded-lg border border-white/10">
                   <Image
                     src={photosVariees[i % photosVariees.length]}
                     alt={photo.legende}
@@ -138,7 +148,7 @@ export default function StudioPage() {
                 </div>
               ))}
             </div>
-            <span className="relative z-10 mt-auto flex items-center gap-1 text-sm font-medium text-white/80 group-hover:text-white">
+            <span className="relative z-10 mt-auto flex items-center gap-1 text-xs font-medium text-white/80 group-hover:text-white">
               Voir toute la banque
               <ArrowRight className="size-3.5" />
             </span>

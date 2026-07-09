@@ -96,19 +96,16 @@ export function GlassSidebar({ groups }: { groups: GlassNavGroup[] }) {
       {/* Desktop : rail permanent qui pousse le contenu. Hauteur ajustée à
           son contenu (self-center annule le stretch du parent flex) et
           centré verticalement — pas d'espace vide en dessous des icônes.
-          Replié, les coins deviennent totalement circulaires (capsule) ;
-          déployé, on retrouve l'arrondi généreux du reste du système. Reste
-          ancré à l'écran pendant le scroll : c'est un frère du conteneur
-          défilant, pas un enfant, donc jamais entraîné par lui. */}
+          Arrondi identique dans les deux états (le capsule totalement
+          circulaire au repli rendait mal en transition). Reste ancré à
+          l'écran pendant le scroll : c'est un frère du conteneur défilant,
+          pas un enfant, donc jamais entraîné par lui. */}
       <motion.aside
         onMouseEnter={() => setSurvole(true)}
         onMouseLeave={() => setSurvole(false)}
         animate={{ width: ouvert ? 232 : 76 }}
         transition={{ duration: 0.3, ease: EASE }}
-        className={cn(
-          "relative z-20 m-4 mr-0 hidden max-h-[calc(100%-2rem)] shrink-0 flex-col self-center overflow-hidden border border-white/15 bg-black/58 shadow-[0_8px_32px_rgba(0,0,0,0.28)] backdrop-blur-2xl backdrop-saturate-150 transition-[border-radius] duration-300 lg:flex",
-          ouvert ? "rounded-[28px]" : "rounded-full"
-        )}
+        className="relative z-20 m-4 mr-0 hidden max-h-[calc(100%-2rem)] shrink-0 flex-col self-center overflow-hidden rounded-[28px] border border-white/15 bg-black/58 shadow-[0_8px_32px_rgba(0,0,0,0.28)] backdrop-blur-2xl backdrop-saturate-150 lg:flex"
       >
         <div className="flex h-16 shrink-0 items-center gap-3 px-[26px]">
           <Wine className="size-5 shrink-0 text-gold" />

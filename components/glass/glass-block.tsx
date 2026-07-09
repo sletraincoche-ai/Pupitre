@@ -14,7 +14,9 @@ export function GlassBlock({
   intensity = "regular",
   backgroundImage,
   backgroundImageAlt = "",
+  imageMinHeight = 220,
   className,
+  panelClassName,
   children,
 }: {
   href: string;
@@ -26,14 +28,19 @@ export function GlassBlock({
   intensity?: GlassIntensity;
   backgroundImage?: string;
   backgroundImageAlt?: string;
+  imageMinHeight?: number;
   className?: string;
+  panelClassName?: string;
   children?: React.ReactNode;
 }) {
   return (
     <Link href={href} data-area={area} className={cn("group block h-full min-h-0 min-w-0", className)}>
       <GlassPanel
         intensity={intensity}
-        className="relative flex h-full min-w-0 flex-col gap-3 overflow-hidden p-6 transition-transform duration-300 ease-out hover:-translate-y-0.5"
+        className={cn(
+          "relative flex h-full min-w-0 flex-col gap-3 overflow-hidden p-6 transition-transform duration-300 ease-out hover:-translate-y-0.5",
+          panelClassName
+        )}
       >
         <GlassSheen />
 
@@ -61,8 +68,9 @@ export function GlassBlock({
             flux, pas en calque absolu plein bloc. */}
         {backgroundImage && (
           <div
-            className="relative z-10 mt-1 min-h-[220px] flex-1"
+            className="relative z-10 mt-1 flex-1"
             style={{
+              minHeight: imageMinHeight,
               maskImage: "linear-gradient(to bottom, black 82%, transparent 100%)",
               WebkitMaskImage: "linear-gradient(to bottom, black 82%, transparent 100%)",
             }}
