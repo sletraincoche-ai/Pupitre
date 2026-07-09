@@ -37,12 +37,12 @@ export function PhotoPicker({
     <div className="flex flex-col gap-3">
       {selection.length > 0 && (
         <div>
-          <p className="mb-1.5 text-xs font-medium text-stone">
+          <p className="mb-1.5 text-xs font-medium text-white/60">
             Sélection ({selection.length}){selection.length > 1 ? " — ordre du carrousel" : ""}
           </p>
           <div className="flex flex-wrap gap-2">
             {selection.map((id, index) => (
-              <div key={id} className="relative size-16 overflow-hidden rounded-[3px] border border-border">
+              <div key={id} className="relative size-16 overflow-hidden rounded-lg border border-white/20">
                 <PhotoTile photoId={id} className="size-full" />
                 <button
                   onClick={() => toggle(id)}
@@ -78,7 +78,7 @@ export function PhotoPicker({
       )}
 
       <div>
-        <p className="mb-1.5 text-xs font-medium text-stone">Banque d&apos;images</p>
+        <p className="mb-1.5 text-xs font-medium text-white/60">Banque d&apos;images</p>
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
           {photosDomaine.map((photo) => {
             const selected = selection.includes(photo.id);
@@ -86,7 +86,7 @@ export function PhotoPicker({
               <button
                 key={photo.id}
                 onClick={() => toggle(photo.id)}
-                className="relative aspect-square overflow-hidden rounded-[3px] border border-border"
+                className="relative aspect-square overflow-hidden rounded-lg border border-white/20"
               >
                 <PhotoTile photoId={photo.id} className="size-full" />
                 {selected && (

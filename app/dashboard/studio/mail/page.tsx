@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Send, TestTube2, FileText } from "lucide-react";
+import { Send, TestTube2, FileText } from "lucide-react";
 import { InboxPreview } from "@/components/studio/mail/inbox-preview";
 import { MailQueueCard } from "@/components/studio/mail/mail-queue-card";
 import {
@@ -12,7 +11,10 @@ import {
   type EmailEdite,
 } from "@/components/studio/mail/mail-edit-panel";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/empty-state";
+import { GlassEmptyState } from "@/components/glass/glass-empty-state";
+import { GlassPageShell } from "@/components/glass/glass-page-shell";
+import { GlassPageHeader } from "@/components/glass/glass-page-header";
+import { GlassThreeColumns, GlassColumnPanel } from "@/components/glass/glass-column-panel";
 import { useClients } from "@/lib/clients-context";
 import { getNumeroParId, formatOrigine } from "@/lib/fiches";
 import { emailCampagnes as emailCampagnesInitiales, type EmailCampagne } from "@/lib/mock-data";
@@ -30,11 +32,6 @@ export default function MailPage() {
   function charger(campagne: EmailCampagne) {
     setSourceId(campagne.id);
     setEdited(versEmailEdite(campagne));
-  }
-
-  function creerManuellement() {
-    setSourceId(null);
-    setEdited({ objet: "", corps: "", segment: "Tous les clients", nombreDestinataires: clients.length });
   }
 
   function terminer(message: string) {
@@ -64,88 +61,79 @@ export default function MailPage() {
   const numero = sourceId ? getNumeroParId(sourceId) : undefined;
 
   return (
-    <div className="flex flex-col gap-6">
-      <Link href="/dashboard/studio" className="flex w-fit items-center gap-1.5 text-sm text-stone hover:text-vine">
-        <ArrowLeft className="size-4" />
-        Retour au Studio
-      </Link>
+    <GlassPageShell fill>
+      <GlassPageHeader title="Email" subtitle="Campagnes prêtes, ou composez la vôtre." />
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-3xl text-ink">Atelier e-mail</h1>
-          <p className="mt-1 text-stone">Campagnes prêtes, ou composez la vôtre.</p>
-        </div>
-        <Button variant="outline" className="rounded-[3px]" onClick={creerManuellement}>
-          <Plus className="size-4" />
-          Créer un email
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
-        <div className="flex flex-col gap-2">
-          <p className="text-xs font-medium tracking-wide text-stone uppercase">
-            File d&apos;attente ({queue.length})
-          </p>
+      <GlassThreeColumns className="lg:min-h-0 lg:flex-1">
+        <GlassColumnPanel label={`File d'attente (${queue.length})`}>
           {queue.length === 0 ? (
-            <p className="border border-dashed border-border py-8 text-center text-sm text-stone">
-              File vide. Créez un email.
-            </p>
+            <p className="py-8 text-center text-sm text-white/50">File vide.</p>
           ) : (
-            <div className="divide-y divide-border border border-border">
+            <div className="flex flex-col gap-1">
               {queue.map((e) => (
                 <MailQueueCard key={e.id} campagne={e} active={sourceId === e.id} onClick={() => charger(e)} />
               ))}
             </div>
           )}
-        </div>
+        </GlassColumnPanel>
 
-        <div>
+        <GlassColumnPanel bare>
           {!edited ? (
-            <EmptyState
-              icon={Plus}
+            <GlassEmptyState
+              icon={FileText}
               title="Aucun email sélectionné"
-              description="Choisissez une campagne dans la file ou composez un email de zéro."
+              description="Choisissez une campagne dans la file."
             />
           ) : (
-            <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1fr_340px]">
+            <div className="w-full max-w-md">
+              <InboxPreview objet={edited.objet} corps={edited.corps} />
+            </div>
+          )}
+        </GlassColumnPanel>
+
+        <GlassColumnPanel label="Détail & publication">
+          {!edited ? (
+            <p className="py-8 text-center text-sm text-white/50">—</p>
+          ) : (
+            <div className="flex flex-col gap-5">
               <div>
-                <InboxPreview objet={edited.objet} corps={edited.corps} />
+                <p className="text-lg font-semibold tracking-tight text-white">
+                  {numero ? `Fiche N°${numero}` : "Nouvelle fiche"}
+                </p>
+                <p className="font-mono text-xs text-white/55">{formatOrigine(source?.declencheur)}</p>
               </div>
 
-              <div className="flex flex-col gap-6">
-                <div>
-                  <p className="font-heading text-lg text-ink">
-                    {numero ? `Fiche N°${numero}` : "Nouvelle fiche"}
-                  </p>
-                  <p className="font-mono text-xs text-stone">
-                    {formatOrigine(source?.declencheur)}
-                  </p>
-                </div>
+              <MailEditPanel edited={edited} onChange={setEdited} onChangerSegment={changerSegment} />
 
-                <MailEditPanel edited={edited} onChange={setEdited} onChangerSegment={changerSegment} />
-
-                <div className="flex flex-wrap gap-2 border-t border-border pt-5">
-                  <Button
-                    className="rounded-[3px] bg-vine text-white hover:bg-vine/90"
-                    onClick={() => terminer(`Envoyé à ${edited.nombreDestinataires} clients`)}
-                  >
-                    <Send className="size-4" />
-                    Envoyer aux {edited.nombreDestinataires} clients
-                  </Button>
-                  <Button variant="outline" className="rounded-[3px]" onClick={() => toast.success("Test envoyé à votre adresse")}>
-                    <TestTube2 className="size-4" />
-                    M&apos;envoyer un test
-                  </Button>
-                  <Button variant="ghost" className="rounded-[3px]" onClick={() => toast.success("Brouillon enregistré")}>
-                    <FileText className="size-4" />
-                    Enregistrer brouillon
-                  </Button>
-                </div>
+              <div className="flex flex-wrap gap-2 border-t border-white/15 pt-5">
+                <Button
+                  className="rounded-lg bg-gold text-white hover:bg-gold/90"
+                  onClick={() => terminer(`Envoyé à ${edited.nombreDestinataires} clients`)}
+                >
+                  <Send className="size-4" />
+                  Envoyer aux {edited.nombreDestinataires} clients
+                </Button>
+                <Button
+                  variant="outline"
+                  className="rounded-lg border-white/25 text-white hover:bg-white/10"
+                  onClick={() => toast.success("Test envoyé à votre adresse")}
+                >
+                  <TestTube2 className="size-4" />
+                  M&apos;envoyer un test
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="rounded-lg text-white/70 hover:bg-white/10 hover:text-white"
+                  onClick={() => toast.success("Brouillon enregistré")}
+                >
+                  <FileText className="size-4" />
+                  Enregistrer brouillon
+                </Button>
               </div>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+        </GlassColumnPanel>
+      </GlassThreeColumns>
+    </GlassPageShell>
   );
 }

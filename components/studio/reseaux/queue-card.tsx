@@ -1,7 +1,7 @@
 "use client";
 
 import { InstagramBadge, FacebookBadge } from "@/components/studio/brand-icons";
-import { FicheRow } from "@/components/studio/dossier/fiche-row";
+import { GlassFicheRow } from "@/components/glass/glass-fiche-row";
 import { getNumeroParId, formatOrigine } from "@/lib/fiches";
 import type { PublicationSociale } from "@/lib/mock-data";
 
@@ -17,7 +17,7 @@ export function QueueCard({
   onClick: () => void;
 }) {
   return (
-    <FicheRow
+    <GlassFicheRow
       numero={getNumeroParId(publication.id)}
       date={publication.date}
       active={active}

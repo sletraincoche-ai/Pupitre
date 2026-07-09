@@ -1,16 +1,18 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Send, CalendarClock, FileText, Link2 } from "lucide-react";
+import { Send, CalendarClock, FileText, Link2 } from "lucide-react";
 import { InstagramBadge, FacebookBadge } from "@/components/studio/brand-icons";
 import { PostPreview } from "@/components/studio/post-preview";
 import { QueueCard } from "@/components/studio/reseaux/queue-card";
 import { EditPanel, type ContenuEdite } from "@/components/studio/reseaux/edit-panel";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/empty-state";
+import { GlassEmptyState } from "@/components/glass/glass-empty-state";
+import { GlassPageShell } from "@/components/glass/glass-page-shell";
+import { GlassPageHeader } from "@/components/glass/glass-page-header";
+import { GlassThreeColumns, GlassColumnPanel } from "@/components/glass/glass-column-panel";
 import { useIdentity } from "@/lib/identity-context";
 import { useMetaConnection } from "@/lib/meta-connection-context";
 import { getNumeroParId, formatOrigine } from "@/lib/fiches";
@@ -34,26 +36,9 @@ function versContenuEdite(p: PublicationSociale): ContenuEdite {
   };
 }
 
-const vide: ContenuEdite = {
-  plateforme: "Instagram",
-  format: "post",
-  photos: [],
-  legende: "",
-  hashtags: [],
-};
-
 export default function ReseauxSociauxPage() {
-  return (
-    <Suspense fallback={null}>
-      <ReseauxSociauxContent />
-    </Suspense>
-  );
-}
-
-function ReseauxSociauxContent() {
   const { charte } = useIdentity();
   const { connecte, info } = useMetaConnection();
-  const searchParams = useSearchParams();
   const [queue, setQueue] = useState(publicationsInitiales);
   const [sourceId, setSourceId] = useState<string | null>(queue[0]?.id ?? null);
   const [edited, setEdited] = useState<ContenuEdite | null>(queue[0] ? versContenuEdite(queue[0]) : null);
@@ -62,20 +47,6 @@ function ReseauxSociauxContent() {
     setSourceId(publication.id);
     setEdited(versContenuEdite(publication));
   }
-
-  function creerManuellement() {
-    setSourceId(null);
-    setEdited({ ...vide, hashtags: suggestionsHashtags(charte).slice(0, 2) });
-  }
-
-  // Le bloc "Création" du Studio ouvre directement l'éditeur vierge, sans
-  // passer par la sélection d'une suggestion dans la file.
-  useEffect(() => {
-    if (searchParams.get("nouveau") === "1") {
-      creerManuellement();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   function retirerDeLaFile(message: string) {
     if (sourceId) {
@@ -105,57 +76,60 @@ function ReseauxSociauxContent() {
   const numero = sourceId ? getNumeroParId(sourceId) : undefined;
 
   return (
-    <div className="flex flex-col gap-6">
-      <Link href="/dashboard/studio" className="flex w-fit items-center gap-1.5 text-sm text-stone hover:text-vine">
-        <ArrowLeft className="size-4" />
-        Retour au Studio
-      </Link>
+    <GlassPageShell fill>
+      <GlassPageHeader title="Réseaux sociaux" subtitle="Instagram et Facebook, un seul éditeur." />
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-3xl text-ink">Atelier réseaux sociaux</h1>
-          <p className="mt-1 text-stone">Instagram et Facebook, un seul éditeur.</p>
-        </div>
-        <Button variant="outline" className="rounded-[3px]" onClick={creerManuellement}>
-          <Plus className="size-4" />
-          Créer une publication
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
-        <div className="flex flex-col gap-2">
-          <p className="text-xs font-medium tracking-wide text-stone uppercase">
-            File d&apos;attente ({queue.length})
-          </p>
+      <GlassThreeColumns className="lg:min-h-0 lg:flex-1">
+        <GlassColumnPanel label={`File d'attente (${queue.length})`}>
           {queue.length === 0 ? (
-            <p className="border border-dashed border-border py-8 text-center text-sm text-stone">
-              File vide. Créez une publication.
-            </p>
+            <p className="py-8 text-center text-sm text-white/50">File vide.</p>
           ) : (
-            <div className="divide-y divide-border border border-border">
+            <div className="flex flex-col gap-1">
               {queue.map((p) => (
                 <QueueCard key={p.id} publication={p} active={sourceId === p.id} onClick={() => charger(p)} />
               ))}
             </div>
           )}
-        </div>
+        </GlassColumnPanel>
 
-        <div>
+        <GlassColumnPanel bare>
           {!edited ? (
-            <EmptyState
-              icon={Plus}
+            <GlassEmptyState
+              icon={FileText}
               title="Aucun contenu sélectionné"
-              description="Choisissez une suggestion dans la file ou créez une publication de zéro."
+              description="Choisissez une suggestion dans la file."
             />
           ) : (
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-1 border border-border p-1">
+            <PostPreview
+              plateforme={edited.plateforme}
+              format={edited.format}
+              photos={edited.photos}
+              legende={edited.legende}
+              hashtags={edited.hashtags}
+              musique={edited.musique}
+            />
+          )}
+        </GlassColumnPanel>
+
+        <GlassColumnPanel label="Détail & publication">
+          {!edited ? (
+            <p className="py-8 text-center text-sm text-white/50">—</p>
+          ) : (
+            <div className="flex flex-col gap-5">
+              <div>
+                <p className="text-lg font-semibold tracking-tight text-white">
+                  {numero ? `Fiche N°${numero}` : "Nouvelle fiche"}
+                </p>
+                <p className="font-mono text-xs text-white/55">{formatOrigine(source?.declencheur)}</p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1 rounded-xl border border-white/20 p-1">
                   <button
                     onClick={() => setPlateforme("Instagram")}
                     className={cn(
-                      "flex items-center gap-1.5 rounded-[2px] px-3 py-1.5 text-sm font-medium transition-colors",
-                      edited.plateforme === "Instagram" ? "bg-vine text-white" : "text-stone"
+                      "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                      edited.plateforme === "Instagram" ? "bg-white/15 text-white" : "text-white/60"
                     )}
                   >
                     <InstagramBadge className="size-4" />
@@ -164,8 +138,8 @@ function ReseauxSociauxContent() {
                   <button
                     onClick={() => setPlateforme("Facebook")}
                     className={cn(
-                      "flex items-center gap-1.5 rounded-[2px] px-3 py-1.5 text-sm font-medium transition-colors",
-                      edited.plateforme === "Facebook" ? "bg-vine text-white" : "text-stone"
+                      "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                      edited.plateforme === "Facebook" ? "bg-white/15 text-white" : "text-white/60"
                     )}
                   >
                     <FacebookBadge className="size-4" />
@@ -173,12 +147,12 @@ function ReseauxSociauxContent() {
                   </button>
                 </div>
 
-                <div className="flex items-center gap-1 border border-border p-1">
+                <div className="flex items-center gap-1 rounded-xl border border-white/20 p-1">
                   <button
                     onClick={() => setFormat("post")}
                     className={cn(
-                      "rounded-[2px] px-3 py-1.5 text-sm font-medium transition-colors",
-                      edited.format !== "story" ? "bg-vine text-white" : "text-stone"
+                      "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                      edited.format !== "story" ? "bg-white/15 text-white" : "text-white/60"
                     )}
                   >
                     Post
@@ -186,8 +160,8 @@ function ReseauxSociauxContent() {
                   <button
                     onClick={() => setFormat("story")}
                     className={cn(
-                      "rounded-[2px] px-3 py-1.5 text-sm font-medium transition-colors",
-                      edited.format === "story" ? "bg-vine text-white" : "text-stone"
+                      "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                      edited.format === "story" ? "bg-white/15 text-white" : "text-white/60"
                     )}
                   >
                     Story
@@ -195,74 +169,52 @@ function ReseauxSociauxContent() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-8 xl:grid-cols-[300px_1fr]">
-                <div className="flex justify-center xl:sticky xl:top-6 xl:self-start">
-                  <PostPreview
-                    plateforme={edited.plateforme}
-                    format={edited.format}
-                    photos={edited.photos}
-                    legende={edited.legende}
-                    hashtags={edited.hashtags}
-                    musique={edited.musique}
+              <EditPanel edited={edited} onChange={setEdited} suggestionsHashtags={suggestionsHashtags(charte)} />
+
+              <div className="flex flex-wrap gap-2 border-t border-white/15 pt-5">
+                {connecte ? (
+                  <Button
+                    className="rounded-lg bg-gold text-white hover:bg-gold/90"
+                    onClick={() =>
+                      retirerDeLaFile(`Publié sur ${edited.plateforme}${info?.demo ? " (démo)" : ""}`)
+                    }
+                  >
+                    <Send className="size-4" />
+                    Publier maintenant
+                  </Button>
+                ) : (
+                  <Button
+                    className="rounded-lg bg-gold text-white hover:bg-gold/90"
+                    nativeButton={false}
+                    render={
+                      <Link href="/dashboard/parametres">
+                        <Link2 className="size-4" />
+                        Connecter mes comptes
+                      </Link>
+                    }
                   />
-                </div>
-
-                <div className="flex flex-col gap-6">
-                  <div>
-                    <p className="font-heading text-lg text-ink">
-                      {numero ? `Fiche N°${numero}` : "Nouvelle fiche"}
-                    </p>
-                    <p className="font-mono text-xs text-stone">
-                      {formatOrigine(source?.declencheur)}
-                    </p>
-                  </div>
-
-                  <EditPanel edited={edited} onChange={setEdited} suggestionsHashtags={suggestionsHashtags(charte)} />
-
-                  <div className="flex flex-wrap gap-2 border-t border-border pt-5">
-                    {connecte ? (
-                      <Button
-                        className="rounded-[3px] bg-vine text-white hover:bg-vine/90"
-                        onClick={() =>
-                          retirerDeLaFile(
-                            `Publié sur ${edited.plateforme}${info?.demo ? " (démo)" : ""}`
-                          )
-                        }
-                      >
-                        <Send className="size-4" />
-                        Publier maintenant
-                      </Button>
-                    ) : (
-                      <Button
-                        className="rounded-[3px] bg-vine text-white hover:bg-vine/90"
-                        nativeButton={false}
-                        render={
-                          <Link href="/dashboard/parametres">
-                            <Link2 className="size-4" />
-                            Connecter mes comptes
-                          </Link>
-                        }
-                      />
-                    )}
-                    <Button variant="outline" className="rounded-[3px]" onClick={() => retirerDeLaFile("Publication programmée")}>
-                      <CalendarClock className="size-4" />
-                      Programmer
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="rounded-[3px]"
-                      onClick={() => toast.success("Brouillon enregistré")}
-                    >
-                      <FileText className="size-4" />
-                      Enregistrer brouillon
-                    </Button>
-                  </div>
-                </div>
+                )}
+                <Button
+                  variant="outline"
+                  className="rounded-lg border-white/25 text-white hover:bg-white/10"
+                  onClick={() => retirerDeLaFile("Publication programmée")}
+                >
+                  <CalendarClock className="size-4" />
+                  Programmer
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="rounded-lg text-white/70 hover:bg-white/10 hover:text-white"
+                  onClick={() => toast.success("Brouillon enregistré")}
+                >
+                  <FileText className="size-4" />
+                  Enregistrer brouillon
+                </Button>
               </div>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+        </GlassColumnPanel>
+      </GlassThreeColumns>
+    </GlassPageShell>
   );
 }

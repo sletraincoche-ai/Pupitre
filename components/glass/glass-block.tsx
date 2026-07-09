@@ -41,7 +41,7 @@ export function GlassBlock({
             jamais besoin d'un voile de contraste par-dessus. */}
         <div className="relative z-10 flex min-w-0 shrink-0 items-start justify-between gap-3">
           {icon && (
-            <span className="flex h-11 min-w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/15 bg-white/10 px-2.5 text-white">
+            <span className="flex h-11 min-w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/15 bg-white/10 px-1.5 text-white">
               {icon}
             </span>
           )}

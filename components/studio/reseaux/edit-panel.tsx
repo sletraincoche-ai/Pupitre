@@ -33,12 +33,12 @@ export function EditPanel({
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <p className="mb-2 text-xs font-medium tracking-wide text-stone uppercase">Photos</p>
+        <p className="mb-2 text-xs font-medium tracking-wide text-white/60 uppercase">Photos</p>
         <PhotoPicker selection={edited.photos} onChange={(photos) => onChange({ ...edited, photos })} />
       </div>
 
       <div>
-        <label className="mb-2 block text-xs font-medium tracking-wide text-stone uppercase">
+        <label className="mb-2 block text-xs font-medium tracking-wide text-white/60 uppercase">
           Légende
         </label>
         <textarea
@@ -46,25 +46,25 @@ export function EditPanel({
           onChange={(e) => onChange({ ...edited, legende: e.target.value })}
           rows={4}
           placeholder="Écrivez votre légende…"
-          className="w-full rounded-[3px] border border-input bg-background px-3 py-2 text-sm text-ink outline-none placeholder:text-stone focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus-visible:border-white/40 focus-visible:ring-3 focus-visible:ring-white/20"
         />
       </div>
 
       {edited.format === "story" && (
         <div>
-          <label className="mb-2 block text-xs font-medium tracking-wide text-stone uppercase">
+          <label className="mb-2 block text-xs font-medium tracking-wide text-white/60 uppercase">
             Musique
           </label>
-          <div className="flex items-center gap-2 rounded-[3px] border border-border bg-background px-3 py-2">
+          <div className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-2">
             <Music2 className="size-4 text-gold" />
-            <span className="flex-1 text-sm text-ink">{edited.musique ?? "Aucune"}</span>
+            <span className="flex-1 text-sm text-white">{edited.musique ?? "Aucune"}</span>
             <button
               onClick={() => {
                 const idx = suggestionsMusique.indexOf(edited.musique ?? "");
                 const next = suggestionsMusique[(idx + 1) % suggestionsMusique.length];
                 onChange({ ...edited, musique: next });
               }}
-              className="text-sm font-medium text-vine hover:underline"
+              className="text-sm font-medium text-gold hover:underline"
             >
               Changer
             </button>
@@ -74,7 +74,7 @@ export function EditPanel({
 
       {edited.format !== "story" && edited.plateforme === "Instagram" && (
         <div>
-          <label className="mb-2 block text-xs font-medium tracking-wide text-stone uppercase">
+          <label className="mb-2 block text-xs font-medium tracking-wide text-white/60 uppercase">
             Hashtags
           </label>
           <HashtagInput
