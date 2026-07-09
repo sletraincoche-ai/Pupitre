@@ -20,18 +20,18 @@ export function GlassPageHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <GlassPanel intensity="strong" className="mb-4 shrink-0 px-4 py-3">
+    <GlassPanel intensity="strong" className="mb-3 shrink-0 px-4 py-2.5">
       <div className="flex items-center gap-3">
         <Link
           href={backHref}
           aria-label="Retour au Studio"
-          className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white/85 hover:text-white"
+          className="flex size-8 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white/85 hover:text-white"
         >
           <ArrowLeft className="size-4" />
         </Link>
         <div className="min-w-0 flex-1">
-          <p className="text-lg font-semibold tracking-tight text-white">{title}</p>
-          {subtitle && <p className="truncate text-sm text-white/70">{subtitle}</p>}
+          <p className="text-base font-semibold tracking-tight text-white">{title}</p>
+          {subtitle && <p className="truncate text-xs text-white/70">{subtitle}</p>}
         </div>
         {action}
       </div>

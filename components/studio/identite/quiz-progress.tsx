@@ -3,11 +3,11 @@ export function QuizProgress({ total, courant }: { total: number; courant: numbe
 
   return (
     <div className="flex items-center gap-3">
-      <span className="shrink-0 font-mono text-xs text-stone tabular-nums">
+      <span className="shrink-0 font-mono text-xs text-white/60 tabular-nums">
         N° {String(courant + 1).padStart(2, "0")} / {total}
       </span>
-      <div className="h-px flex-1 bg-border">
-        <div className="h-px bg-vine transition-all duration-300" style={{ width: `${pourcentage}%` }} />
+      <div className="h-px flex-1 bg-white/20">
+        <div className="h-px bg-gold transition-all duration-300" style={{ width: `${pourcentage}%` }} />
       </div>
     </div>
   );

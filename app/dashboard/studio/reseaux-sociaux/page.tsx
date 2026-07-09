@@ -15,7 +15,7 @@ import { GlassPageHeader } from "@/components/glass/glass-page-header";
 import { GlassThreeColumns, GlassColumnPanel } from "@/components/glass/glass-column-panel";
 import { useIdentity } from "@/lib/identity-context";
 import { useMetaConnection } from "@/lib/meta-connection-context";
-import { getNumeroParId, formatOrigine } from "@/lib/fiches";
+import { formatOrigine } from "@/lib/fiches";
 import { suggestionsHashtags } from "@/lib/hashtags";
 import {
   publicationsSociales as publicationsInitiales,
@@ -73,13 +73,12 @@ export default function ReseauxSociauxPage() {
   }
 
   const source = sourceId ? queue.find((p) => p.id === sourceId) : undefined;
-  const numero = sourceId ? getNumeroParId(sourceId) : undefined;
 
   return (
     <GlassPageShell fill>
       <GlassPageHeader title="Réseaux sociaux" subtitle="Instagram et Facebook, un seul éditeur." />
 
-      <GlassThreeColumns className="lg:min-h-0 lg:flex-1">
+      <GlassThreeColumns className="lg:min-h-0 lg:flex-1 gap-4">
         <GlassColumnPanel label={`File d'attente (${queue.length})`}>
           {queue.length === 0 ? (
             <p className="py-8 text-center text-sm text-white/50">File vide.</p>
@@ -115,20 +114,15 @@ export default function ReseauxSociauxPage() {
           {!edited ? (
             <p className="py-8 text-center text-sm text-white/50">—</p>
           ) : (
-            <div className="flex flex-col gap-5">
-              <div>
-                <p className="text-lg font-semibold tracking-tight text-white">
-                  {numero ? `Fiche N°${numero}` : "Nouvelle fiche"}
-                </p>
-                <p className="font-mono text-xs text-white/55">{formatOrigine(source?.declencheur)}</p>
-              </div>
+            <div className="flex flex-col gap-4">
+              <p className="font-mono text-xs text-white/55">{formatOrigine(source?.declencheur)}</p>
 
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-1 rounded-xl border border-white/20 p-1">
                   <button
                     onClick={() => setPlateforme("Instagram")}
                     className={cn(
-                      "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                      "flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm font-medium transition-colors",
                       edited.plateforme === "Instagram" ? "bg-white/15 text-white" : "text-white/60"
                     )}
                   >
@@ -138,7 +132,7 @@ export default function ReseauxSociauxPage() {
                   <button
                     onClick={() => setPlateforme("Facebook")}
                     className={cn(
-                      "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                      "flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-sm font-medium transition-colors",
                       edited.plateforme === "Facebook" ? "bg-white/15 text-white" : "text-white/60"
                     )}
                   >
@@ -151,7 +145,7 @@ export default function ReseauxSociauxPage() {
                   <button
                     onClick={() => setFormat("post")}
                     className={cn(
-                      "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                      "rounded-lg px-2.5 py-1 text-sm font-medium transition-colors",
                       edited.format !== "story" ? "bg-white/15 text-white" : "text-white/60"
                     )}
                   >
@@ -160,7 +154,7 @@ export default function ReseauxSociauxPage() {
                   <button
                     onClick={() => setFormat("story")}
                     className={cn(
-                      "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                      "rounded-lg px-2.5 py-1 text-sm font-medium transition-colors",
                       edited.format === "story" ? "bg-white/15 text-white" : "text-white/60"
                     )}
                   >
@@ -171,7 +165,7 @@ export default function ReseauxSociauxPage() {
 
               <EditPanel edited={edited} onChange={setEdited} suggestionsHashtags={suggestionsHashtags(charte)} />
 
-              <div className="flex flex-wrap gap-2 border-t border-white/15 pt-5">
+              <div className="flex flex-wrap gap-2 border-t border-white/15 pt-3">
                 {connecte ? (
                   <Button
                     className="rounded-lg bg-gold text-white hover:bg-gold/90"

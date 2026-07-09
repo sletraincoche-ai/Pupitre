@@ -39,9 +39,9 @@ export function GlassColumnPanel({
 
   return (
     <div className={cn("flex h-full min-h-0 flex-col", className)}>
-      <GlassPanel intensity={intensity} className="flex h-full min-h-0 flex-col overflow-y-auto p-5">
+      <GlassPanel intensity={intensity} className="flex h-full min-h-0 flex-col overflow-y-auto p-4">
         {label && (
-          <p className="mb-3 shrink-0 text-xs font-medium tracking-wide text-white/60 uppercase">{label}</p>
+          <p className="mb-2.5 shrink-0 text-xs font-medium tracking-wide text-white/60 uppercase">{label}</p>
         )}
         <div className={cn("min-h-0 flex-1", bodyClassName)}>{children}</div>
       </GlassPanel>

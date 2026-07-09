@@ -5,13 +5,21 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ImagePlus, Wine } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ImageBank } from "@/components/studio/image-bank";
+import { GlassBackground } from "@/components/glass/glass-background";
+import { GlassPanel } from "@/components/glass/glass-panel";
+import { GlassImageBank } from "@/components/studio/glass-image-bank";
 import { QuizProgress } from "@/components/studio/identite/quiz-progress";
 import { QuizMotif } from "@/components/studio/identite/quiz-motifs";
 import { questionsIdentite } from "@/lib/identity";
 import { useIdentity } from "@/lib/identity-context";
 import { cn } from "@/lib/utils";
 
+// Le test reste un écran isolé, sans chrome de dashboard (pas de barre de
+// recherche, pas de menu latéral, pas de notifications) — seule
+// l'interface du test doit être visible pendant qu'il est en cours.
+// Habillage repris du système Liquid Glass déjà en place ailleurs dans le
+// Studio : même photo de fond, mêmes panneaux de verre, même typographie
+// sans-serif (plus de serif/italique hérité de l'ancienne version claire).
 export function IdentityQuiz({ onTermine }: { onTermine: () => void }) {
   const { etapeCourante, reponses, setReponse, setEtape } = useIdentity();
   const question = questionsIdentite[etapeCourante];
@@ -38,109 +46,116 @@ export function IdentityQuiz({ onTermine }: { onTermine: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col overflow-y-auto bg-background">
-      <div className="flex shrink-0 items-center justify-between px-6 py-4 lg:px-12">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <Wine className="size-5 text-gold" />
-          <span className="font-heading text-xl tracking-wide text-vine">PUPITRE</span>
-        </Link>
-        <p className="text-sm text-stone">
-          Studio <span className="mx-1.5 text-border">/</span>
-          <span className="font-medium text-ink">Identité</span>
-        </p>
-      </div>
+    <div className="fixed inset-0 z-40 overflow-hidden">
+      <GlassBackground src="/images/glass/vignoble.jpg" alt="Vigne à contre-jour" />
 
-      <div className="relative flex flex-1 items-center justify-center px-6 py-10 lg:px-12">
-        <QuizMotif
-          groupe={question.groupe}
-          className="pointer-events-none absolute top-8 right-8 hidden size-40 text-vine opacity-[0.16] lg:block"
-        />
-
-        <div className="w-full max-w-xl">
-          <QuizProgress total={questionsIdentite.length} courant={etapeCourante} />
-
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={question.id}
-              initial={{ opacity: 0, x: 12 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -12 }}
-              transition={{ duration: 0.2 }}
-              className="mt-10"
-            >
-              <p className="text-xs font-semibold tracking-[0.15em] text-gold uppercase">
-                {question.groupe}
-              </p>
-              <p className="mt-3 font-heading text-3xl leading-snug text-ink lg:text-4xl">
-                {question.texte}
-              </p>
-
-              {question.type === "texte" && (
-                <input
-                  value={brouillon}
-                  onChange={(e) => setBrouillon(e.target.value)}
-                  placeholder={question.placeholder}
-                  className="mt-8 w-full border-b border-ink/70 bg-transparent pb-2 text-lg text-ink outline-none placeholder:text-stone/60 focus-visible:border-vine"
-                />
-              )}
-
-              {question.type === "choix" && (
-                <div className="mt-8 flex flex-col gap-2">
-                  {question.options?.map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => setBrouillon(option)}
-                      className={cn(
-                        "rounded-[3px] border px-4 py-2.5 text-left text-sm font-medium transition-colors",
-                        brouillon === option
-                          ? "border-vine bg-vine text-white"
-                          : "border-border bg-background text-ink hover:border-vine/40"
-                      )}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {question.type === "photos" && (
-                <div className="mt-8">
-                  <p className="mb-3 flex items-center gap-1.5 text-sm font-medium text-gold">
-                    <ImagePlus className="size-4" />
-                    Facultatif — vous pourrez toujours en ajouter plus tard
-                  </p>
-                  <ImageBank />
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
-
-          <div className="mt-12 flex items-center justify-between border-t border-border pt-5">
-            <button
-              onClick={() => allerA(etapeCourante - 1)}
-              disabled={etapeCourante === 0}
-              className="text-sm text-stone hover:text-ink disabled:pointer-events-none disabled:opacity-30"
-            >
-              ← Précédent
-            </button>
-            <div className="flex items-center gap-5">
-              {question.type !== "photos" && (
-                <button
-                  onClick={() => soumettre("")}
-                  className="text-sm text-stone hover:text-ink"
-                >
-                  Passer
-                </button>
-              )}
-              <Button
-                variant="outline"
-                className="rounded-[3px] border-ink text-ink hover:bg-ink hover:text-background"
-                onClick={() => soumettre(brouillon)}
-              >
-                {dernierePage ? "Terminer" : "Suivant →"}
-              </Button>
-            </div>
+      <div className="relative flex h-full flex-col">
+        <div className="flex shrink-0 items-center justify-between gap-3 p-4 lg:px-8 lg:py-5">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 rounded-full border border-white/15 bg-black/50 px-4 py-2 text-white backdrop-blur-xl backdrop-saturate-150"
+          >
+            <Wine className="size-4 text-gold" />
+            <span className="font-semibold tracking-tight">Pupitre</span>
+          </Link>
+          <div className="rounded-full border border-white/15 bg-black/50 px-4 py-2 text-sm text-white/80 backdrop-blur-xl backdrop-saturate-150">
+            Studio <span className="mx-1.5 text-white/40">/</span>
+            <span className="font-medium text-white">Identité</span>
           </div>
+        </div>
+
+        <div className="relative flex flex-1 items-center justify-center overflow-y-auto px-6 py-6 lg:px-12">
+          <QuizMotif
+            groupe={question.groupe}
+            className="pointer-events-none absolute top-8 right-8 hidden size-40 text-white/20 lg:block"
+          />
+
+          <GlassPanel intensity="strong" className="w-full max-w-xl p-8">
+            <QuizProgress total={questionsIdentite.length} courant={etapeCourante} />
+
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={question.id}
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -12 }}
+                transition={{ duration: 0.2 }}
+                className="mt-8"
+              >
+                <p className="text-xs font-semibold tracking-[0.15em] text-gold uppercase">
+                  {question.groupe}
+                </p>
+                <p className="mt-3 text-2xl leading-snug font-semibold tracking-tight text-white lg:text-3xl">
+                  {question.texte}
+                </p>
+
+                {question.type === "texte" && (
+                  <input
+                    value={brouillon}
+                    onChange={(e) => setBrouillon(e.target.value)}
+                    placeholder={question.placeholder}
+                    className="mt-8 w-full border-b border-white/40 bg-transparent pb-2 text-lg text-white outline-none placeholder:text-white/35 focus-visible:border-gold"
+                  />
+                )}
+
+                {question.type === "choix" && (
+                  <div className="mt-8 flex flex-col gap-2">
+                    {question.options?.map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => setBrouillon(option)}
+                        className={cn(
+                          "rounded-xl border px-4 py-2.5 text-left text-sm font-medium transition-colors",
+                          brouillon === option
+                            ? "border-white/40 bg-white/15 text-white"
+                            : "border-white/20 bg-white/5 text-white/80 hover:border-white/35"
+                        )}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {question.type === "photos" && (
+                  <div className="mt-8">
+                    <p className="mb-3 flex items-center gap-1.5 text-sm font-medium text-gold">
+                      <ImagePlus className="size-4" />
+                      Facultatif — vous pourrez toujours en ajouter plus tard
+                    </p>
+                    <GlassImageBank />
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            <div className="mt-10 flex items-center justify-between border-t border-white/15 pt-5">
+              <button
+                onClick={() => allerA(etapeCourante - 1)}
+                disabled={etapeCourante === 0}
+                className="text-sm text-white/70 hover:text-white disabled:pointer-events-none disabled:opacity-30"
+              >
+                ← Précédent
+              </button>
+              <div className="flex items-center gap-5">
+                {question.type !== "photos" && (
+                  <button
+                    onClick={() => soumettre("")}
+                    className="text-sm text-white/70 hover:text-white"
+                  >
+                    Passer
+                  </button>
+                )}
+                <Button
+                  variant="outline"
+                  className="rounded-lg border-white/30 text-white hover:bg-white/10"
+                  onClick={() => soumettre(brouillon)}
+                >
+                  {dernierePage ? "Terminer" : "Suivant →"}
+                </Button>
+              </div>
+            </div>
+          </GlassPanel>
         </div>
       </div>
     </div>

@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 export function IPhoneFrame({
   children,
   statusBarStyle = "dark",
-  width = 260,
+  width = 292,
   className,
 }: {
   children: React.ReactNode;
