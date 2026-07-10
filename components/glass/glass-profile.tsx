@@ -6,11 +6,13 @@ import { toast } from "sonner";
 import { UserRound, CircleHelp, LogOut } from "lucide-react";
 import { domaineProfile } from "@/lib/mock-data";
 import { useClickOutside } from "@/lib/use-click-outside";
+import { useAuth } from "@/lib/auth-context";
 
 export function GlassProfile() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useClickOutside(ref, () => setOpen(false));
+  const { user, deconnexion } = useAuth();
 
   return (
     <div ref={ref} className="relative">
@@ -27,6 +29,7 @@ export function GlassProfile() {
           <div className="border-b border-white/10 px-4 py-3">
             <p className="truncate text-sm font-medium text-white">{domaineProfile.nomDomaine}</p>
             <p className="truncate text-xs text-white/55">{domaineProfile.nomVigneron}</p>
+            {user && <p className="mt-1 truncate text-[11px] text-white/40">Compte Studio : {user.identifiant}</p>}
           </div>
           <Link
             href="/dashboard/parametres"
@@ -47,14 +50,15 @@ export function GlassProfile() {
             Aide
           </button>
           <button
-            onClick={() => {
+            onClick={async () => {
               setOpen(false);
+              await deconnexion();
               toast.success("Déconnexion effectuée.");
             }}
             className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-white/80 hover:bg-white/10 hover:text-destructive"
           >
             <LogOut className="size-4" />
-            Déconnexion
+            Déconnexion du compte Studio
           </button>
         </div>
       )}

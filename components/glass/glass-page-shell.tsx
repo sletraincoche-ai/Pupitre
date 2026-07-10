@@ -7,28 +7,34 @@ import { GlassSidebar, type GlassNavGroup } from "@/components/glass/glass-sideb
 import { GlassNotifications } from "@/components/glass/glass-notifications";
 import { GlassProfile } from "@/components/glass/glass-profile";
 import { totalContenusStudioEnAttente } from "@/lib/mock-data";
+import { usePublications } from "@/lib/publications-context";
 import { cn } from "@/lib/utils";
 
-const navGroups: GlassNavGroup[] = [
-  {
-    label: "Gestion",
-    items: [
-      { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-      { href: "/dashboard/clients", label: "Clients", icon: Users },
-      { href: "/dashboard/visites", label: "Visites", icon: GlassWater },
-      { href: "/dashboard/agenda", label: "Agenda", icon: CalendarDays },
-      { href: "/dashboard/cave", label: "Cave", icon: Warehouse },
-    ],
-  },
-  {
-    label: "Marketing",
-    items: [{ href: "/dashboard/studio", label: "Studio", icon: FileText, badge: totalContenusStudioEnAttente }],
-  },
-  {
-    label: "Domaine",
-    items: [{ href: "/dashboard/parametres", label: "Paramètres", icon: Settings }],
-  },
-];
+function useNavGroups(): GlassNavGroup[] {
+  const { publications } = usePublications();
+  const enAttente = totalContenusStudioEnAttente + publications.filter((p) => p.statut === "brouillon").length;
+
+  return [
+    {
+      label: "Gestion",
+      items: [
+        { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+        { href: "/dashboard/clients", label: "Clients", icon: Users },
+        { href: "/dashboard/visites", label: "Visites", icon: GlassWater },
+        { href: "/dashboard/agenda", label: "Agenda", icon: CalendarDays },
+        { href: "/dashboard/cave", label: "Cave", icon: Warehouse },
+      ],
+    },
+    {
+      label: "Marketing",
+      items: [{ href: "/dashboard/studio", label: "Studio", icon: FileText, badge: enAttente }],
+    },
+    {
+      label: "Domaine",
+      items: [{ href: "/dashboard/parametres", label: "Paramètres", icon: Settings }],
+    },
+  ];
+}
 
 // Prise en charge complète de l'écran par le système de verre — fond
 // plein écran, recherche/notifications/profil fixes, menu latéral.
@@ -43,6 +49,8 @@ export function GlassPageShell({
   children: React.ReactNode;
   fill?: boolean;
 }) {
+  const navGroups = useNavGroups();
+
   return (
     <div className="fixed inset-0 z-40 overflow-hidden">
       <GlassBackground src="/images/glass/vignoble.jpg" alt="Vigne à contre-jour" />

@@ -3,8 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { ReponsesIdentite } from "@/lib/identity";
 import type { CharteNarrative, OrigineEnrichissement, PilierHistoire } from "@/lib/mock-data";
-
-const STORAGE_KEY = "pupitre.identite.v1";
+import { useAuth } from "@/lib/auth-context";
 
 type IdentiteStockee = {
   consentement: boolean;
@@ -47,34 +46,54 @@ type IdentityContextValue = IdentiteStockee & {
 const IdentityContext = createContext<IdentityContextValue | null>(null);
 
 export function IdentityProvider({ children }: { children: ReactNode }) {
+  const { user, hydrated: authHydrated } = useAuth();
   const [etat, setEtat] = useState<IdentiteStockee>(etatInitial);
   const [hydrated, setHydrated] = useState(false);
   const [enGeneration, setEnGeneration] = useState(false);
   const [erreurGeneration, setErreurGeneration] = useState<string | null>(null);
   const [modeGeneration, setModeGeneration] = useState<"reel" | "simulation" | null>(null);
 
-  // Lit une seule fois au montage. Gate l'effet d'écriture sur l'état
-  // `hydrated` (pas une ref) : sous React Strict Mode, les effets de
-  // montage s'exécutent deux fois avant qu'un re-render ne reflète les
-  // setState — une ref mutée de façon synchrone ferait passer la garde
-  // avant que `etat` ne contienne réellement la valeur lue, écrasant une
-  // progression existante par l'état initial.
+  // Recharge l'état depuis le compte connecté à chaque changement de
+  // compte (connexion/déconnexion) — jamais d'état d'un compte visible
+  // sous un autre. Gate l'effet d'écriture sur `hydrated` (pas une ref) :
+  // le même raisonnement que pour l'ancienne persistance localStorage
+  // s'applique, désormais appliqué par requête plutôt que par montage.
   useEffect(() => {
-    try {
-      const brut = window.localStorage.getItem(STORAGE_KEY);
-      if (brut) {
-        setEtat({ ...etatInitial, ...JSON.parse(brut) });
-      }
-    } catch {
-      // stockage indisponible ou corrompu — on repart de l'état initial
+    if (!authHydrated) return;
+    let annule = false;
+    setHydrated(false);
+    if (!user) {
+      setEtat(etatInitial);
+      setHydrated(true);
+      return;
     }
-    setHydrated(true);
-  }, []);
+    fetch("/api/studio/identity")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!annule) setEtat({ ...etatInitial, ...data });
+      })
+      .catch(() => {
+        if (!annule) setEtat(etatInitial);
+      })
+      .finally(() => {
+        if (!annule) setHydrated(true);
+      });
+    return () => {
+      annule = true;
+    };
+  }, [user, authHydrated]);
 
   useEffect(() => {
-    if (!hydrated) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(etat));
-  }, [hydrated, etat]);
+    if (!hydrated || !user) return;
+    fetch("/api/studio/identity", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(etat),
+    }).catch(() => {
+      // échec réseau — l'état local reste correct, on retentera à la
+      // prochaine mutation.
+    });
+  }, [hydrated, etat, user]);
 
   function accepterConsentement() {
     setEtat((e) => ({ ...e, consentement: true }));

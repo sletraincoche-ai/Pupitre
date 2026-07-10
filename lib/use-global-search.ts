@@ -3,8 +3,9 @@
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Users, GlassWater, Sparkles } from "lucide-react";
-import { visites, publicationsSociales, emailCampagnes, avisGoogle } from "@/lib/mock-data";
+import { visites, emailCampagnes, avisGoogle } from "@/lib/mock-data";
 import { useClients } from "@/lib/clients-context";
+import { usePublications } from "@/lib/publications-context";
 
 export type SearchResultGroup = {
   label: string;
@@ -19,6 +20,7 @@ export type SearchResultGroup = {
 export function useGlobalSearchGroups(query: string): SearchResultGroup[] {
   const router = useRouter();
   const { clients } = useClients();
+  const { publications } = usePublications();
   const q = query.trim().toLowerCase();
 
   if (!q) return [];
@@ -57,7 +59,7 @@ export function useGlobalSearchGroups(query: string): SearchResultGroup[] {
       label: "Contenus",
       icon: Sparkles,
       results: [
-        ...publicationsSociales
+        ...publications
           .filter((p) => p.legende.toLowerCase().includes(q) || p.plateforme.toLowerCase().includes(q))
           .map((p) => ({ id: `pub:${p.id}`, label: `${p.plateforme} — ${p.format}`, sublabel: p.legende })),
         ...emailCampagnes

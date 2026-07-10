@@ -1,5 +1,6 @@
 import { PenLine, Wand2, CheckCircle2, ArrowRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { GlassPanel } from "@/components/glass/glass-panel";
+import { GlassSheen } from "@/components/glass/glass-sheen";
 import { Button } from "@/components/ui/button";
 
 const etapes = [
@@ -22,11 +23,12 @@ const etapes = [
 
 export function ExplicationScreen({ onCommencer }: { onCommencer: () => void }) {
   return (
-    <Card className="mx-auto max-w-2xl border border-border/70 bg-card shadow-none">
-      <CardContent className="flex flex-col items-center gap-8 px-6 py-10 text-center">
+    <GlassPanel intensity="strong" className="relative mx-auto max-w-2xl overflow-hidden">
+      <GlassSheen />
+      <div className="relative z-10 flex flex-col items-center gap-8 px-6 py-10 text-center">
         <div>
-          <p className="font-heading text-2xl text-ink">Bienvenue dans votre Studio</p>
-          <p className="mt-2 max-w-md text-sm leading-relaxed text-stone">
+          <p className="font-heading text-2xl text-white">Bienvenu sur Studio AI</p>
+          <p className="mt-2 max-w-md text-sm leading-relaxed text-white/70">
             En quelques minutes, transformez un travail qui vous prenait des heures chaque semaine en
             quelques clics par jour.
           </p>
@@ -37,13 +39,13 @@ export function ExplicationScreen({ onCommencer }: { onCommencer: () => void }) 
             const Icon = etape.icon;
             return (
               <div key={etape.titre} className="flex flex-col items-center gap-2">
-                <span className="flex size-14 items-center justify-center rounded-full bg-gold/10 text-gold">
+                <span className="flex size-14 items-center justify-center rounded-full bg-gold/15 text-gold">
                   <Icon className="size-6" />
                 </span>
-                <p className="font-heading text-base text-ink">
+                <p className="font-heading text-base text-white">
                   {index + 1}. {etape.titre}
                 </p>
-                <p className="text-xs text-stone">{etape.texte}</p>
+                <p className="text-xs text-white/60">{etape.texte}</p>
               </div>
             );
           })}
@@ -53,7 +55,7 @@ export function ExplicationScreen({ onCommencer }: { onCommencer: () => void }) 
           Commencer
           <ArrowRight className="size-4" />
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </GlassPanel>
   );
 }

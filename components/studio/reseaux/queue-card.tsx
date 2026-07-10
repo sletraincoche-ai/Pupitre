@@ -2,8 +2,8 @@
 
 import { InstagramBadge, FacebookBadge } from "@/components/studio/brand-icons";
 import { GlassFicheRow } from "@/components/glass/glass-fiche-row";
-import { getNumeroParId, formatOrigine } from "@/lib/fiches";
-import type { PublicationSociale } from "@/lib/mock-data";
+import { formatOrigine } from "@/lib/fiches";
+import type { PublicationReelle } from "@/lib/publications";
 
 const formatLabels = { post: "Post", story: "Story", carrousel: "Carrousel" };
 
@@ -12,13 +12,12 @@ export function QueueCard({
   active,
   onClick,
 }: {
-  publication: PublicationSociale;
+  publication: PublicationReelle;
   active: boolean;
   onClick: () => void;
 }) {
   return (
     <GlassFicheRow
-      numero={getNumeroParId(publication.id)}
       date={publication.date}
       active={active}
       onClick={onClick}
@@ -29,8 +28,8 @@ export function QueueCard({
           <FacebookBadge className="size-4" />
         )
       }
-      titre={`${formatLabels[publication.format]} — ${publication.legende}`}
-      origine={formatOrigine(publication.declencheur)}
+      titre={`${formatLabels[publication.format]} — ${publication.legende || "Sans légende"}`}
+      origine={formatOrigine()}
     />
   );
 }

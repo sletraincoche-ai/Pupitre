@@ -441,60 +441,6 @@ export const briefHebdomadaire = [
 export type ReseauPlateforme = "Instagram" | "Facebook";
 export type FormatContenu = "post" | "story" | "carrousel";
 
-export type PublicationSociale = {
-  id: string;
-  plateforme: ReseauPlateforme;
-  format: FormatContenu;
-  // Le fait réel, dans un autre module, qui a produit cette suggestion —
-  // absent pour une création manuelle (mode 2.5).
-  declencheur?: string;
-  photos: string[]; // ids référençant photosDomaine
-  legende: string;
-  hashtags: string[];
-  musique?: string;
-  date: string;
-  statut: "En attente" | "Brouillon";
-};
-
-export const publicationsSociales: PublicationSociale[] = [
-  {
-    id: "pub1",
-    plateforme: "Instagram",
-    format: "post",
-    declencheur: "Déclenché par la Cave — Millésime 2016 en surstock (28 mois de stock)",
-    photos: ["ph2"],
-    legende:
-      "Notre Millésime 2016 se révèle enfin 🥂 Une cuvée de caractère, en quantité limitée en cave. Une bouteille aujourd'hui, un souvenir demain.",
-    hashtags: ["ChampagnePupitre", "Millesime2016"],
-    date: "5 juillet",
-    statut: "En attente",
-  },
-  {
-    id: "pub2",
-    plateforme: "Instagram",
-    format: "story",
-    declencheur: "Déclenché par l'Agenda — Vendanges prévisionnelles le 7 septembre",
-    photos: ["ph1"],
-    legende: "Les vendanges approchent 🍇 Rendez-vous début septembre !",
-    hashtags: ["Vendanges2026"],
-    musique: "Golden Hour — instrumental",
-    date: "2 septembre",
-    statut: "En attente",
-  },
-  {
-    id: "pub3",
-    plateforme: "Facebook",
-    format: "post",
-    declencheur: "Déclenché par Clients — segment Fidèles (3 clients)",
-    photos: ["ph6"],
-    legende:
-      "Une pensée pour nos clients les plus fidèles, qui nous suivent depuis plusieurs millésimes. Merci pour votre confiance — la prochaine dégustation est pour vous.",
-    hashtags: [],
-    date: "10 juillet",
-    statut: "En attente",
-  },
-];
-
 export type EmailCampagne = {
   id: string;
   declencheur?: string;
@@ -569,8 +515,10 @@ export const avisGoogle: AvisGoogle[] = [
   },
 ];
 
+// Ne compte plus que Email et Avis Google (encore simulés) — les
+// publications Réseaux sociaux sont des données réelles rattachées au
+// compte connecté, comptées séparément côté client via usePublications().
 export const totalContenusStudioEnAttente =
-  publicationsSociales.filter((p) => p.statut === "En attente").length +
   emailCampagnes.filter((e) => e.statut === "En attente").length +
   avisGoogle.filter((a) => a.statut === "En attente").length;
 
@@ -594,17 +542,6 @@ export type CharteNarrative = {
   vocabulaire: string[];
   interdits: string[];
 };
-
-// Photos du domaine (6.3) — l'IA pioche dedans pour illustrer les posts,
-// jamais dans une banque d'images générique.
-export const photosDomaine = [
-  { id: "ph1", legende: "Rangs de vigne au petit matin" },
-  { id: "ph2", legende: "Cave et foudres de chêne" },
-  { id: "ph3", legende: "Dégorgement à la volée" },
-  { id: "ph4", legende: "Portrait au pressoir" },
-  { id: "ph5", legende: "Étiquette Brut Réserve" },
-  { id: "ph6", legende: "Accueil au caveau" },
-];
 
 export type PlateformePublicationCalendrier = "Instagram" | "Email" | "Avis Google";
 

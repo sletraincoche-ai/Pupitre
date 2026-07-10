@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Send, CalendarClock, FileText, Link2 } from "lucide-react";
@@ -15,17 +15,14 @@ import { GlassPageHeader } from "@/components/glass/glass-page-header";
 import { GlassThreeColumns, GlassColumnPanel } from "@/components/glass/glass-column-panel";
 import { useIdentity } from "@/lib/identity-context";
 import { useMetaConnection } from "@/lib/meta-connection-context";
+import { usePublications } from "@/lib/publications-context";
 import { formatOrigine } from "@/lib/fiches";
 import { suggestionsHashtags } from "@/lib/hashtags";
-import {
-  publicationsSociales as publicationsInitiales,
-  type PublicationSociale,
-  type ReseauPlateforme,
-  type FormatContenu,
-} from "@/lib/mock-data";
+import type { PublicationReelle } from "@/lib/publications";
+import type { ReseauPlateforme, FormatContenu } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
-function versContenuEdite(p: PublicationSociale): ContenuEdite {
+function versContenuEdite(p: PublicationReelle): ContenuEdite {
   return {
     plateforme: p.plateforme,
     format: p.format,
@@ -39,27 +36,66 @@ function versContenuEdite(p: PublicationSociale): ContenuEdite {
 export default function ReseauxSociauxPage() {
   const { charte } = useIdentity();
   const { connecte, info } = useMetaConnection();
-  const [queue, setQueue] = useState(publicationsInitiales);
-  const [sourceId, setSourceId] = useState<string | null>(queue[0]?.id ?? null);
-  const [edited, setEdited] = useState<ContenuEdite | null>(queue[0] ? versContenuEdite(queue[0]) : null);
+  const { publications, hydrated, mettreAJour } = usePublications();
+  const [sourceId, setSourceId] = useState<string | null>(null);
+  const [edited, setEdited] = useState<ContenuEdite | null>(null);
 
-  function charger(publication: PublicationSociale) {
+  const queue = publications.filter((p) => p.statut === "brouillon");
+  const enCours = sourceId ? queue.find((p) => p.id === sourceId) : undefined;
+
+  function charger(publication: PublicationReelle) {
     setSourceId(publication.id);
     setEdited(versContenuEdite(publication));
   }
 
-  function retirerDeLaFile(message: string) {
-    if (sourceId) {
-      setQueue((prev) => prev.filter((p) => p.id !== sourceId));
+  // Sélectionne automatiquement le premier brouillon dès que la file est
+  // chargée, tant que rien n'a encore été choisi.
+  useEffect(() => {
+    if (hydrated && !sourceId && queue.length > 0) {
+      charger(queue[0]);
     }
-    toast.success(message);
-    const reste = queue.filter((p) => p.id !== sourceId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, sourceId, queue.length]);
+
+  function selectionnerSuivant(idTraite: string) {
+    const reste = publications.filter((p) => p.statut === "brouillon" && p.id !== idTraite);
     if (reste[0]) {
       charger(reste[0]);
     } else {
       setSourceId(null);
       setEdited(null);
     }
+  }
+
+  async function publierMaintenant() {
+    if (!sourceId || !edited) return;
+    const traite = sourceId;
+    const publication = await mettreAJour(sourceId, { ...edited, statut: "publiee" });
+    if (!publication) {
+      toast.error("Échec de la publication.");
+      return;
+    }
+    toast.success(`Publié sur ${edited.plateforme}${info?.demo ? " (démo)" : ""}`);
+    selectionnerSuivant(traite);
+  }
+
+  async function programmer() {
+    if (!sourceId || !edited) return;
+    const traite = sourceId;
+    const publication = await mettreAJour(sourceId, { ...edited, statut: "programmee" });
+    if (!publication) {
+      toast.error("Échec de la programmation.");
+      return;
+    }
+    toast.success("Publication programmée");
+    selectionnerSuivant(traite);
+  }
+
+  async function enregistrerBrouillon() {
+    if (!sourceId || !edited) return;
+    const publication = await mettreAJour(sourceId, { ...edited });
+    if (publication) toast.success("Brouillon enregistré");
+    else toast.error("Échec de l'enregistrement.");
   }
 
   function setPlateforme(plateforme: ReseauPlateforme) {
@@ -72,16 +108,18 @@ export default function ReseauxSociauxPage() {
     setEdited({ ...edited, format });
   }
 
-  const source = sourceId ? queue.find((p) => p.id === sourceId) : undefined;
-
   return (
     <GlassPageShell fill>
       <GlassPageHeader title="Réseaux sociaux" subtitle="Instagram et Facebook, un seul éditeur." />
 
       <GlassThreeColumns className="lg:min-h-0 lg:flex-1 gap-4">
         <GlassColumnPanel label={`File d'attente (${queue.length})`}>
-          {queue.length === 0 ? (
-            <p className="py-8 text-center text-sm text-white/50">File vide.</p>
+          {!hydrated ? (
+            <p className="py-8 text-center text-sm text-white/50">Chargement…</p>
+          ) : queue.length === 0 ? (
+            <p className="py-8 text-center text-sm text-white/50">
+              File vide. Composez une publication depuis Création.
+            </p>
           ) : (
             <div className="flex flex-col gap-1">
               {queue.map((p) => (
@@ -115,7 +153,7 @@ export default function ReseauxSociauxPage() {
             <p className="py-8 text-center text-sm text-white/50">—</p>
           ) : (
             <div className="flex flex-col gap-4">
-              <p className="font-mono text-xs text-white/55">{formatOrigine(source?.declencheur)}</p>
+              {enCours && <p className="font-mono text-xs text-white/55">{formatOrigine()}</p>}
 
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-1 rounded-xl border border-white/20 p-1">
@@ -167,12 +205,7 @@ export default function ReseauxSociauxPage() {
 
               <div className="flex flex-wrap gap-2 border-t border-white/15 pt-3">
                 {connecte ? (
-                  <Button
-                    className="rounded-lg bg-gold text-white hover:bg-gold/90"
-                    onClick={() =>
-                      retirerDeLaFile(`Publié sur ${edited.plateforme}${info?.demo ? " (démo)" : ""}`)
-                    }
-                  >
+                  <Button className="rounded-lg bg-gold text-white hover:bg-gold/90" onClick={publierMaintenant}>
                     <Send className="size-4" />
                     Publier maintenant
                   </Button>
@@ -191,7 +224,7 @@ export default function ReseauxSociauxPage() {
                 <Button
                   variant="outline"
                   className="rounded-lg border-white/25 text-white hover:bg-white/10"
-                  onClick={() => retirerDeLaFile("Publication programmée")}
+                  onClick={programmer}
                 >
                   <CalendarClock className="size-4" />
                   Programmer
@@ -199,7 +232,7 @@ export default function ReseauxSociauxPage() {
                 <Button
                   variant="ghost"
                   className="rounded-lg text-white/70 hover:bg-white/10 hover:text-white"
-                  onClick={() => toast.success("Brouillon enregistré")}
+                  onClick={enregistrerBrouillon}
                 >
                   <FileText className="size-4" />
                   Enregistrer brouillon

@@ -1,12 +1,22 @@
+"use client";
+
 import { Wine } from "lucide-react";
-import { photosDomaine } from "@/lib/mock-data";
+import { usePhotos } from "@/lib/photos-context";
 import { cn } from "@/lib/utils";
 
-// Représente une photo de la banque d'images (6.3) — tuile dégradée +
-// légende, cohérente avec le rendu de la banque elle-même, en l'absence
-// de vrais fichiers image dans ce prototype.
 export function PhotoTile({ photoId, className }: { photoId: string; className?: string }) {
-  const photo = photosDomaine.find((p) => p.id === photoId);
+  const { photos } = usePhotos();
+  const photo = photos.find((p) => p.id === photoId);
+
+  if (photo) {
+    return (
+      <div className={cn("overflow-hidden", className)}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={photo.url} alt={photo.legende} className="size-full object-cover" />
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -15,7 +25,6 @@ export function PhotoTile({ photoId, className }: { photoId: string; className?:
       )}
     >
       <Wine className="size-8 text-white/90" strokeWidth={1.25} />
-      {photo && <p className="px-3 text-[10px] leading-tight text-white/85">{photo.legende}</p>}
     </div>
   );
 }

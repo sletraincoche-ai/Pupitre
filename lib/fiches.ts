@@ -1,14 +1,17 @@
-// Le registre unifié des "fiches" du Studio — chaque publication, email
-// ou réponse d'avis produit par le Studio est une fiche numérotée, comme
-// une fiche technique de dégustation. Volontairement séparé des files
-// d'attente de chaque atelier (publicationsSociales, emailCampagnes,
-// avisGoogle) : ces files restent la source de vérité pour ce qui reste
-// à valider, tandis que ce fichier ajoute l'historique déjà résolu pour
-// que l'écran d'accueil du Studio ait un registre réaliste — sans risquer
-// de faire fuiter ces entrées déjà traitées dans les files des ateliers.
+// Le registre unifié des "fiches" du Studio — chaque email ou réponse
+// d'avis produit par le Studio est une fiche numérotée, comme une fiche
+// technique de dégustation. Volontairement séparé des files d'attente de
+// chaque atelier (emailCampagnes, avisGoogle) : ces files restent la
+// source de vérité pour ce qui reste à valider, tandis que ce fichier
+// ajoute l'historique déjà résolu pour que l'écran d'accueil du Studio ait
+// un registre réaliste — sans risquer de faire fuiter ces entrées déjà
+// traitées dans les files des ateliers.
+//
+// Les publications Réseaux sociaux ne font plus partie de ce registre :
+// elles sont des données réelles rattachées au compte connecté (voir
+// lib/publications.ts et /api/studio/publications), pas de la simulation.
 
 import {
-  publicationsSociales,
   emailCampagnes,
   avisGoogle,
   AUJOURDHUI,
@@ -58,14 +61,6 @@ function cleDate(date: string): number {
 // (Cave, Agenda, Clients, avis reçus).
 const fichesHistoriques: Omit<Fiche, "numero">[] = [
   {
-    date: "28 juin",
-    canal: "Instagram",
-    statut: "Publiée",
-    apercu: "Portes ouvertes ce week-end : venez découvrir le Rosé de Saignée en avant-première...",
-    origine: "Origine : Agenda — Journée portes ouvertes du 28 juin",
-    lien: "/dashboard/studio/reseaux-sociaux",
-  },
-  {
     date: "30 juin",
     canal: "Email",
     statut: "Envoyée",
@@ -82,22 +77,6 @@ const fichesHistoriques: Omit<Fiche, "numero">[] = [
     lien: "/dashboard/studio/avis",
   },
   {
-    date: "1 juillet",
-    canal: "Facebook",
-    statut: "Publiée",
-    apercu: "Le tri de la vendange 2025 racontée en images — merci à toute l'équipe de saisonniers...",
-    origine: "Origine : 6 photos ajoutées à la Galerie, 30 juin",
-    lien: "/dashboard/studio/reseaux-sociaux",
-  },
-  {
-    date: "2 juillet",
-    canal: "Instagram",
-    statut: "Publiée",
-    apercu: "Le Blanc de Blancs n'a plus que 3 semaines de stock devant lui — dernières bouteilles...",
-    origine: "Origine : Cave — Blanc de Blancs en alerte stock (0,9 mois)",
-    lien: "/dashboard/studio/reseaux-sociaux",
-  },
-  {
     date: "2 juillet",
     canal: "Email",
     statut: "Envoyée",
@@ -106,10 +85,6 @@ const fichesHistoriques: Omit<Fiche, "numero">[] = [
     lien: "/dashboard/studio/mail",
   },
 ];
-
-function apercuPublication(p: (typeof publicationsSociales)[number]): string {
-  return p.legende.length > 90 ? `${p.legende.slice(0, 90)}…` : p.legende;
-}
 
 function apercuEmail(e: (typeof emailCampagnes)[number]): string {
   return `Objet : ${e.objet} — Segment : ${e.segment}, ${e.nombreDestinataires} contacts`;
@@ -122,15 +97,6 @@ function apercuAvis(a: (typeof avisGoogle)[number]): string {
 
 export function getFiches(): Fiche[] {
   const vivantes: Omit<Fiche, "numero">[] = [
-    ...publicationsSociales.map((p) => ({
-      id: p.id,
-      date: p.date,
-      canal: p.plateforme,
-      statut: p.statut === "Brouillon" ? ("En attente" as StatutFiche) : (p.statut as StatutFiche),
-      apercu: apercuPublication(p),
-      origine: formatOrigine(p.declencheur),
-      lien: "/dashboard/studio/reseaux-sociaux",
-    })),
     ...emailCampagnes.map((e) => ({
       id: e.id,
       date: e.date,

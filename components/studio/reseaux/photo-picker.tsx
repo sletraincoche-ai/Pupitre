@@ -2,7 +2,7 @@
 
 import { Check, ChevronUp, ChevronDown, X } from "lucide-react";
 import { PhotoTile } from "@/components/studio/photo-tile";
-import { photosDomaine } from "@/lib/mock-data";
+import { usePhotos } from "@/lib/photos-context";
 
 export function PhotoPicker({
   selection,
@@ -11,6 +11,8 @@ export function PhotoPicker({
   selection: string[];
   onChange: (photos: string[]) => void;
 }) {
+  const { photos: photosDomaine } = usePhotos();
+
   function toggle(id: string) {
     if (selection.includes(id)) {
       onChange(selection.filter((p) => p !== id));
@@ -79,6 +81,9 @@ export function PhotoPicker({
 
       <div>
         <p className="mb-1.5 text-xs font-medium text-white/60">Banque d&apos;images</p>
+        {photosDomaine.length === 0 && (
+          <p className="text-xs text-white/45">Aucune photo — ajoutez-en depuis la page Photos.</p>
+        )}
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
           {photosDomaine.map((photo) => {
             const selected = selection.includes(photo.id);

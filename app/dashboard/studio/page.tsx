@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Mail, Plus, ArrowRight } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
@@ -12,31 +11,29 @@ import { InstagramBadge, FacebookBadge } from "@/components/studio/brand-icons";
 import { TunnelSequence } from "@/components/studio/tunnel/tunnel-sequence";
 import { useOnboarding } from "@/lib/onboarding-context";
 import { useIdentity } from "@/lib/identity-context";
-import { publicationsSociales, emailCampagnes, avisGoogle, photosDomaine } from "@/lib/mock-data";
-
-// Trois photos réelles du domaine, réparties sur les 6 vignettes du bloc
-// Photos plutôt que de répéter la même icône.
-const photosVariees = [
-  "/images/glass/photos/feuille-contre-jour.jpg",
-  "/images/glass/photos/rangs-de-vigne.jpg",
-  "/images/glass/photos/cave-tonneaux.jpg",
-];
+import { usePhotos } from "@/lib/photos-context";
+import { usePublications } from "@/lib/publications-context";
+import { emailCampagnes, avisGoogle } from "@/lib/mock-data";
 
 export default function StudioPage() {
   const { hydrated, tunnelTermine } = useOnboarding();
   const { hydrated: identiteHydratee, charte } = useIdentity();
+  const { photos } = usePhotos();
+  const { publications } = usePublications();
 
   if (!hydrated) return null;
 
   if (!tunnelTermine) {
     return (
-      <div className="flex flex-col gap-8">
-        <TunnelSequence />
-      </div>
+      <GlassPageShell>
+        <div className="flex flex-1 items-center justify-center py-10">
+          <TunnelSequence />
+        </div>
+      </GlassPageShell>
     );
   }
 
-  const reseauxEnAttente = publicationsSociales.filter((p) => p.statut === "En attente");
+  const reseauxEnAttente = publications.filter((p) => p.statut === "brouillon");
   const mailEnAttente = emailCampagnes.filter((e) => e.statut === "En attente");
   const avisEnAttente = avisGoogle.filter((a) => a.statut === "En attente");
 
@@ -132,22 +129,23 @@ export default function StudioPage() {
           >
             <GlassSheen />
             <p className="relative z-10 text-sm font-semibold tracking-tight text-white">Photos</p>
-            <div className="grid grid-cols-3 gap-1.5">
-              {photosDomaine.slice(0, 6).map((photo, i) => (
-                <div key={photo.id} className="relative aspect-square overflow-hidden rounded-lg border border-white/10">
-                  <Image
-                    src={photosVariees[i % photosVariees.length]}
-                    alt={photo.legende}
-                    fill
-                    sizes="120px"
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pt-3 pb-1">
-                    <p className="text-center text-[9px] leading-tight text-white">{photo.legende}</p>
+            {photos.length === 0 ? (
+              <p className="relative z-10 text-xs text-white/60">
+                Aucune photo pour l&apos;instant — ajoutez les premières photos de votre domaine.
+              </p>
+            ) : (
+              <div className="grid grid-cols-3 gap-1.5">
+                {photos.slice(0, 6).map((photo) => (
+                  <div key={photo.id} className="relative aspect-square overflow-hidden rounded-lg border border-white/10">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={photo.url} alt={photo.legende} className="size-full object-cover" />
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pt-3 pb-1">
+                      <p className="text-center text-[9px] leading-tight text-white">{photo.legende}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
             <span className="relative z-10 mt-auto flex items-center gap-1 text-xs font-medium text-white/80 group-hover:text-white">
               Voir toute la banque
               <ArrowRight className="size-3.5" />

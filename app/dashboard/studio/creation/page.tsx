@@ -16,8 +16,10 @@ import { GlassThreeColumns, GlassColumnPanel } from "@/components/glass/glass-co
 import { useIdentity } from "@/lib/identity-context";
 import { useMetaConnection } from "@/lib/meta-connection-context";
 import { useClients } from "@/lib/clients-context";
+import { usePublications } from "@/lib/publications-context";
 import { suggestionsHashtags } from "@/lib/hashtags";
 import type { ReseauPlateforme, FormatContenu } from "@/lib/mock-data";
+import type { StatutPublication } from "@/lib/publications";
 import { cn } from "@/lib/utils";
 
 type Canal = "reseaux" | "email";
@@ -41,6 +43,7 @@ export default function CreationPage() {
   const { charte } = useIdentity();
   const { connecte, info } = useMetaConnection();
   const { clients } = useClients();
+  const { creer } = usePublications();
   const [canal, setCanal] = useState<Canal>("reseaux");
   const [contenuReseaux, setContenuReseaux] = useState<ContenuEdite>(contenuVide);
   const [contenuEmail, setContenuEmail] = useState<EmailEdite>({ ...emailVide, nombreDestinataires: clients.length });
@@ -61,7 +64,12 @@ export default function CreationPage() {
     setContenuEmail((e) => ({ ...e, segment: suivant.label, nombreDestinataires: nombre }));
   }
 
-  function publierReseaux(message: string) {
+  async function publierReseaux(statut: StatutPublication, message: string) {
+    const publication = await creer({ ...contenuReseaux, statut });
+    if (!publication) {
+      toast.error("Échec de l'enregistrement.");
+      return;
+    }
     toast.success(message);
     setContenuReseaux(contenuVide);
   }
@@ -188,7 +196,7 @@ export default function CreationPage() {
                     <Button
                       className="rounded-lg bg-gold text-white hover:bg-gold/90"
                       onClick={() =>
-                        publierReseaux(`Publié sur ${contenuReseaux.plateforme}${info?.demo ? " (démo)" : ""}`)
+                        publierReseaux("publiee", `Publié sur ${contenuReseaux.plateforme}${info?.demo ? " (démo)" : ""}`)
                       }
                     >
                       <Send className="size-4" />
@@ -209,7 +217,7 @@ export default function CreationPage() {
                   <Button
                     variant="outline"
                     className="rounded-lg border-white/25 text-white hover:bg-white/10"
-                    onClick={() => publierReseaux("Publication programmée")}
+                    onClick={() => publierReseaux("programmee", "Publication programmée")}
                   >
                     <CalendarClock className="size-4" />
                     Programmer
@@ -217,7 +225,7 @@ export default function CreationPage() {
                   <Button
                     variant="ghost"
                     className="rounded-lg text-white/70 hover:bg-white/10 hover:text-white"
-                    onClick={() => toast.success("Brouillon enregistré")}
+                    onClick={() => publierReseaux("brouillon", "Brouillon enregistré")}
                   >
                     <FileText className="size-4" />
                     Enregistrer brouillon
