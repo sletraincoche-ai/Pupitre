@@ -66,7 +66,7 @@ export function ReviewResponseEditor({
         </Button>
         <Button
           variant="outline"
-          className="rounded-lg border-white/25 text-white hover:bg-white/10"
+          className="rounded-lg border-white/25 bg-transparent text-white hover:bg-white/10"
           onClick={() => textareaRef.current?.focus()}
         >
           <Pencil className="size-4" />

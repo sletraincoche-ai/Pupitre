@@ -1,9 +1,10 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { ReponsesIdentite } from "@/lib/identity";
 import type { CharteNarrative, OrigineEnrichissement, PilierHistoire } from "@/lib/mock-data";
 import { useAuth } from "@/lib/auth-context";
+import { debuterEcriture, terminerEcriture } from "@/lib/pending-writes";
 
 type IdentiteStockee = {
   consentement: boolean;
@@ -52,18 +53,33 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
   const [enGeneration, setEnGeneration] = useState(false);
   const [erreurGeneration, setErreurGeneration] = useState<string | null>(null);
   const [modeGeneration, setModeGeneration] = useState<"reel" | "simulation" | null>(null);
+  // Empêche l'effet d'écriture de renvoyer en écho l'état qu'on vient de
+  // lire au montage — sans utilité ici (l'écho est identique à ce que le
+  // serveur a déjà), mais évite une requête réseau superflue à chaque
+  // connexion/reconnexion.
+  const premierSync = useRef(true);
+
+  // Remise à zéro *pendant le rendu* (pas dans un effet) dès que le
+  // compte connecté change. Sans ça, un commit transitoire où `user` a
+  // déjà changé mais où `hydrated`/`etat` retiennent encore l'instantané
+  // du compte précédent laisserait l'effet d'écriture ci-dessous
+  // réémettre ces vieilles données vers le nouveau compte. Voir le même
+  // motif, plus détaillé, dans onboarding-context.tsx.
+  const [utilisateurSuivi, setUtilisateurSuivi] = useState(user);
+  if (user?.id !== utilisateurSuivi?.id) {
+    setUtilisateurSuivi(user);
+    setHydrated(false);
+    setEtat(etatInitial);
+    premierSync.current = true;
+  }
 
   // Recharge l'état depuis le compte connecté à chaque changement de
   // compte (connexion/déconnexion) — jamais d'état d'un compte visible
-  // sous un autre. Gate l'effet d'écriture sur `hydrated` (pas une ref) :
-  // le même raisonnement que pour l'ancienne persistance localStorage
-  // s'applique, désormais appliqué par requête plutôt que par montage.
+  // sous un autre.
   useEffect(() => {
     if (!authHydrated) return;
     let annule = false;
-    setHydrated(false);
     if (!user) {
-      setEtat(etatInitial);
       setHydrated(true);
       return;
     }
@@ -85,14 +101,24 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hydrated || !user) return;
+    if (premierSync.current) {
+      premierSync.current = false;
+      return;
+    }
+    debuterEcriture();
     fetch("/api/studio/identity", {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(etat),
-    }).catch(() => {
-      // échec réseau — l'état local reste correct, on retentera à la
-      // prochaine mutation.
-    });
+      // keepalive : survit à une navigation immédiate (ex. lien externe
+      // cliqué juste après un changement d'étape), voir onboarding-context.
+      keepalive: true,
+    })
+      .catch(() => {
+        // échec réseau — l'état local reste correct, on retentera à la
+        // prochaine mutation.
+      })
+      .finally(() => terminerEcriture());
   }, [hydrated, etat, user]);
 
   function accepterConsentement() {

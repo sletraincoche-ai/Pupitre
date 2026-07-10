@@ -148,7 +148,7 @@ export function IdentityQuiz({ onTermine }: { onTermine: () => void }) {
                 )}
                 <Button
                   variant="outline"
-                  className="rounded-lg border-white/30 text-white hover:bg-white/10"
+                  className="rounded-lg border-white/30 bg-transparent text-white hover:bg-white/10"
                   onClick={() => soumettre(brouillon)}
                 >
                   {dernierePage ? "Terminer" : "Suivant →"}

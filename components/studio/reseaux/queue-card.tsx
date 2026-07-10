@@ -29,7 +29,7 @@ export function QueueCard({
         )
       }
       titre={`${formatLabels[publication.format]} — ${publication.legende || "Sans légende"}`}
-      origine={formatOrigine()}
+      origine={publication.statut === "programmee" ? `Programmée pour le ${publication.date}` : formatOrigine()}
     />
   );
 }

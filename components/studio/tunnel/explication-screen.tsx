@@ -12,7 +12,7 @@ const etapes = [
   {
     icon: Wand2,
     titre: "L'IA génère",
-    texte: "Posts, emails, réponses — dans votre voix.",
+    texte: "Posts, emails et réponses dans votre voix.",
   },
   {
     icon: CheckCircle2,
@@ -45,7 +45,10 @@ export function ExplicationScreen({ onCommencer }: { onCommencer: () => void }) 
                 <p className="font-heading text-base text-white">
                   {index + 1}. {etape.titre}
                 </p>
-                <p className="text-xs text-white/60">{etape.texte}</p>
+                {/* Hauteur réservée à deux lignes pour les trois colonnes : la
+                    ligne du bouton reste alignée même si un texte est plus
+                    court qu'un autre. */}
+                <p className="flex min-h-8 items-start text-xs text-white/60">{etape.texte}</p>
               </div>
             );
           })}

@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { attendreEcrituresEnCours } from "@/lib/pending-writes";
 
 export type CurrentUser = { id: string; identifiant: string };
 
@@ -50,6 +51,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const deconnexion = useCallback(async () => {
+    // Attend que les sauvegardes en cours (identité, onboarding, photos,
+    // publications) se terminent avant d'invalider la session — sinon une
+    // requête encore en vol peut arriver après coup, échouer (401) et
+    // perdre silencieusement la donnée qu'on venait de créer.
+    await attendreEcrituresEnCours();
     await fetch("/api/auth/logout", { method: "POST" });
     setUser(null);
   }, []);

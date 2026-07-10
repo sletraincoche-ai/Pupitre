@@ -16,6 +16,8 @@ import { GlassPageShell } from "@/components/glass/glass-page-shell";
 import { GlassPageHeader } from "@/components/glass/glass-page-header";
 import { GlassThreeColumns, GlassColumnPanel } from "@/components/glass/glass-column-panel";
 import { useClients } from "@/lib/clients-context";
+import { useGmailConnection } from "@/lib/gmail-connection-context";
+import { useConnexionsModal } from "@/lib/connexions-modal-context";
 import { getNumeroParId, formatOrigine } from "@/lib/fiches";
 import { emailCampagnes as emailCampagnesInitiales, type EmailCampagne } from "@/lib/mock-data";
 
@@ -25,6 +27,8 @@ function versEmailEdite(e: EmailCampagne): EmailEdite {
 
 export default function MailPage() {
   const { clients } = useClients();
+  const { connecte: gmailConnecte } = useGmailConnection();
+  const { ouvrir: ouvrirConnexions } = useConnexionsModal();
   const [queue, setQueue] = useState(emailCampagnesInitiales);
   const [sourceId, setSourceId] = useState<string | null>(queue[0]?.id ?? null);
   const [edited, setEdited] = useState<EmailEdite | null>(queue[0] ? versEmailEdite(queue[0]) : null);
@@ -35,6 +39,10 @@ export default function MailPage() {
   }
 
   function terminer(message: string) {
+    if (!gmailConnecte) {
+      ouvrirConnexions();
+      return;
+    }
     if (sourceId) {
       setQueue((prev) => prev.filter((e) => e.id !== sourceId));
     }
@@ -115,8 +123,8 @@ export default function MailPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="rounded-lg border-white/25 text-white hover:bg-white/10"
-                  onClick={() => toast.success("Test envoyé à votre adresse")}
+                  className="rounded-lg border-white/25 bg-transparent text-white hover:bg-white/10"
+                  onClick={() => (gmailConnecte ? toast.success("Test envoyé à votre adresse") : ouvrirConnexions())}
                 >
                   <TestTube2 className="size-4" />
                   M&apos;envoyer un test

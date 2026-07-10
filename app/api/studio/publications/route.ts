@@ -12,6 +12,7 @@ type Row = {
   hashtags: string[];
   musique: string | null;
   photos: string[];
+  scheduled_for: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -26,7 +27,8 @@ function versPublication(r: Row): PublicationReelle {
     legende: r.legende,
     hashtags: r.hashtags ?? [],
     musique: r.musique ?? undefined,
-    date: formatDateFr(r.updated_at),
+    scheduledFor: r.scheduled_for ?? undefined,
+    date: formatDateFr(r.scheduled_for ?? r.updated_at),
   };
 }
 
@@ -60,6 +62,7 @@ export async function POST(request: NextRequest) {
       hashtags: body.hashtags ?? [],
       musique: body.musique ?? null,
       photos: body.photos ?? [],
+      scheduled_for: body.scheduledFor ?? null,
     })
     .select("*")
     .single();
@@ -80,6 +83,7 @@ export async function PATCH(request: NextRequest) {
   for (const cle of ["plateforme", "format", "statut", "legende", "hashtags", "musique", "photos"] as const) {
     if (cle in body) champs[cle] = body[cle];
   }
+  if ("scheduledFor" in body) champs.scheduled_for = body.scheduledFor;
 
   const { data, error } = await supabaseAdmin
     .from("publications")

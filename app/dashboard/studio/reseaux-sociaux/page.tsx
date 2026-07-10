@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
-import { Send, CalendarClock, FileText, Link2 } from "lucide-react";
+import { Send, CalendarClock, FileText } from "lucide-react";
 import { InstagramBadge, FacebookBadge } from "@/components/studio/brand-icons";
 import { PostPreview } from "@/components/studio/post-preview";
 import { QueueCard } from "@/components/studio/reseaux/queue-card";
@@ -15,9 +14,11 @@ import { GlassPageHeader } from "@/components/glass/glass-page-header";
 import { GlassThreeColumns, GlassColumnPanel } from "@/components/glass/glass-column-panel";
 import { useIdentity } from "@/lib/identity-context";
 import { useMetaConnection } from "@/lib/meta-connection-context";
+import { useConnexionsModal } from "@/lib/connexions-modal-context";
 import { usePublications } from "@/lib/publications-context";
 import { formatOrigine } from "@/lib/fiches";
 import { suggestionsHashtags } from "@/lib/hashtags";
+import { ProgrammerModal, type ChoixProgrammation } from "@/components/studio/programmer/programmer-modal";
 import type { PublicationReelle } from "@/lib/publications";
 import type { ReseauPlateforme, FormatContenu } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
@@ -36,11 +37,14 @@ function versContenuEdite(p: PublicationReelle): ContenuEdite {
 export default function ReseauxSociauxPage() {
   const { charte } = useIdentity();
   const { connecte, info } = useMetaConnection();
-  const { publications, hydrated, mettreAJour } = usePublications();
+  const { ouvrir: ouvrirConnexions } = useConnexionsModal();
+  const { publications, hydrated, mettreAJour, creer } = usePublications();
   const [sourceId, setSourceId] = useState<string | null>(null);
   const [edited, setEdited] = useState<ContenuEdite | null>(null);
+  const [programmerOuvert, setProgrammerOuvert] = useState(false);
 
-  const queue = publications.filter((p) => p.statut === "brouillon");
+  const enFile = (p: PublicationReelle) => p.statut === "brouillon" || p.statut === "programmee";
+  const queue = publications.filter(enFile);
   const enCours = sourceId ? queue.find((p) => p.id === sourceId) : undefined;
 
   function charger(publication: PublicationReelle) {
@@ -48,8 +52,8 @@ export default function ReseauxSociauxPage() {
     setEdited(versContenuEdite(publication));
   }
 
-  // Sélectionne automatiquement le premier brouillon dès que la file est
-  // chargée, tant que rien n'a encore été choisi.
+  // Sélectionne automatiquement le premier élément de la file dès qu'elle
+  // est chargée, tant que rien n'a encore été choisi.
   useEffect(() => {
     if (hydrated && !sourceId && queue.length > 0) {
       charger(queue[0]);
@@ -58,7 +62,7 @@ export default function ReseauxSociauxPage() {
   }, [hydrated, sourceId, queue.length]);
 
   function selectionnerSuivant(idTraite: string) {
-    const reste = publications.filter((p) => p.statut === "brouillon" && p.id !== idTraite);
+    const reste = publications.filter((p) => enFile(p) && p.id !== idTraite);
     if (reste[0]) {
       charger(reste[0]);
     } else {
@@ -69,6 +73,10 @@ export default function ReseauxSociauxPage() {
 
   async function publierMaintenant() {
     if (!sourceId || !edited) return;
+    if (!connecte) {
+      ouvrirConnexions();
+      return;
+    }
     const traite = sourceId;
     const publication = await mettreAJour(sourceId, { ...edited, statut: "publiee" });
     if (!publication) {
@@ -79,15 +87,39 @@ export default function ReseauxSociauxPage() {
     selectionnerSuivant(traite);
   }
 
-  async function programmer() {
+  function programmer() {
+    if (!sourceId || !edited) return;
+    if (!connecte) {
+      ouvrirConnexions();
+      return;
+    }
+    setProgrammerOuvert(true);
+  }
+
+  async function confirmerProgrammation({ plateformes, dateHeure }: ChoixProgrammation) {
     if (!sourceId || !edited) return;
     const traite = sourceId;
-    const publication = await mettreAJour(sourceId, { ...edited, statut: "programmee" });
+    const scheduledFor = dateHeure.toISOString();
+    const [premiere, ...autres] = plateformes;
+
+    const publication = await mettreAJour(sourceId, {
+      ...edited,
+      plateforme: premiere,
+      statut: "programmee",
+      scheduledFor,
+    });
     if (!publication) {
       toast.error("Échec de la programmation.");
       return;
     }
-    toast.success("Publication programmée");
+    for (const plateforme of autres) {
+      await creer({ ...edited, plateforme, statut: "programmee", scheduledFor });
+    }
+
+    toast.success(
+      `Programmé sur ${plateformes.join(" et ")} pour le ${dateHeure.toLocaleString("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}`
+    );
+    setProgrammerOuvert(false);
     selectionnerSuivant(traite);
   }
 
@@ -204,26 +236,13 @@ export default function ReseauxSociauxPage() {
               <EditPanel edited={edited} onChange={setEdited} suggestionsHashtags={suggestionsHashtags(charte)} />
 
               <div className="flex flex-wrap gap-2 border-t border-white/15 pt-3">
-                {connecte ? (
-                  <Button className="rounded-lg bg-gold text-white hover:bg-gold/90" onClick={publierMaintenant}>
-                    <Send className="size-4" />
-                    Publier maintenant
-                  </Button>
-                ) : (
-                  <Button
-                    className="rounded-lg bg-gold text-white hover:bg-gold/90"
-                    nativeButton={false}
-                    render={
-                      <Link href="/dashboard/parametres">
-                        <Link2 className="size-4" />
-                        Connecter mes comptes
-                      </Link>
-                    }
-                  />
-                )}
+                <Button className="rounded-lg bg-gold text-white hover:bg-gold/90" onClick={publierMaintenant}>
+                  <Send className="size-4" />
+                  Publier maintenant
+                </Button>
                 <Button
                   variant="outline"
-                  className="rounded-lg border-white/25 text-white hover:bg-white/10"
+                  className="rounded-lg border-white/25 bg-transparent text-white hover:bg-white/10"
                   onClick={programmer}
                 >
                   <CalendarClock className="size-4" />
@@ -242,6 +261,15 @@ export default function ReseauxSociauxPage() {
           )}
         </GlassColumnPanel>
       </GlassThreeColumns>
+
+      {edited && (
+        <ProgrammerModal
+          open={programmerOuvert}
+          onClose={() => setProgrammerOuvert(false)}
+          plateformeInitiale={edited.plateforme}
+          onConfirmer={confirmerProgrammation}
+        />
+      )}
     </GlassPageShell>
   );
 }

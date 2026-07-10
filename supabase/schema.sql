@@ -61,6 +61,9 @@ create table if not exists publications (
   hashtags jsonb not null default '[]'::jsonb,
   musique text,
   photos jsonb not null default '[]'::jsonb,
+  -- Date + heure choisies dans le calendrier de programmation — nul tant
+  -- que le statut n'est pas "programmee".
+  scheduled_for timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

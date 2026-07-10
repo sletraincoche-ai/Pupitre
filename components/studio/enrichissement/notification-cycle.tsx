@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Sprout, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { GlassPanel } from "@/components/glass/glass-panel";
 import { getEtapesCycleProches } from "@/lib/agenda";
 import { useIdentity } from "@/lib/identity-context";
 
@@ -50,24 +51,29 @@ export function NotificationCycle() {
   }
 
   return (
-    <div className="border border-gold/40 bg-gold/5">
+    <GlassPanel intensity="light" className="shrink-0 overflow-hidden">
       <div className="flex flex-col gap-3 px-5 py-4">
         <div className="flex items-start gap-3">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-[3px] border border-gold/30 text-gold">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gold/15 text-gold">
             <Sprout className="size-4" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-ink">
+            <p className="text-sm font-medium text-white">
               {etape.libelle}
               {etape.dansJours === 0 ? " aujourd'hui" : etape.dansJours === 1 ? " demain" : ` dans ${etape.dansJours} jours`}
-              {" "}— un souvenir à partager ?
+              {" "}: un souvenir à partager ?
             </p>
             {!reponseOuverte && (
               <div className="mt-2 flex gap-2">
-                <Button size="sm" className="rounded-[3px] bg-gold text-white hover:bg-gold/90" onClick={() => setReponseOuverte(true)}>
+                <Button size="sm" className="bg-gold text-white hover:bg-gold/90" onClick={() => setReponseOuverte(true)}>
                   Répondre
                 </Button>
-                <Button size="sm" variant="ghost" className="rounded-[3px] text-stone" onClick={() => marquerTraitee(etape.id)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-white/70 hover:bg-white/10 hover:text-white"
+                  onClick={() => marquerTraitee(etape.id)}
+                >
                   Pas maintenant
                 </Button>
               </div>
@@ -77,7 +83,7 @@ export function NotificationCycle() {
             <button
               onClick={() => marquerTraitee(etape.id)}
               aria-label="Fermer"
-              className="text-stone hover:text-ink"
+              className="text-white/50 hover:text-white"
             >
               <X className="size-4" />
             </button>
@@ -90,14 +96,14 @@ export function NotificationCycle() {
               value={texte}
               onChange={(e) => setTexte(e.target.value)}
               placeholder="Un mot, une anecdote de cette période…"
-              className="flex-1 rounded-[3px]"
+              className="flex-1 border-white/20 bg-white/5 text-white placeholder:text-white/40"
             />
-            <Button size="sm" className="rounded-[3px] bg-vine text-white hover:bg-vine/90" onClick={enregistrer}>
+            <Button size="sm" className="bg-gold text-white hover:bg-gold/90" onClick={enregistrer}>
               Enregistrer
             </Button>
           </div>
         )}
       </div>
-    </div>
+    </GlassPanel>
   );
 }

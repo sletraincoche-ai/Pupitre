@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
-import { Send, CalendarClock, FileText, Link2, TestTube2, Mail as MailIcon } from "lucide-react";
+import { Send, CalendarClock, FileText, TestTube2, Mail as MailIcon } from "lucide-react";
 import { InstagramBadge, FacebookBadge } from "@/components/studio/brand-icons";
 import { PostPreview } from "@/components/studio/post-preview";
 import { InboxPreview } from "@/components/studio/mail/inbox-preview";
@@ -15,9 +14,13 @@ import { GlassPageHeader } from "@/components/glass/glass-page-header";
 import { GlassThreeColumns, GlassColumnPanel } from "@/components/glass/glass-column-panel";
 import { useIdentity } from "@/lib/identity-context";
 import { useMetaConnection } from "@/lib/meta-connection-context";
+import { useGmailConnection } from "@/lib/gmail-connection-context";
+import { useConnexionsModal } from "@/lib/connexions-modal-context";
+import { BadgeNonConnecte } from "@/components/studio/connexions/badge-non-connecte";
 import { useClients } from "@/lib/clients-context";
 import { usePublications } from "@/lib/publications-context";
 import { suggestionsHashtags } from "@/lib/hashtags";
+import { ProgrammerModal, type ChoixProgrammation } from "@/components/studio/programmer/programmer-modal";
 import type { ReseauPlateforme, FormatContenu } from "@/lib/mock-data";
 import type { StatutPublication } from "@/lib/publications";
 import { cn } from "@/lib/utils";
@@ -42,11 +45,14 @@ const emailVide: EmailEdite = {
 export default function CreationPage() {
   const { charte } = useIdentity();
   const { connecte, info } = useMetaConnection();
+  const { connecte: gmailConnecte } = useGmailConnection();
+  const { ouvrir: ouvrirConnexions } = useConnexionsModal();
   const { clients } = useClients();
   const { creer } = usePublications();
   const [canal, setCanal] = useState<Canal>("reseaux");
   const [contenuReseaux, setContenuReseaux] = useState<ContenuEdite>(contenuVide);
   const [contenuEmail, setContenuEmail] = useState<EmailEdite>({ ...emailVide, nombreDestinataires: clients.length });
+  const [programmerOuvert, setProgrammerOuvert] = useState(false);
 
   function setPlateforme(plateforme: ReseauPlateforme) {
     setContenuReseaux((c) => ({ ...c, plateforme }));
@@ -65,6 +71,10 @@ export default function CreationPage() {
   }
 
   async function publierReseaux(statut: StatutPublication, message: string) {
+    if (statut !== "brouillon" && !connecte) {
+      ouvrirConnexions();
+      return;
+    }
     const publication = await creer({ ...contenuReseaux, statut });
     if (!publication) {
       toast.error("Échec de l'enregistrement.");
@@ -74,7 +84,35 @@ export default function CreationPage() {
     setContenuReseaux(contenuVide);
   }
 
-  function envoyerEmail(message: string) {
+  function ouvrirProgrammation() {
+    if (!connecte) {
+      ouvrirConnexions();
+      return;
+    }
+    setProgrammerOuvert(true);
+  }
+
+  async function confirmerProgrammation({ plateformes, dateHeure }: ChoixProgrammation) {
+    const scheduledFor = dateHeure.toISOString();
+    for (const plateforme of plateformes) {
+      const publication = await creer({ ...contenuReseaux, plateforme, statut: "programmee", scheduledFor });
+      if (!publication) {
+        toast.error("Échec de la programmation.");
+        return;
+      }
+    }
+    toast.success(
+      `Programmé sur ${plateformes.join(" et ")} pour le ${dateHeure.toLocaleString("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}`
+    );
+    setProgrammerOuvert(false);
+    setContenuReseaux(contenuVide);
+  }
+
+  function envoyerEmail(message: string, requiertConnexion = true) {
+    if (requiertConnexion && !gmailConnecte) {
+      ouvrirConnexions();
+      return;
+    }
     toast.success(message);
     setContenuEmail({ ...emailVide, nombreDestinataires: clients.length });
   }
@@ -86,31 +124,35 @@ export default function CreationPage() {
       <GlassThreeColumns className="lg:min-h-0 lg:flex-1">
         <GlassColumnPanel label="Canal">
           <div className="flex flex-col gap-2">
-            <button
-              onClick={() => setCanal("reseaux")}
+            <div
               className={cn(
-                "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors",
+                "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                 canal === "reseaux" ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/5"
               )}
             >
-              <span className="flex items-center gap-1">
-                <InstagramBadge className="size-4" />
-                <FacebookBadge className="size-4" />
-              </span>
-              Réseaux sociaux
-            </button>
-            <button
-              onClick={() => setCanal("email")}
+              <button onClick={() => setCanal("reseaux")} className="flex flex-1 items-center gap-2.5 text-left">
+                <span className="flex items-center gap-1">
+                  <InstagramBadge className="size-4" />
+                  <FacebookBadge className="size-4" />
+                </span>
+                Réseaux sociaux
+              </button>
+              {!connecte && <BadgeNonConnecte />}
+            </div>
+            <div
               className={cn(
-                "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors",
+                "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                 canal === "email" ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/5"
               )}
             >
-              <span className="flex size-4 items-center justify-center rounded-md bg-white/10 text-white">
-                <MailIcon className="size-2.5" />
-              </span>
-              Email
-            </button>
+              <button onClick={() => setCanal("email")} className="flex flex-1 items-center gap-2.5 text-left">
+                <span className="flex size-4 items-center justify-center rounded-md bg-white/10 text-white">
+                  <MailIcon className="size-2.5" />
+                </span>
+                Email
+              </button>
+              {!gmailConnecte && <BadgeNonConnecte />}
+            </div>
           </div>
 
           {canal === "reseaux" && (
@@ -192,32 +234,19 @@ export default function CreationPage() {
                   suggestionsHashtags={suggestionsHashtags(charte)}
                 />
                 <div className="flex flex-wrap gap-2 border-t border-white/15 pt-5">
-                  {connecte ? (
-                    <Button
-                      className="rounded-lg bg-gold text-white hover:bg-gold/90"
-                      onClick={() =>
-                        publierReseaux("publiee", `Publié sur ${contenuReseaux.plateforme}${info?.demo ? " (démo)" : ""}`)
-                      }
-                    >
-                      <Send className="size-4" />
-                      Publier maintenant
-                    </Button>
-                  ) : (
-                    <Button
-                      className="rounded-lg bg-gold text-white hover:bg-gold/90"
-                      nativeButton={false}
-                      render={
-                        <Link href="/dashboard/parametres">
-                          <Link2 className="size-4" />
-                          Connecter mes comptes
-                        </Link>
-                      }
-                    />
-                  )}
+                  <Button
+                    className="rounded-lg bg-gold text-white hover:bg-gold/90"
+                    onClick={() =>
+                      publierReseaux("publiee", `Publié sur ${contenuReseaux.plateforme}${info?.demo ? " (démo)" : ""}`)
+                    }
+                  >
+                    <Send className="size-4" />
+                    Publier maintenant
+                  </Button>
                   <Button
                     variant="outline"
-                    className="rounded-lg border-white/25 text-white hover:bg-white/10"
-                    onClick={() => publierReseaux("programmee", "Publication programmée")}
+                    className="rounded-lg border-white/25 bg-transparent text-white hover:bg-white/10"
+                    onClick={ouvrirProgrammation}
                   >
                     <CalendarClock className="size-4" />
                     Programmer
@@ -245,8 +274,8 @@ export default function CreationPage() {
                   </Button>
                   <Button
                     variant="outline"
-                    className="rounded-lg border-white/25 text-white hover:bg-white/10"
-                    onClick={() => toast.success("Test envoyé à votre adresse")}
+                    className="rounded-lg border-white/25 bg-transparent text-white hover:bg-white/10"
+                    onClick={() => envoyerEmail("Test envoyé à votre adresse")}
                   >
                     <TestTube2 className="size-4" />
                     M&apos;envoyer un test
@@ -254,7 +283,7 @@ export default function CreationPage() {
                   <Button
                     variant="ghost"
                     className="rounded-lg text-white/70 hover:bg-white/10 hover:text-white"
-                    onClick={() => toast.success("Brouillon enregistré")}
+                    onClick={() => envoyerEmail("Brouillon enregistré", false)}
                   >
                     <FileText className="size-4" />
                     Enregistrer brouillon
@@ -265,6 +294,13 @@ export default function CreationPage() {
           </div>
         </GlassColumnPanel>
       </GlassThreeColumns>
+
+      <ProgrammerModal
+        open={programmerOuvert}
+        onClose={() => setProgrammerOuvert(false)}
+        plateformeInitiale={contenuReseaux.plateforme}
+        onConfirmer={confirmerProgrammation}
+      />
     </GlassPageShell>
   );
 }

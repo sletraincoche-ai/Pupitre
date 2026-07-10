@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { debuterEcriture, terminerEcriture } from "@/lib/pending-writes";
 
 export type PhotoCompte = { id: string; legende: string; url: string };
 
@@ -46,20 +47,35 @@ export function PhotosProvider({ children }: { children: ReactNode }) {
 
   async function ajouter(fichiers: FileList | File[]) {
     const images = Array.from(fichiers).filter((f) => f.type.startsWith("image/"));
-    for (const fichier of images) {
-      const form = new FormData();
-      form.append("fichier", fichier);
-      form.append("legende", fichier.name);
-      const res = await fetch("/api/studio/photos", { method: "POST", body: form });
-      if (!res.ok) continue;
-      const data = await res.json();
-      setPhotos((prev) => [data.photo, ...prev]);
+    debuterEcriture();
+    try {
+      for (const fichier of images) {
+        const form = new FormData();
+        form.append("fichier", fichier);
+        form.append("legende", fichier.name);
+        // Pas de keepalive ici : le corps (le fichier) peut dépasser la
+        // limite keepalive du navigateur (~64 Ko) et ferait échouer
+        // l'upload. debuterEcriture()/terminerEcriture() fait déjà
+        // attendre la déconnexion tant que cet upload est en vol.
+        const res = await fetch("/api/studio/photos", { method: "POST", body: form });
+        if (!res.ok) continue;
+        const data = await res.json();
+        setPhotos((prev) => [data.photo, ...prev]);
+      }
+    } finally {
+      terminerEcriture();
     }
   }
 
   async function supprimer(id: string) {
     setPhotos((prev) => prev.filter((p) => p.id !== id));
-    await fetch(`/api/studio/photos?id=${id}`, { method: "DELETE" }).catch(() => {});
+    debuterEcriture();
+    // keepalive : sans corps volumineux ici (juste l'id en query), donc
+    // sûr — contrairement à l'upload plus haut, dont le corps (le
+    // fichier) peut dépasser la limite keepalive du navigateur (~64 Ko).
+    await fetch(`/api/studio/photos?id=${id}`, { method: "DELETE", keepalive: true })
+      .catch(() => {})
+      .finally(() => terminerEcriture());
   }
 
   return <PhotosContext.Provider value={{ photos, hydrated, ajouter, supprimer }}>{children}</PhotosContext.Provider>;

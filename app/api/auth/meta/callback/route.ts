@@ -1,21 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isMetaConfigured } from "@/lib/meta";
 
+// N'autorise que des chemins internes du dashboard comme page de retour —
+// jamais une URL arbitraire fournie par la query string (open redirect).
+function sanitizeRetour(valeur: string | null): string {
+  if (valeur && valeur.startsWith("/dashboard/")) return valeur;
+  return "/dashboard/parametres";
+}
+
 // Réception du retour OAuth Meta. N'est atteint que lorsque de vraies
 // clés sont configurées (start() redirige vers le mode simulation sinon).
 // Échange le code contre un token, vérifie la Page Facebook et son compte
-// Instagram Business lié, puis relaie le résultat au client.
+// Instagram Business lié, puis relaie le résultat au client. Le paramètre
+// `state` porte la page d'origine (Studio ou Paramètres) pour y revenir.
 export async function GET(request: NextRequest) {
   const origin = request.nextUrl.origin;
   const code = request.nextUrl.searchParams.get("code");
   const erreurMeta = request.nextUrl.searchParams.get("error");
+  const retour = sanitizeRetour(request.nextUrl.searchParams.get("state"));
 
   if (erreurMeta || !code) {
-    return NextResponse.redirect(`${origin}/dashboard/parametres?meta_error=oauth_denied`);
+    return NextResponse.redirect(`${origin}${retour}?meta_error=oauth_denied`);
   }
 
   if (!isMetaConfigured()) {
-    return NextResponse.redirect(`${origin}/dashboard/parametres?meta_simulate=1`);
+    return NextResponse.redirect(`${origin}${retour}?meta_simulate=1`);
   }
 
   try {
@@ -40,7 +49,7 @@ export async function GET(request: NextRequest) {
     const pagesData = await pagesRes.json();
     const page = pagesData.data?.[0];
     if (!page) {
-      return NextResponse.redirect(`${origin}/dashboard/parametres?meta_error=no_page`);
+      return NextResponse.redirect(`${origin}${retour}?meta_error=no_page`);
     }
 
     const igRes = await fetch(
@@ -49,7 +58,7 @@ export async function GET(request: NextRequest) {
     const igData = await igRes.json();
     const igAccount = igData.instagram_business_account;
     if (!igAccount) {
-      return NextResponse.redirect(`${origin}/dashboard/parametres?meta_error=no_business_account`);
+      return NextResponse.redirect(`${origin}${retour}?meta_error=no_business_account`);
     }
 
     // MOCK : sans base de données, les infos du compte transitent par
@@ -60,8 +69,8 @@ export async function GET(request: NextRequest) {
       ig_username: igAccount.username ?? "",
       page_name: page.name ?? "",
     });
-    return NextResponse.redirect(`${origin}/dashboard/parametres?${params.toString()}`);
+    return NextResponse.redirect(`${origin}${retour}?${params.toString()}`);
   } catch {
-    return NextResponse.redirect(`${origin}/dashboard/parametres?meta_error=unknown`);
+    return NextResponse.redirect(`${origin}${retour}?meta_error=unknown`);
   }
 }

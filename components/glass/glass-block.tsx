@@ -11,10 +11,12 @@ export function GlassBlock({
   title,
   subtitle,
   badge,
+  topRight,
   intensity = "regular",
   backgroundImage,
   backgroundImageAlt = "",
   imageMinHeight = 220,
+  imageFit = "contain",
   className,
   panelClassName,
   children,
@@ -25,10 +27,16 @@ export function GlassBlock({
   title: string;
   subtitle?: string;
   badge?: number;
+  topRight?: React.ReactNode;
   intensity?: GlassIntensity;
   backgroundImage?: string;
   backgroundImageAlt?: string;
   imageMinHeight?: number;
+  // "cover" pour les visuels au format paysage (email, avis) qui,
+  // laissés en object-contain dans une colonne étroite, ne remplissaient
+  // qu'une fraction du bloc — recadré plutôt qu'agrandi en gardant le
+  // haut (l'objet/l'auteur) visible.
+  imageFit?: "contain" | "cover";
   className?: string;
   panelClassName?: string;
   children?: React.ReactNode;
@@ -52,11 +60,14 @@ export function GlassBlock({
               {icon}
             </span>
           )}
-          {!!badge && (
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-destructive text-xs font-medium text-white">
-              {badge}
-            </span>
-          )}
+          <div className="flex shrink-0 items-center gap-1.5">
+            {topRight}
+            {!!badge && (
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-destructive text-xs font-medium text-white">
+                {badge}
+              </span>
+            )}
+          </div>
         </div>
         <div className="relative z-10 min-w-0 shrink-0">
           <p className="text-lg font-semibold tracking-tight text-white">{title}</p>
@@ -80,7 +91,9 @@ export function GlassBlock({
               alt={backgroundImageAlt}
               fill
               sizes="(min-width: 1024px) 40vw, 90vw"
-              className="object-contain object-bottom"
+              className={cn(
+                imageFit === "cover" ? "object-cover object-top" : "object-contain object-bottom"
+              )}
             />
           </div>
         )}

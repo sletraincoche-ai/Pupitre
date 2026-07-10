@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { debuterEcriture, terminerEcriture } from "@/lib/pending-writes";
 
 type OnboardingState = {
   tunnelTermine: boolean;
@@ -12,6 +13,12 @@ const etatInitial: OnboardingState = { tunnelTermine: false, etapeTunnel: 0 };
 
 type OnboardingContextValue = OnboardingState & {
   hydrated: boolean;
+  // Vrai uniquement sur la réponse qui vient de créer le rang en base
+  // (tout premier accès à Studio IA pour ce compte) — signal ponctuel,
+  // jamais persisté ni réécrit, pour afficher le tunnel cette unique
+  // fois sans jamais faire mentir `tunnelTermine` (toujours fidèle à la
+  // base, y compris dès cette toute première réponse).
+  premierAcces: boolean;
   setEtapeTunnel: (etape: number) => void;
   terminerTunnel: () => void;
 };
@@ -22,30 +29,52 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const { user, hydrated: authHydrated } = useAuth();
   const [etat, setEtat] = useState<OnboardingState>(etatInitial);
   const [hydrated, setHydrated] = useState(false);
+  const [premierAcces, setPremierAcces] = useState(false);
+  const dernierEtatServeur = useRef<OnboardingState | null>(null);
+  const premierAccesConstate = useRef(false);
 
-  // Un compte tout juste créé n'a jamais de rang onboarding_state en base
-  // → tunnelTermine reste à false (valeur par défaut) et le tunnel
-  // "Bienvenu sur Studio AI" s'affiche automatiquement à la première
-  // connexion, exactement comme demandé.
+  // Remise à zéro *pendant le rendu* (pas dans un effet) dès que le
+  // compte connecté change — évite un commit transitoire où `user` a
+  // déjà changé mais où `hydrated`/`etat` retiennent encore l'instantané
+  // du compte précédent : sans ça, l'effet d'écriture ci-dessous peut
+  // s'exécuter sur ce commit intermédiaire et réémettre ce vieil état
+  // vers le nouveau compte, écrasant par exemple la marque "tunnel déjà
+  // vu" posée atomiquement par le serveur. Ce motif ("state reset on
+  // prop change") est le pattern React recommandé : l'appel à setState
+  // ici redéclenche un rendu avant tout commit, donc l'effet ne voit
+  // jamais cet état périmé.
+  const [utilisateurSuivi, setUtilisateurSuivi] = useState(user);
+  if (user?.id !== utilisateurSuivi?.id) {
+    setUtilisateurSuivi(user);
+    setHydrated(false);
+    setEtat(etatInitial);
+    setPremierAcces(false);
+    dernierEtatServeur.current = null;
+    premierAccesConstate.current = false;
+  }
+
   useEffect(() => {
     if (!authHydrated) return;
     let annule = false;
-    setHydrated(false);
     if (!user) {
-      setEtat(etatInitial);
       setHydrated(true);
       return;
     }
     fetch("/api/studio/onboarding")
       .then((r) => r.json())
       .then((data) => {
-        if (!annule) setEtat({ ...etatInitial, ...data });
+        if (data.premierAcces) premierAccesConstate.current = true;
+        if (annule) return;
+        const nouvel = { tunnelTermine: !!data.tunnelTermine, etapeTunnel: data.etapeTunnel ?? 0 };
+        dernierEtatServeur.current = nouvel;
+        setPremierAcces(premierAccesConstate.current);
+        setEtat(nouvel);
+        setHydrated(true);
       })
       .catch(() => {
-        if (!annule) setEtat(etatInitial);
-      })
-      .finally(() => {
-        if (!annule) setHydrated(true);
+        if (annule) return;
+        setEtat(etatInitial);
+        setHydrated(true);
       });
     return () => {
       annule = true;
@@ -54,11 +83,26 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hydrated || !user) return;
+    if (
+      dernierEtatServeur.current &&
+      dernierEtatServeur.current.tunnelTermine === etat.tunnelTermine &&
+      dernierEtatServeur.current.etapeTunnel === etat.etapeTunnel
+    ) {
+      return;
+    }
+    debuterEcriture();
+    // keepalive : l'étape peut changer juste avant un lien externe (ex.
+    // "Connecter Instagram & Facebook" vers /api/auth/meta/start) — sans
+    // ça, la navigation immédiate annule la requête en vol et l'étape
+    // retombe à sa valeur précédente au retour du flux de connexion.
     fetch("/api/studio/onboarding", {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(etat),
-    }).catch(() => {});
+      keepalive: true,
+    })
+      .catch(() => {})
+      .finally(() => terminerEcriture());
   }, [hydrated, etat, user]);
 
   function setEtapeTunnel(etape: number) {
@@ -70,7 +114,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <OnboardingContext.Provider value={{ ...etat, hydrated, setEtapeTunnel, terminerTunnel }}>
+    <OnboardingContext.Provider
+      value={{ ...etat, hydrated, premierAcces, setEtapeTunnel, terminerTunnel }}
+    >
       {children}
     </OnboardingContext.Provider>
   );

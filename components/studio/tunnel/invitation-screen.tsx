@@ -21,8 +21,8 @@ export function InvitationScreen({
         <p className="font-heading text-xl text-white">Un dernier pas avant de commencer</p>
         <p className="max-w-md text-sm leading-relaxed text-white/70">
           Le test d&apos;identité prend 15 à 20 minutes et permet un contenu bien plus adapté à votre
-          domaine — il vous fera gagner des heures ensuite. Fortement recommandé, mais vous pouvez
-          aussi le faire plus tard.
+          domaine, avec des heures gagnées ensuite. Fortement recommandé, mais vous pouvez aussi le
+          faire plus tard.
         </p>
         <div className="mt-2 flex gap-2">
           <Button

@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GlassPanel } from "@/components/glass/glass-panel";
+import { GlassSheen } from "@/components/glass/glass-sheen";
 import { ConsentScreen } from "@/components/studio/identite/consent-screen";
 import { IdentityQuiz } from "@/components/studio/identite/quiz";
 import { CharteProposal } from "@/components/studio/identite/charte-proposal";
@@ -14,29 +16,32 @@ import { useIdentity } from "@/lib/identity-context";
 
 function InvitationScreen({ onCommencer }: { onCommencer: () => void }) {
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-4 border border-border bg-card px-6 py-10 text-center">
-      <span className="flex size-11 items-center justify-center rounded-[3px] border border-gold/30 text-gold">
-        <FileText className="size-5" />
-      </span>
-      <p className="font-heading text-xl text-ink">Testez votre identité éditoriale</p>
-      <p className="max-w-md text-sm leading-relaxed text-stone">
-        Ce test aide votre copilote IA à écrire comme vous, pas comme un robot. En répondant à
-        12 questions sur votre histoire et vos cuvées, vous donnez au Studio la voix de votre
-        domaine — chaque post, chaque email s&apos;appuiera dessus. Comptez 15 à 20 minutes. Ce
-        n&apos;est pas obligatoire, mais fortement recommandé.
-      </p>
-      <div className="mt-2 flex gap-2">
-        <Button className="rounded-[3px] bg-gold text-white hover:bg-gold/90" onClick={onCommencer}>
-          Commencer le test
-        </Button>
-        <Button
-          variant="ghost"
-          className="rounded-[3px]"
-          render={<Link href="/dashboard/studio">Plus tard</Link>}
-          nativeButton={false}
-        />
+    <GlassPanel intensity="strong" className="relative mx-auto w-full max-w-xl overflow-hidden">
+      <GlassSheen />
+      <div className="relative z-10 flex flex-col items-center gap-4 px-6 py-10 text-center">
+        <span className="flex size-11 items-center justify-center rounded-full bg-gold/15 text-gold">
+          <FileText className="size-5" />
+        </span>
+        <p className="font-heading text-xl text-white">Testez votre identité éditoriale</p>
+        <p className="max-w-md text-sm leading-relaxed text-white/70">
+          Ce test aide votre copilote IA à écrire comme vous, pas comme un robot. En répondant à
+          12 questions sur votre histoire et vos cuvées, vous donnez au Studio la voix de votre
+          domaine, sur laquelle chaque post et chaque email s&apos;appuiera. Comptez 15 à 20
+          minutes. Ce n&apos;est pas obligatoire, mais fortement recommandé.
+        </p>
+        <div className="mt-2 flex gap-2">
+          <Button className="bg-gold text-white hover:bg-gold/90" onClick={onCommencer}>
+            Commencer le test
+          </Button>
+          <Button
+            variant="ghost"
+            className="text-white/80 hover:bg-white/10 hover:text-white"
+            render={<Link href="/dashboard/studio">Plus tard</Link>}
+            nativeButton={false}
+          />
+        </div>
       </div>
-    </div>
+    </GlassPanel>
   );
 }
 
@@ -89,22 +94,18 @@ export default function IdentitePage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <Link href="/dashboard/studio" className="flex w-fit items-center gap-1.5 text-sm text-stone hover:text-vine">
-        <ArrowLeft className="size-4" />
-        Retour au Studio
-      </Link>
-
-      <div>
-        <h1 className="font-heading text-3xl text-ink lowercase">Test d&apos;identité</h1>
-        <p className="mt-1 text-stone">La charte narrative qui rend chaque génération crédible sous votre nom.</p>
+    <GlassPageShell>
+      <GlassPageHeader
+        title="Test d'identité"
+        subtitle="La charte narrative qui rend chaque génération crédible sous votre nom."
+      />
+      <div className="flex flex-1 items-center justify-center py-6">
+        {!hydrated ? null : montrerConsentement ? (
+          <ConsentScreen onAccepter={accepterConsentement} />
+        ) : (
+          <InvitationScreen onCommencer={() => setMontrerConsentement(true)} />
+        )}
       </div>
-
-      {!hydrated ? null : montrerConsentement ? (
-        <ConsentScreen onAccepter={accepterConsentement} />
-      ) : (
-        <InvitationScreen onCommencer={() => setMontrerConsentement(true)} />
-      )}
-    </div>
+    </GlassPageShell>
   );
 }
