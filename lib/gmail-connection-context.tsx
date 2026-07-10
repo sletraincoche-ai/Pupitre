@@ -1,72 +1,57 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { useAuth } from "@/lib/auth-context";
 
-const STORAGE_KEY = "pupitre.gmail-connexion.v1";
+export type GmailConnectionInfo = { email: string; connecteLe: string };
 
-export type GmailConnectionInfo = {
-  adresse: string;
-  dateConnexion: string;
-};
-
-type GmailConnectionState = {
+type GmailConnectionContextValue = {
   connecte: boolean;
   info: GmailConnectionInfo | null;
-};
-
-const etatInitial: GmailConnectionState = { connecte: false, info: null };
-
-function dateDuJour() {
-  return new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
-}
-
-type GmailConnectionContextValue = GmailConnectionState & {
   hydrated: boolean;
-  enConnexion: boolean;
-  // Aucune vraie API Google branchée à ce stade — connexion fictive,
-  // même principe que le mode démo Meta (isMetaConfigured()) : un
-  // compte simulé plutôt qu'un flux OAuth réel.
-  connecter: (adresse: string) => Promise<void>;
-  deconnecter: () => void;
+  deconnecter: () => Promise<void>;
+  rafraichir: () => Promise<void>;
 };
 
 const GmailConnectionContext = createContext<GmailConnectionContextValue | null>(null);
 
+// Connexion Gmail réelle (OAuth2, scope gmail.send) — l'état vient
+// toujours du serveur (table gmail_connections), jamais du localStorage :
+// les tokens n'existent que côté serveur, donc seul le serveur sait s'ils
+// sont encore valides.
 export function GmailConnectionProvider({ children }: { children: ReactNode }) {
-  const [etat, setEtat] = useState<GmailConnectionState>(etatInitial);
+  const { user, hydrated: authHydrated } = useAuth();
+  const [connecte, setConnecte] = useState(false);
+  const [info, setInfo] = useState<GmailConnectionInfo | null>(null);
   const [hydrated, setHydrated] = useState(false);
-  const [enConnexion, setEnConnexion] = useState(false);
 
-  useEffect(() => {
-    try {
-      const brut = window.localStorage.getItem(STORAGE_KEY);
-      if (brut) {
-        setEtat({ ...etatInitial, ...JSON.parse(brut) });
-      }
-    } catch {
-      // stockage indisponible ou corrompu — on repart déconnecté
-    }
-    setHydrated(true);
+  const rafraichir = useCallback(async () => {
+    const res = await fetch("/api/studio/gmail");
+    const data = await res.json().catch(() => ({ connecte: false }));
+    setConnecte(!!data.connecte);
+    setInfo(data.connecte ? { email: data.email, connecteLe: data.connecteLe } : null);
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(etat));
-  }, [hydrated, etat]);
+    if (!authHydrated) return;
+    if (!user) {
+      setConnecte(false);
+      setInfo(null);
+      setHydrated(true);
+      return;
+    }
+    setHydrated(false);
+    rafraichir().finally(() => setHydrated(true));
+  }, [user, authHydrated, rafraichir]);
 
-  async function connecter(adresse: string) {
-    setEnConnexion(true);
-    await new Promise((resolve) => setTimeout(resolve, 900));
-    setEtat({ connecte: true, info: { adresse, dateConnexion: dateDuJour() } });
-    setEnConnexion(false);
-  }
-
-  function deconnecter() {
-    setEtat(etatInitial);
-  }
+  const deconnecter = useCallback(async () => {
+    setConnecte(false);
+    setInfo(null);
+    await fetch("/api/studio/gmail", { method: "DELETE" }).catch(() => {});
+  }, []);
 
   return (
-    <GmailConnectionContext.Provider value={{ ...etat, hydrated, enConnexion, connecter, deconnecter }}>
+    <GmailConnectionContext.Provider value={{ connecte, info, hydrated, deconnecter, rafraichir }}>
       {children}
     </GmailConnectionContext.Provider>
   );

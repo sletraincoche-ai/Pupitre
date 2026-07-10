@@ -1,37 +1,57 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { Loader2, Check, Mail } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { AlertTriangle, Check } from "lucide-react";
 import { SiGmail } from "react-icons/si";
 import { GlassPanel } from "@/components/glass/glass-panel";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useGmailConnection } from "@/lib/gmail-connection-context";
 
-// Aucune vraie API Google branchée à ce stade (voir lib/gmail-connection-context.tsx)
-// — connexion fictive au même titre que le mode démo Meta, mais suffisante
-// pour bloquer réellement l'envoi tant qu'elle n'a pas eu lieu.
+const messagesErreur: Record<string, { titre: string; description: string }> = {
+  not_configured: {
+    titre: "Google pas encore configuré",
+    description: "Les identifiants OAuth Google ne sont pas encore renseignés côté serveur.",
+  },
+  refused: {
+    titre: "Connexion annulée",
+    description: "L'autorisation a été refusée. Vous pouvez réessayer à tout moment.",
+  },
+  no_refresh_token: {
+    titre: "Autorisation incomplète",
+    description: "Google n'a pas renvoyé de jeton durable. Déconnectez cette app dans votre compte Google puis réessayez.",
+  },
+  unknown: {
+    titre: "Connexion impossible",
+    description: "Une erreur inattendue est survenue pendant la connexion. Réessayez dans un instant.",
+  },
+};
+
+// Connexion Gmail réelle (OAuth2, scope gmail.send) — le bouton "Connecter"
+// est un vrai lien vers /api/auth/google/start, pas une simulation.
 export function GmailConnexionGlass() {
-  const { connecte, info, enConnexion, connecter, deconnecter } = useGmailConnection();
-  const [adresse, setAdresse] = useState("");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { connecte, info, deconnecter, rafraichir } = useGmailConnection();
+  const [erreur, setErreur] = useState<string | undefined>(undefined);
 
-  function soumettre(e: FormEvent) {
-    e.preventDefault();
-    if (!adresse.trim()) return;
-    connecter(adresse.trim());
-  }
+  useEffect(() => {
+    const connecteParam = searchParams.get("google_connected");
+    const erreurParam = searchParams.get("google_error");
 
-  if (enConnexion) {
-    return (
-      <GlassPanel intensity="light" className="p-6">
-        <div className="flex flex-col items-center gap-3 py-4 text-center">
-          <Loader2 className="size-6 animate-spin text-gold" />
-          <p className="font-medium text-white">Connexion en cours…</p>
-        </div>
-      </GlassPanel>
-    );
-  }
+    if (connecteParam) {
+      rafraichir();
+      router.replace(pathname);
+      return;
+    }
+    if (erreurParam) {
+      setErreur(erreurParam);
+      router.replace(pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   if (connecte && info) {
     return (
@@ -45,9 +65,9 @@ export function GmailConnexionGlass() {
         </div>
         <div className="flex items-center gap-2 text-sm text-white/85">
           <Check className="size-4 text-gold" />
-          {info.adresse}
+          {info.email}
         </div>
-        <p className="text-xs text-white/50">Connecté le {info.dateConnexion}</p>
+        <p className="text-xs text-white/50">Connecté le {info.connecteLe}</p>
         <Button
           variant="outline"
           className="self-start border-white/20 bg-transparent text-white hover:bg-white/10"
@@ -58,6 +78,8 @@ export function GmailConnexionGlass() {
       </GlassPanel>
     );
   }
+
+  const erreurInfo = erreur ? messagesErreur[erreur] ?? messagesErreur.unknown : null;
 
   return (
     <GlassPanel intensity="light" className="flex flex-col gap-4 p-6">
@@ -72,23 +94,26 @@ export function GmailConnexionGlass() {
       <div>
         <p className="text-base font-semibold text-white">Gmail</p>
         <p className="text-sm text-white/60">
-          Connectez votre adresse Gmail pour envoyer vos campagnes directement depuis le Studio.
+          Connectez votre compte Gmail pour envoyer vos campagnes directement depuis le Studio
+          (autorisation d&apos;envoi uniquement, jamais de lecture de vos messages).
         </p>
       </div>
-      <form onSubmit={soumettre} className="flex flex-wrap items-center gap-2">
-        <Input
-          type="email"
-          required
-          value={adresse}
-          onChange={(e) => setAdresse(e.target.value)}
-          placeholder="vous@domaine.fr"
-          className="h-9 max-w-[220px] border-white/20 bg-white/5 text-white placeholder:text-white/40"
-        />
-        <Button type="submit" className="bg-gold text-white hover:bg-gold/90">
-          <Mail className="size-4" />
-          Connecter Gmail
-        </Button>
-      </form>
+
+      {erreurInfo && (
+        <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <div>
+            <p className="font-medium">{erreurInfo.titre}</p>
+            <p className="mt-0.5 text-destructive/90">{erreurInfo.description}</p>
+          </div>
+        </div>
+      )}
+
+      <Button
+        className="self-start bg-gold text-white hover:bg-gold/90"
+        nativeButton={false}
+        render={<a href={`/api/auth/google/start?retour=${encodeURIComponent(pathname)}`}>Connecter Gmail</a>}
+      />
     </GlassPanel>
   );
 }

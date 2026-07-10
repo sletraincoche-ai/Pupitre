@@ -74,3 +74,18 @@ create index if not exists publications_user_id_idx on publications(user_id);
 insert into storage.buckets (id, name, public)
 values ('studio-photos', 'studio-photos', false)
 on conflict (id) do nothing;
+
+-- Connexion Gmail réelle (OAuth2, scope gmail.send uniquement) — un seul
+-- rang par compte. refresh_token est la donnée sensible de longue durée ;
+-- comme sessions.token, elle n'est lisible que par les routes API via la
+-- clé service_role, jamais exposée au client.
+create table if not exists gmail_connections (
+  user_id uuid primary key references users(id) on delete cascade,
+  google_email text not null,
+  refresh_token text not null,
+  access_token text,
+  access_token_expires_at timestamptz,
+  scope text not null,
+  connected_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);

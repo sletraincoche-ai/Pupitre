@@ -17,6 +17,7 @@ import { useMetaConnection } from "@/lib/meta-connection-context";
 import { useGmailConnection } from "@/lib/gmail-connection-context";
 import { useConnexionsModal } from "@/lib/connexions-modal-context";
 import { BadgeNonConnecte } from "@/components/studio/connexions/badge-non-connecte";
+import { envoyerTestGmail } from "@/lib/send-email-client";
 import { useClients } from "@/lib/clients-context";
 import { usePublications } from "@/lib/publications-context";
 import { suggestionsHashtags } from "@/lib/hashtags";
@@ -45,7 +46,7 @@ const emailVide: EmailEdite = {
 export default function CreationPage() {
   const { charte } = useIdentity();
   const { connecte, info } = useMetaConnection();
-  const { connecte: gmailConnecte } = useGmailConnection();
+  const { connecte: gmailConnecte, info: gmailInfo } = useGmailConnection();
   const { ouvrir: ouvrirConnexions } = useConnexionsModal();
   const { clients } = useClients();
   const { creer } = usePublications();
@@ -275,7 +276,11 @@ export default function CreationPage() {
                   <Button
                     variant="outline"
                     className="rounded-lg border-white/25 bg-transparent text-white hover:bg-white/10"
-                    onClick={() => envoyerEmail("Test envoyé à votre adresse")}
+                    onClick={() =>
+                      gmailConnecte && gmailInfo
+                        ? envoyerTestGmail(gmailInfo.email, contenuEmail.objet, contenuEmail.corps, ouvrirConnexions)
+                        : ouvrirConnexions()
+                    }
                   >
                     <TestTube2 className="size-4" />
                     M&apos;envoyer un test

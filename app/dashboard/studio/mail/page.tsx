@@ -18,6 +18,7 @@ import { GlassThreeColumns, GlassColumnPanel } from "@/components/glass/glass-co
 import { useClients } from "@/lib/clients-context";
 import { useGmailConnection } from "@/lib/gmail-connection-context";
 import { useConnexionsModal } from "@/lib/connexions-modal-context";
+import { envoyerTestGmail } from "@/lib/send-email-client";
 import { getNumeroParId, formatOrigine } from "@/lib/fiches";
 import { emailCampagnes as emailCampagnesInitiales, type EmailCampagne } from "@/lib/mock-data";
 
@@ -27,7 +28,7 @@ function versEmailEdite(e: EmailCampagne): EmailEdite {
 
 export default function MailPage() {
   const { clients } = useClients();
-  const { connecte: gmailConnecte } = useGmailConnection();
+  const { connecte: gmailConnecte, info: gmailInfo } = useGmailConnection();
   const { ouvrir: ouvrirConnexions } = useConnexionsModal();
   const [queue, setQueue] = useState(emailCampagnesInitiales);
   const [sourceId, setSourceId] = useState<string | null>(queue[0]?.id ?? null);
@@ -124,7 +125,11 @@ export default function MailPage() {
                 <Button
                   variant="outline"
                   className="rounded-lg border-white/25 bg-transparent text-white hover:bg-white/10"
-                  onClick={() => (gmailConnecte ? toast.success("Test envoyé à votre adresse") : ouvrirConnexions())}
+                  onClick={() =>
+                    gmailConnecte && gmailInfo
+                      ? envoyerTestGmail(gmailInfo.email, edited.objet, edited.corps, ouvrirConnexions)
+                      : ouvrirConnexions()
+                  }
                 >
                   <TestTube2 className="size-4" />
                   M&apos;envoyer un test
