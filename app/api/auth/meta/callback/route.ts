@@ -1,76 +1,112 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isMetaConfigured } from "@/lib/meta";
+import {
+  echangerCodeContreTokenCourt,
+  echangerTokenLongueDuree,
+  recupererUtilisateurFacebook,
+  recupererCompteInstagramLie,
+  listerPermissionsAccordees,
+  listerPagesFacebookAvecRepli,
+} from "@/lib/meta";
+import { getCurrentUser } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
-// N'autorise que des chemins internes du dashboard comme page de retour —
-// jamais une URL arbitraire fournie par la query string (open redirect).
 function sanitizeRetour(valeur: string | null): string {
   if (valeur && valeur.startsWith("/dashboard/")) return valeur;
-  return "/dashboard/parametres";
+  return "/dashboard/studio";
 }
 
-// Réception du retour OAuth Meta. N'est atteint que lorsque de vraies
-// clés sont configurées (start() redirige vers le mode simulation sinon).
-// Échange le code contre un token, vérifie la Page Facebook et son compte
-// Instagram Business lié, puis relaie le résultat au client. Le paramètre
-// `state` porte la page d'origine (Studio ou Paramètres) pour y revenir.
+function lireRetourDepuisState(state: string | null): string {
+  if (!state) return "/dashboard/studio";
+  try {
+    const decode: unknown = JSON.parse(Buffer.from(state, "base64url").toString("utf-8"));
+    if (decode && typeof decode === "object" && "retour" in decode) {
+      return sanitizeRetour(String((decode as { retour: unknown }).retour));
+    }
+  } catch {
+    // state invalide ou altéré — retombe sur la page par défaut.
+  }
+  return "/dashboard/studio";
+}
+
+// Réception du retour OAuth Meta. Échange le code contre un token
+// utilisateur longue durée, liste les Pages administrées, et stocke tout
+// côté serveur dans meta_connections (jamais dans l'URL). Si le compte
+// gère plusieurs Pages, page_id/page_name/page_access_token restent nuls
+// tant que l'utilisateur n'a pas choisi laquelle utiliser (voir
+// /api/studio/meta/pages) ; le client le détecte via /api/studio/meta.
 export async function GET(request: NextRequest) {
   const origin = request.nextUrl.origin;
   const code = request.nextUrl.searchParams.get("code");
   const erreurMeta = request.nextUrl.searchParams.get("error");
-  const retour = sanitizeRetour(request.nextUrl.searchParams.get("state"));
+  const retour = lireRetourDepuisState(request.nextUrl.searchParams.get("state"));
 
   if (erreurMeta || !code) {
-    return NextResponse.redirect(`${origin}${retour}?meta_error=oauth_denied`);
+    const raison = erreurMeta === "access_denied" ? "refused" : "unknown";
+    return NextResponse.redirect(`${origin}${retour}?meta_error=${raison}`);
   }
 
-  if (!isMetaConfigured()) {
-    return NextResponse.redirect(`${origin}${retour}?meta_simulate=1`);
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.redirect(`${origin}/dashboard/studio`);
   }
 
   try {
-    const tokenParams = new URLSearchParams({
-      client_id: process.env.META_APP_ID!,
-      client_secret: process.env.META_APP_SECRET!,
-      redirect_uri: process.env.META_REDIRECT_URI!,
-      code,
-    });
-    const tokenRes = await fetch(
-      `https://graph.facebook.com/v19.0/oauth/access_token?${tokenParams.toString()}`
-    );
-    const tokenData = await tokenRes.json();
-    if (!tokenRes.ok || !tokenData.access_token) {
-      throw new Error("Échange de token échoué");
-    }
-    const accessToken: string = tokenData.access_token;
+    const tokenCourt = await echangerCodeContreTokenCourt(code);
+    const tokenLong = await echangerTokenLongueDuree(tokenCourt.access_token);
+    const utilisateurFb = await recupererUtilisateurFacebook(tokenLong.access_token);
 
-    const pagesRes = await fetch(
-      `https://graph.facebook.com/v19.0/me/accounts?access_token=${accessToken}`
+    // listerPagesFacebookAvecRepli essaie /me/accounts puis, s'il renvoie
+    // [], se rabat sur les ids de Pages lus dans granular_scopes via
+    // /debug_token — voir lib/meta.ts pour le détail du bug contourné.
+    const pages = await listerPagesFacebookAvecRepli(tokenLong.access_token);
+
+    const permissions = await listerPermissionsAccordees(tokenLong.access_token).catch((e) => {
+      console.error("Échec de la lecture des permissions accordées :", e);
+      return [];
+    });
+    console.log("[meta/callback] diagnostic — utilisateur:", utilisateurFb.id, utilisateurFb.name);
+    console.log("[meta/callback] diagnostic — permissions accordées:", JSON.stringify(permissions));
+    console.log(
+      "[meta/callback] diagnostic — pages résolues (via /me/accounts ou repli granular_scopes):",
+      JSON.stringify(pages.map((p) => ({ id: p.id, name: p.name })))
     );
-    const pagesData = await pagesRes.json();
-    const page = pagesData.data?.[0];
-    if (!page) {
+
+    if (pages.length === 0) {
       return NextResponse.redirect(`${origin}${retour}?meta_error=no_page`);
     }
 
-    const igRes = await fetch(
-      `https://graph.facebook.com/v19.0/${page.id}?fields=instagram_business_account{username}&access_token=${accessToken}`
-    );
-    const igData = await igRes.json();
-    const igAccount = igData.instagram_business_account;
-    if (!igAccount) {
-      return NextResponse.redirect(`${origin}${retour}?meta_error=no_business_account`);
-    }
+    const pageUnique = pages.length === 1 ? pages[0] : null;
 
-    // MOCK : sans base de données, les infos du compte transitent par
-    // l'URL pour que le client les enregistre. En production, stocker le
-    // token côté serveur (session ou base de données) — jamais dans l'URL.
-    const params = new URLSearchParams({
-      meta_connected: "1",
-      ig_username: igAccount.username ?? "",
-      page_name: page.name ?? "",
+    // La permission de publication Instagram est propre au token
+    // utilisateur (pas à une Page précise) — déjà lue ci-dessus via
+    // listerPermissionsAccordees(), réutilisée ici pour éviter un second
+    // appel /me/permissions.
+    const publishAutorise = permissions.some((p) => p.permission === "instagram_content_publish" && p.status === "granted");
+    const instagram = pageUnique
+      ? await recupererCompteInstagramLie(pageUnique.id, pageUnique.access_token).catch((e) => {
+          console.error("Échec de la résolution du compte Instagram lié à la Page :", e);
+          return null;
+        })
+      : null;
+
+    const { error } = await supabaseAdmin.from("meta_connections").upsert({
+      user_id: user.id,
+      user_access_token: tokenLong.access_token,
+      facebook_user_id: utilisateurFb.id,
+      facebook_user_name: utilisateurFb.name,
+      page_id: pageUnique?.id ?? null,
+      page_name: pageUnique?.name ?? null,
+      page_access_token: pageUnique?.access_token ?? null,
+      instagram_business_id: instagram?.id ?? null,
+      instagram_username: instagram?.username ?? null,
+      instagram_publish_autorise: publishAutorise,
+      updated_at: new Date().toISOString(),
     });
-    return NextResponse.redirect(`${origin}${retour}?${params.toString()}`);
-  } catch {
+    if (error) throw new Error(error.message);
+
+    return NextResponse.redirect(`${origin}${retour}?meta_connected=1`);
+  } catch (erreur) {
+    console.error("Échec de la connexion Meta :", erreur);
     return NextResponse.redirect(`${origin}${retour}?meta_error=unknown`);
   }
 }

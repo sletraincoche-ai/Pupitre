@@ -1,69 +1,90 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { useAuth } from "@/lib/auth-context";
 
-const STORAGE_KEY = "pupitre.meta-connexion.v1";
+export type MetaConnectionInfo = { pageName: string | null; connecteLe: string };
 
-export type MetaConnectionInfo = {
-  demo: boolean;
-  instagramUsername: string;
-  instagramInitiales: string;
-  facebookPageName: string;
-  dateConnexion: string;
-};
-
-type MetaConnectionState = {
+export type InstagramConnectionInfo = {
   connecte: boolean;
-  info: MetaConnectionInfo | null;
+  // Compte Business lié à la Page, sans que la permission de publication
+  // ait forcément été accordée sur le token actuel — voir
+  // permissionManquante.
+  lie: boolean;
+  permissionManquante: boolean;
+  username: string | null;
 };
 
-const etatInitial: MetaConnectionState = { connecte: false, info: null };
+const instagramInitial: InstagramConnectionInfo = {
+  connecte: false,
+  lie: false,
+  permissionManquante: false,
+  username: null,
+};
 
-type MetaConnectionContextValue = MetaConnectionState & {
+type MetaConnectionContextValue = {
+  connecte: boolean;
+  // Un compte Facebook lié mais gérant plusieurs Pages reste `connecte`
+  // sans Page active tant que l'utilisateur n'a pas choisi laquelle
+  // utiliser — la publication reste bloquée jusque-là (voir
+  // choisirPageRequise() dans lib/meta.ts, appliqué côté serveur).
+  choixPageRequis: boolean;
+  info: MetaConnectionInfo | null;
+  instagram: InstagramConnectionInfo;
   hydrated: boolean;
-  connecter: (info: MetaConnectionInfo) => void;
-  deconnecter: () => void;
+  deconnecter: () => Promise<void>;
+  rafraichir: () => Promise<void>;
 };
 
 const MetaConnectionContext = createContext<MetaConnectionContextValue | null>(null);
 
+// Connexion Meta réelle (OAuth2 Facebook Login, Instagram Business lié à
+// la même Page) — l'état vient toujours du serveur (table
+// meta_connections), jamais du localStorage : les tokens n'existent que
+// côté serveur, donc seul le serveur sait s'ils sont encore valides.
 export function MetaConnectionProvider({ children }: { children: ReactNode }) {
-  const [etat, setEtat] = useState<MetaConnectionState>(etatInitial);
+  const { user, hydrated: authHydrated } = useAuth();
+  const [connecte, setConnecte] = useState(false);
+  const [choixPageRequis, setChoixPageRequis] = useState(false);
+  const [info, setInfo] = useState<MetaConnectionInfo | null>(null);
+  const [instagram, setInstagram] = useState<InstagramConnectionInfo>(instagramInitial);
   const [hydrated, setHydrated] = useState(false);
 
-  // Lit une seule fois au montage. Gate l'effet d'écriture sur l'état
-  // `hydrated` (pas une ref) : sous React Strict Mode, les effets de
-  // montage s'exécutent deux fois avant qu'un re-render ne reflète les
-  // setState — une ref mutée de façon synchrone ferait passer la garde
-  // avant que `etat` ne contienne réellement la valeur lue, écrasant une
-  // connexion existante par l'état initial.
-  useEffect(() => {
-    try {
-      const brut = window.localStorage.getItem(STORAGE_KEY);
-      if (brut) {
-        setEtat({ ...etatInitial, ...JSON.parse(brut) });
-      }
-    } catch {
-      // stockage indisponible ou corrompu — on repart déconnecté
-    }
-    setHydrated(true);
+  const rafraichir = useCallback(async () => {
+    const res = await fetch("/api/studio/meta");
+    const data = await res.json().catch(() => ({ connecte: false, instagram: instagramInitial }));
+    setConnecte(!!data.connecte);
+    setChoixPageRequis(!!data.choixPageRequis);
+    setInfo(data.connecte ? { pageName: data.pageName, connecteLe: data.connecteLe } : null);
+    setInstagram(data.instagram ?? instagramInitial);
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(etat));
-  }, [hydrated, etat]);
+    if (!authHydrated) return;
+    if (!user) {
+      setConnecte(false);
+      setChoixPageRequis(false);
+      setInfo(null);
+      setInstagram(instagramInitial);
+      setHydrated(true);
+      return;
+    }
+    setHydrated(false);
+    rafraichir().finally(() => setHydrated(true));
+  }, [user, authHydrated, rafraichir]);
 
-  function connecter(info: MetaConnectionInfo) {
-    setEtat({ connecte: true, info });
-  }
-
-  function deconnecter() {
-    setEtat(etatInitial);
-  }
+  const deconnecter = useCallback(async () => {
+    setConnecte(false);
+    setChoixPageRequis(false);
+    setInfo(null);
+    setInstagram(instagramInitial);
+    await fetch("/api/studio/meta", { method: "DELETE" }).catch(() => {});
+  }, []);
 
   return (
-    <MetaConnectionContext.Provider value={{ ...etat, hydrated, connecter, deconnecter }}>
+    <MetaConnectionContext.Provider
+      value={{ connecte, choixPageRequis, info, instagram, hydrated, deconnecter, rafraichir }}
+    >
       {children}
     </MetaConnectionContext.Provider>
   );

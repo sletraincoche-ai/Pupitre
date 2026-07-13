@@ -1,0 +1,1520 @@
+Téléservice CIEL
+
+
+ Documentation fonctionnelle du DTI+
+        Opérateurs du secteur viticole
+
+
+
+
+                       Version 18 du 09/03/2026
+
+
+
+
+                                        Page 1/35
+                            SUIVI DES MODIFICATIONS
+
+
+ Version  Rédaction                    Description                        Vérification      Date
+V3       DNSCE        •   RG14 : ajout des libellés fiscaux                              23/05/19
+                          spécifiques aux DOM pour les prémix
+                      •   §6,3 : ajout des libellés fiscaux spécifiques
+                          aux DOM pour les prémix
+V4       DNSCE        •   RG14: ajout des libellés fiscaux spécifiques                   24/12/19
+                          aux vins pour les prémix
+                      •   §6,3:ajout des libellés fiscaux spécifiques
+                          aux vins pour les prémix
+V5       DNSCE        •   RG40 : ajout d’une nouvelle règle de                           21/01/20
+                          gestion concernant les prémix
+                      •   §3.9 : ajout d’une balise prémix
+V6       DNSCE        •   Ajout des libellés fiscaux spécifiques aux                     06/11/20
+                          vins premix DOM (6)
+V7       DNSCE        •   RG13 : Le stock de fin de période négatif                      10/09/21
+                          est maintenant interdit
+V8       DNSCE        •   RG41 :TAV minimun pour le libellé fiscal                       13/10/21
+                      •   RHUM_TRADITIONNEL_DOM_ART₁
+V9       DNSCE        •   Ajout des libellés fiscaux pour les alcools                    02/11/21
+                          sans CSS
+V10      DNSCE        •   Ajout des nouveaux libellés fiscaux à partir                   14/12/21
+                          de 2022
+V11      DNSCE        •   Ajout de nouveaux libellés fiscaux pour les                    26/01/22
+                          rhums à partir de 2022
+                      •   Ajout de nouveaux libellés fiscaux pour les
+                          bières à partir de 2022
+V12      DNSCE        •   Les produits avec un libellé contenant                         02/03/22
+                          « INF_8_5 » doivent avoir un TAV inférieur
+                          ou égal à 8,5
+V13      DNSCE        •   Ajout du produit fiscal : Compléments                          01/06/22
+                          alimentaires
+V14      DNSCE        •   Ajout d’une règle de gestion concernant la                     06/09/22
+                          valeur minimum acceptée du TAV pour les
+                          produits de la catégorie alcools (1,2 % vol.)
+V15      DNSCE        •   Ajout des champs CRD : autres entrées et                       13/10/22
+                          autres sorties
+V16      DNSCE        •   Ajout champ CRD : observations                                 22/12/23
+                      •   Ajout règles RG43 & RG44
+V17      DNSCE        •   Augmentation du nombre caratères                               22/10/25
+                          maximum autorisé pour le numéro de
+                          référence du document d’accompagnement
+                          (DAA – DAC - DAE)
+V18      DNSCE        •   Evolution sur les prémix – ajout de 12                         09/03/26
+                          nouveaux produits fiscaux
+
+
+
+
+                                                                                            Page 2/35
+                                                              SOMMAIRE
+
+Table des matières
+1 INTRODUCTION............................................................................................................5
+  1.1 OBJET DU DOCUMENT....................................................................................................5
+  1.2 GLOSSAIRE.......................................................................................................................5
+  1.3 DÉFINITION.......................................................................................................................5
+
+2 ELEMENTS DE LA DECLARATION...............................................................................6
+  2.1 ÉLÉMENTS COMPTES CRD.............................................................................................6
+       2.1.1 Éléments centilisation........................................................................................................7
+           2.1.1.1 Éléments entrees-capsules..........................................................................7
+           2.1.1.2 Éléments sorties-capsules...........................................................................8
+  2.2 ÉLÉMENTS DOCUMENT-ACCOMPAGNEMENT.............................................................8
+  2.3 ÉLÉMENTS RELEVE-NON-APUREMENT........................................................................8
+  2.4 ÉLÉMENTS STATISTIQUES..............................................................................................9
+
+3 TYPES COMPLEXES....................................................................................................9
+  3.1 TYPE PERIODETAXATIONTYPE......................................................................................9
+  3.2 TYPE DROITSACQUITTESTYPE....................................................................................10
+  3.3 TYPE PRODUITDROITSACQUITTESTYPE EXTENSION OF PRODUITTYPE.............10
+  3.4 TYPE BALANCESTOCKSDROITSACQUITTESTYPE....................................................10
+       3.4.1 Éléments entrees-periode................................................................................................11
+       3.4.2 Éléments sorties-periode.................................................................................................11
+  3.5 TYPE DROITSSUSPENDUSTYPE..................................................................................11
+  3.6 TYPE PRODUITDROITSSUSPENDUSTYPE EXTENSION OF PRODUITTYPE...........11
+  3.7 TYPE BALANCESTOCKSDROITSSUSPENDUSTYPE..................................................12
+       3.7.1 Éléments entrees-periode................................................................................................12
+           3.7.1.1 Éléments mouvements-internes................................................................13
+           3.7.1.2 Élément replacements..............................................................................14
+              3.7.1.2.1 Type ReplacementType................................................................14
+       3.7.2 Éléments sorties-periode.................................................................................................14
+           3.7.2.1 Éléments sorties-sans-paiement-droits.....................................................15
+              3.7.2.1.1 Éléments mouvements-internes...................................................16
+  3.8 TYPE SORTIESANNUALISEESTYPE.............................................................................16
+  3.9 TYPE PRODUITTYPE......................................................................................................17
+  3.10 TYPE DEBUTFINDOCUMENTTYPE.............................................................................17
+  3.11 TYPE MOUVEMENTSTEMPORAIRESTYPE................................................................18
+
+4 TYPES SIMPLES.........................................................................................................18
+  4.1 TYPES SIMPLES BASÉS SUR LE TYPE PRIMITIF DÉCIMAL......................................18
+  4.2 TYPES SIMPLES BASÉS SUR LE TYPE PRIMITIF STRING.........................................18
+
+
+
+                                                                                                                                         Page 3/35
+5 REGLES DE GESTION................................................................................................21
+  5.1 DÉCLARATION PRÉCÉDENTE.......................................................................................21
+  5.2 COHÉRENCE DES MÉTA-DONNÉES............................................................................21
+  5.3 BALANCES DES STOCKS..............................................................................................22
+  5.4 COMPTE CRD.................................................................................................................27
+  5.5 AUTRES DONNÉES DE LA DÉCLARATION...................................................................28
+
+6 ANNEXES....................................................................................................................30
+  6.1 CARDINALITÉS D’ÉLÉMENT XML..................................................................................30
+  6.2 TYPES PRIMITIFS DE XSD.............................................................................................30
+  6.3 LISTE DES LIBELLÉS FISCAUX.....................................................................................30
+
+
+
+
+                                                                                                                           Page 4/35
+1        INTRODUCTION
+1.1      Objet du document
+
+Ce document décrit les règles de gestion et spécifications fonctionnelles de l'import de fichier DTI+
+pour les EA viti dans CIEL.
+
+
+1.2      Glossaire
+
+
+  Terme                                              Définition
+CIEL         Contributions indirectes en ligne
+CRD          Capsule représentative de droits
+DAA          Document d’accompagnement administratif
+DAC          Document d’accompagnement commercial
+DAE          Document administratif électronique
+DCA          Document commercial d’accompagnement
+DRA          Déclaration récapitulative annuelle
+DRM          Déclaration récapitulative mensuelle
+DSA          Document simplifié d’accompagnement
+DSAC         Document simplifié d’accompagnement commercial
+hL           Hectolitre
+TAV          Titre alcoométrique volumique
+
+
+
+1.3      Définition
+     •   « Numéro d'agrément » : dans le présent document, on entend par « numéro d'agrément » le
+         « numéro d'agrément d'entrepositaire agréé » ou « numéro d'accises ».
+     •   « Déclaration récapitulative » : dans le présent document, lorsque le terme générique de
+         « déclaration récapitulative » est utilisé, il fait référence aux déclarations récapitulatives
+         mensuelles (DRM) et aux déclarations récapitulatives annuelles (DRA).
+
+
+
+
+                                                                                                Page 5/35
+2      ELEMENTS DE LA DECLARATION
+                                Élément mouvements-balances
+Type                 Complexe ordonné
+       Élément           Type        Cardinal              Description             Obligatoire /
+                                       ité                                          Facultatif
+periode-taxation     PeriodeTaxa        1       Mois et année de la déclaration         O
+                     tionType                   dont les données sont envoyées
+                                                (pour les DRA, il s'agit du mois
+                                                et de l'année de la fin de la
+                                                période)
+identification-      NumeroAcci         1       Numéro d'agrément                       O
+redevable            seType
+droits-acquittes     DroitsAcquit      0..1     Balance des stocks en droits            F
+                     tesType                    acquittés de la DRM
+droits-suspendus     DroitsSuspe       0..1     Balance des stocks en droits            F
+                     ndusType                   suspendus de la DRM
+compte-crd           compte-crd       0..10     Compte des capsules                     F
+                                                représentatives de droits de la
+                                                DRM
+document-            document-         0...     Références des documents                F
+accompagnement       accompagne                 d’accompagnement émis durant
+                     ment                       le mois précédent
+releve-non-          releve-non-       0..1     Relevé de non apurement                 F
+apurement            apurement
+statistiques         statistiques      0..1     Statistiques communautaires             F
+
+
+
+2.1    Éléments comptes crd
+
+                                      Élément compte-crd
+Type                 Complexe ordonné
+       Élément           Type        Cardinal              Description             Obligatoire /
+                                       ité                                          Facultatif
+categorie-fiscale-   categorieFis       1       Catégorie fiscale de capsules           O
+capsules             caleCapsule                représentatives de droits
+                     Type
+type-capsule         typeCapsule        1       Type de capsules représentatives        O
+                     sType                      de droits
+centilisation        centilisation     1..*     Centilisation des capsules              O
+                                                déclarées
+
+
+
+
+                                                                                            Page 6/35
+2.1.1 Éléments centilisation
+
+                                         Élément centilisation
+Type                    Complexe ordonné
+         Élément            Type        Cardinal              Description              Obligatoire /
+                                          ité                                           Facultatif
+stock-debut-periode     nonNegative         1      Stock de capsules du début de la         O
+                        Integer                    période
+entrees-capsules        entrees-           0..1    Entrées de capsules                      F
+                        capsules
+sorties-capsules        sorties-           0..1    Sorties de capsules                      F
+                        capsules
+stock-fin-periode       nonNegative         1      Stock de capsules de la fin de la        O
+                        Integer                    période
+volume                  centilisation       1      Indique le type de centilasation         O
+                        Type
+volumePersonnalise      Decimal            0..1    Volume indiqué pour une                  F
+                                                   centilisation AUTRE
+                                                   Valeur min imum :0
+                                                   1 chiffre après la virgule.
+bib                     boolean            0..1    Indique si la centilisation              F
+                                                   AUTRE est de type Bag-in-box
+observations            string             0..1    Observations apportées par le            F
+                                                   déclarant concernant la
+                                                   centilisation
+
+
+2.1.1.1          Éléments entrees-capsules
+
+                                        Élément entrees-capsules
+Type                    Complexe non ordonné
+         Élément            Type        Cardinal              Description              Obligatoire /
+                                          ité                                           Facultatif
+achats                  nonNegative        0..1    Nombre de capsules achetées              F
+                        Integer
+retours                 nonNegative        0..1    Nombre de capsules retournées            F
+                        Integer
+excedents               nonNegative        0..1    Nombre de capsules                       F
+                        Integer                    excédentaires
+autres-entrees          nonNegative        0..1    Autres entrées de capsules               F
+                        Integer                    Toute saisie dans cette ligne
+                                                   requiert un commentaire
+                                                   obligatoire dans la rubrique
+                                                   « Observations » .
+
+
+
+                                                                                                Page 7/35
+Page 8/35
+2.1.1.2          Éléments sorties-capsules
+
+                                       Élément sorties-capsules
+Type                    Complexe non ordonné
+       Élément              Type       Cardinal             Description                Obligatoire /
+                                         ité                                            Facultatif
+utilisations             nonNegative      0..1    Nombre de capsules utilisées              F
+                         Integer
+destructions             nonNegative      0..1    Nombre de capsules détruites              F
+                         Integer
+manquants                nonNegative      0..1    Nombre de capsules manquantes             F
+                         Integer
+autres-sorties           nonNegative      0..1    Autres sorties de capsules                F
+                         Integer                  Toute saisie dans cette ligne
+                                                  requiert un commentaire
+                                                  obligatoire dans la rubrique
+                                                  « Observations » .
+
+
+2.2    Éléments document-accompagnement
+
+                                Élément document-accompagnement
+Type                    Complexe ordonné
+       Élément              Type       Cardinal             Description                Obligatoire /
+                                         ité                                            Facultatif
+numero-empreintes        DebutFinDo       0..1    Type de référence du document             F
+                         cumentType               d'accompagnement
+daa-dca                  DebutFinDo       0..1    Type de document pré-validé               F
+                         cumentType
+dsa-dsac                 DebutFinDo       0..1    Type de document pré-validé               F
+                         cumentType
+
+
+2.3    Éléments releve-non-apurement
+
+                                   Élément releve-non-apurement
+Type                    Complexe non ordonné
+       Élément              Type       Cardinal             Description                Obligatoire /
+                                         ité                                            Facultatif
+numero-daa-dac-dae numeroRna                 1    Numéro de DAA/DAC/DAE                     O
+                   Type
+date-expedition          date                1    Date d’expédition (doit être de la        O
+                                                  forme AAAA-MM-JJ)
+
+
+
+                                                                                                Page 9/35
+        Élément             Type      Cardinal             Description               Obligatoire /
+                                        ité                                           Facultatif
+numero-accise-        String (8 ou      0..1     Numéro d’accise du destinataire          F
+destinataire          13                         ou référence du bureau d’export
+                      caractères
+                      alphanuméri
+                      ques)
+
+
+
+2.4     Éléments statistiques
+
+                                       Élément statistiques
+Type                  Complexe ordonné
+        Élément             Type      Cardinal             Description               Obligatoire /
+                                        ité                                           Facultatif
+quantite-mouts-jus    volumeType        0..1     Quantité de moûts de raisin              F
+                                                 transformés en jus de raisin
+quantite-mouts-mcr    volumeType        0..1     Quantité de moûts de raisin              F
+                                                 transformés en MCR (moûts
+                                                 concentrés rectifiés)
+quantite-vins-        volumeType        0..1     Quantité de vins utilisés pour la        F
+vinaigre                                         fabrication de vinaigre
+
+
+
+3       TYPES COMPLEXES
+
+3.1     Type PeriodeTaxationType
+
+                                     Type PeriodeTaxationType
+Type                  Complexe non ordonné
+        Élément             Type      Cardinal             Description               Obligatoire /
+                                        ité                                           Facultatif
+mois                  int                1       Mois de la déclaration dont les          O
+                                                 données sont envoyées (pour les
+                                                 DRA, il s'agit du mois et de
+                                                 l'année de la fin de la période)
+annee                 int                1       Année de la déclaration dont les         O
+                                                 données sont envoyées (pour les
+                                                 DRA, il s'agit du mois et de
+                                                 l'année de la fin de la période)
+
+
+
+
+                                                                                           Page 10/35
+3.2    Type DroitsAcquittesType
+
+                                     Type DroitsAcquittesType
+Type                  Complexe non ordonné
+       Élément            Type        Cardinal              Description                Obligatoire /
+                                        ité                                             Facultatif
+produit               ProduitDroit      0..*     Produit concerné par la                    F
+                      sAcquittesT                déclaration en droits acquittés
+                      ype
+
+
+3.3    Type ProduitDroitsAcquittesType extension of ProduitType
+
+                                 Type ProduitDroitsAcquittesType
+Type                  Complexe non ordonné
+       Élément            Type        Cardinal              Description                Obligatoire /
+                                        ité                                             Facultatif
+balance-stock         BalanceStoc       0..*     Produit concerné par la                    F
+                      ksDroitsAcq                déclaration en droits acquittés
+                      uittesType
+
+
+3.4    Type BalanceStocksDroitsAcquittesType
+
+                           Élément balance-stocks (Droits acquittés)
+Type                  Complexe ordonné
+       Élément            Type        Cardinal              Description                Obligatoire /
+                                        ité                                             Facultatif
+stock-debut-periode   volumeStoc         1       Stock de début de période (en              O
+                      kType                      hL), systématiquement repris du
+                                                 stock théorique total de fin de la
+                                                 période de la DRM ou DRA
+                                                 précédente. Si 1ère DRM de
+                                                 l’exercice, doit être indiqué le
+                                                 stock réel (physique) tel qu'il
+                                                 résulte de l'inventaire des stocks.
+entrees-periode       entrees-          0..1     Entrées sur la période en droits           F
+                      periode                    acquittés, pour le produit
+                                                 concerné
+sorties-periode       sorties-          0..1     Sorties sur la période en droits           F
+                      periode                    acquittés, pour le produit
+                                                 concerné
+
+
+
+
+                                                                                             Page 11/35
+         Élément         Type        Cardinal              Description                Obligatoire /
+                                       ité                                             Facultatif
+stock-fin-periode     volumeStoc        1       Stock de fin de période (en hL),           O
+                      kType                     correspondant à la différence
+                                                entre les entrées et les sorties de
+                                                période.
+
+
+
+3.4.1 Éléments entrees-periode
+
+                                     Élément entrees-periode
+Type                 Complexe ordonné
+         Élément         Type        Cardinal              Description                Obligatoire /
+                                       ité                                             Facultatif
+achats                volumeType       0..1     Achats du produit (en hL)                  F
+autres-entrees        volumeType       0..1     Autres entrées du produit (en hL)          F
+
+
+3.4.2 Éléments sorties-periode
+
+                                     Élément sorties-periode
+Type                 Complexe ordonné
+         Élément         Type        Cardinal              Description                Obligatoire /
+                                       ité                                             Facultatif
+ventes                volumeType       0..1     Ventes de produit (en hL)                  F
+replacement-          volumeType       0..1     Replacement en suspension du               F
+suspension                                      produit (en hL)
+autres-sorties        volumeType       0..1     Autres sorties du produit (en hL)          F
+
+
+3.5      Type DroitsSuspendusType
+
+                                   Type DroitsSuspendusType
+Type                 Complexe non ordonné
+         Élément         Type        Cardinal              Description                Obligatoire /
+                                       ité                                             Facultatif
+produit               ProduitDroit     0..*     Produit concerné par la                    F
+                      sSuspendusT               déclaration en droits suspendus
+                      ype
+
+
+
+
+                                                                                            Page 12/35
+3.6    Type ProduitDroitsSuspendusType extension of ProduitType
+
+                                 Type ProduitDroitsSuspendusType
+Type                  Complexe non ordonné
+       Élément            Type       Cardinal              Description                Obligatoire /
+                                       ité                                             Facultatif
+balance-stock         BalanceStoc       0..*    Produit concerné par la                    F
+                      ksDroitsSus               déclaration en droits acquittés
+                      pendusType
+
+3.7    Type BalanceStocksDroitsSuspendusType
+
+                           Type BalanceStocksDroitsSuspendusType
+Type                  Complexe ordonné
+       Élément            Type       Cardinal              Description                Obligatoire /
+                                       ité                                             Facultatif
+stock-debut-periode   volumeStoc         1      Stock de début de période (en              O
+                      kType                     hL), systématiquement repris du
+                                                stock théorique total de fin de la
+                                                période de la DRM ou DRA
+                                                précédente. Si 1ère DRM de
+                                                l’exercice, doit être indiqué le
+                                                stock réel (physique) tel qu'il
+                                                résulte de l'inventaire des stocks.
+entrees-periode       entrees-          0..1    Entrées sur la période en droits           F
+                      periode                   acquittés, pour le produit
+                                                concerné
+sorties-periode       sorties-          0..1    Sorties sur la période en droits           F
+                      periode                   acquittés, pour le produit
+                                                concerné
+stock-fin-periode     volumeStoc         1      Stock de fin de période (en hL),           O
+                      kType                     correspondant à la différence
+                                                entre les entrées et les sorties de
+                                                période.
+
+
+
+
+                                                                                            Page 13/35
+3.7.1 Éléments entrees-periode
+
+                                   Élément entrees-periode
+Type                Complexe ordonné
+       Élément          Type       Cardinal             Description                Obligatoire /
+                                     ité                                            Facultatif
+volume-produit      volumeType       0..1     Fabrication, distillation,                F
+                                              conditionnement, transformation
+                                              ou manipulation.
+achats-reintegrations volumeType     0..1     Achat de produits en vrac, ou en          F
+                                              bouteilles nues sur pile,
+                                              réintégrations de produits sortis
+                                              en suspension de droits (en hL)
+mouvements-         Type             0..1     Prestations de service,                   F
+temporaires         Mouvements                relogement, ou pour élaboration
+                    Temporaires               à façon de vins mousseux, ou
+                    Type                      pour distillation de cognac, par
+                                              exemple. Retour obligatoire à la
+                                              propriété (en hL)
+mouvements-internes mouvements       0..1     Mouvements internes du produit            F
+                    -internes                 (en hL)
+autres-entrees      volumeType       0..1     Saisie des entrées pour lesquelles        F
+                                              aucune case spécifique n'est
+                                              prévue. Toute saisie dans cette
+                                              ligne requiert un commentaire
+                                              obligatoire dans la rubrique
+                                              « Observations » .
+replacements        replacement      0..1     Exemple : retour de                       F
+                    s                         marchandises, transfert de
+                                              comptabilité matières (droits
+                                              acquittés vers droits suspendus).
+                                              Toute saisie requiert un
+                                              commentaire obligatoire dans la
+                                              rubrique « Observations » (en
+                                              hL)
+
+
+
+
+                                                                                         Page 14/35
+3.7.1.1         Éléments mouvements-internes
+
+                                    Élément mouvements-internes
+Type                  Complexe ordonné
+        Élément              Type     Cardinal             Description                Obligatoire /
+                                        ité                                            Facultatif
+replis-declassement- volumeType          0..1    Repli, déclassement, transfert,           F
+transfert-                                       changement d’appellation (en
+changement-                                      hL). Toute entrée dans cette
+appellation                                      rubrique pour une colonne doit
+                                                 trouver son équivalent en sortie
+                                                 dans une autre.
+manipulations          volumeType        0..1    Augmentation de volume                    F
+                                                 constatée suite à une
+                                                 manipulation œnologique
+                                                 autorisée (ex. édulcoration)
+integration-vci-agree volumeType         0..1    Intégration de VCI agréé (en              F
+                                                 hL). Le cumul des agréments de
+                                                 VCI pour les appellations en
+                                                 bénéficiant doit trouver son
+                                                 équivalent en sortie de la
+                                                 colonne produit VCI.
+
+
+3.7.1.2         Élément replacements
+
+                                       Élément replacements
+Type                  Complexe ordonné
+        Élément              Type     Cardinal             Description                Obligatoire /
+                                        ité                                            Facultatif
+replacement-           Replacemen        1...    Replacement en suspension du              O
+suspension               tType                   produit (en hL)
+
+3.7.1.2.1       Type ReplacementType
+
+                                       Type ReplacementType
+Type                  Complexe ordonné
+        Élément              Type     Cardinal             Description                Obligatoire /
+                                        ité                                            Facultatif
+mois                   int                1      Mois de la sortie taxable ou de la        O
+                                                 réception en droits acquittés de
+                                                 ce produit. Entre 1 et 12.
+annee                  int                1      Année de la sortie taxable ou de          O
+                                                 la réception en droits acquittés
+                                                 de ce produit. Sur 4 positions.
+
+
+                                                                                            Page 15/35
+       Élément             Type        Cardinal             Description               Obligatoire /
+                                         ité                                           Facultatif
+volume                 volumeType         1       Volume du produit replacé en             O
+                                                  suspension
+
+
+3.7.2 Éléments sorties-periode
+
+                                       Élément sorties-periode
+Type                  Complexe ordonné
+       Élément             Type        Cardinal             Description               Obligatoire /
+                                         ité                                           Facultatif
+ventes-france-crd-     Type              0..1     Ventes France sous CRD                   F
+suspendus              SortiesAnnu                personnalisées en droits
+                       aliseesType                suspendus, sous DSA ou sous
+                                                  facture (en hL)
+ventes-france-crd-     volumeType        0..1     Ventes France sous CRD                   F
+acquittes                                         collectives en droits acquittés.
+                                                  Les droits ont été acquittés
+                                                  auprès du répartiteur de capsules
+                                                  au moment de l’achat des CRD.
+                                                  Dans CIEL, cette donnée
+                                                  n’alimente pas la liquidation de
+                                                  la déclaration mais a une
+                                                  vocation seulement statistique.
+sorties-sans-          sorties-sans-     0..1     Sorties du produit sans paiement         F
+paiement-droits        paiement-                  des droits (en hL)
+                       droits
+
+
+3.7.2.1        Éléments sorties-sans-paiement-droits
+
+                              Élément sorties-sans-paiement-droits
+Type                  Complexe ordonné
+       Élément             Type        Cardinal             Description               Obligatoire /
+                                         ité                                           Facultatif
+sorties-definitives    volumeType        0..1     Sorties définitives du produit en        F
+                                                  droits suspendus : ventes vrac au
+                                                  négoce, en intracommunautaire,
+                                                  à l’export, sous DAE, DAA et
+                                                  DCA ainsi que sorties de lies et
+                                                  DRA (en hL)
+consommation-         volumeType         0..1     Consommation familiale du                F
+familiale-degustation                             produit et / ou dégustation à
+                                                  l’exploitation (en hL)
+mise-sur-marche-       volumeType        0,,1     Concerne les vins produits et            F
+corse                                             commercialisés en Corse
+
+
+                                                                                            Page 16/35
+       Élément             Type       Cardinal             Description               Obligatoire /
+                                        ité                                           Facultatif
+mouvements-             Type            0..1     Mouvements temporaires du                F
+temporaires             Mouvements               produit (en hL).
+                        Temporaires              Prestations de service,
+                        Type                     relogement, ou pour élaboration
+                                                 à façon de vins mousseux, ou
+                                                 pour distillation de cognac, par
+                                                 exemple. Retour obligatoire à la
+                                                 propriété
+mouvements-internes mouvements          0..1     Mouvements internes du produit           F
+                    -internes                    (en hL)
+autres-sorties          volumeType      0..1     Destruction par exemple (en hL).         F
+                                                 Toute saisie dans cette ligne
+                                                 requiert un commentaire
+                                                 obligatoire dans la rubrique
+                                                 « Observations ».
+3.7.2.1.1        Éléments mouvements-internes
+
+                                  Élément mouvments-internes
+Type                   Complexe ordonné
+       Élément             Type       Cardinal             Description               Obligatoire /
+                                        ité                                           Facultatif
+replis-declassement- volumeType         0..1     Repli, déclassement, transfert,          F
+transfert-                                       changmeent d’appellation (en
+changement-                                      hL).
+appellatin                                       Toute sortie dans cette rubrique
+                                                 pour une colonne doit trouver
+                                                 son équivalent en entrée dans
+                                                 une autre.
+fabrication-autre-      volumeType      0..1     En cas de mutage de vin par              F
+produit                                          adjonction d’alcool, inscrire ici
+                                                 le volume de vin concerné ainsi
+                                                 que le volume d’alcool ayant
+                                                 permis l’opération, et porter les
+                                                 quantités de vins mutés en entrée
+                                                 (en hL)
+revendication-vci       volumeType      0..1     Volume de VCI de l’année N-1             F
+                                                 du produit ayant reçu l’agrément
+                                                 à la récolte de l’année N (en hL)
+autres-mouvements- volumeType           0..1     Manipulations, soutirages.               F
+internes                                         Réductions de volumes
+                                                 constatées suite à soutirages de
+                                                 lies ou manipulations diverses,
+                                                 notamment les méthodes
+                                                 soustractives d’enrichissement
+                                                 ou la désalcoolisation.
+
+
+
+                                                                                           Page 17/35
+3.8    Type SortiesAnnualiseesType
+
+                                  Type SortiesAnnualiseesType
+Type                   Complexe ordonné
+       Élément             Type        Cardinal              Description             Obligatoire /
+                                         ité                                          Facultatif
+annee-precedente       volumeType        0..1     Volume pour l’année précédente          F
+                                                  (cas uniquement des DRA)
+annee-courante         volumeType         1       Volume pour l’année courante            O
+                                                  (cas des DRA) ou volume à
+                                                  déclarer pour la période de
+                                                  taxation
+
+
+
+3.9    Type ProduitType
+
+                                         Type ProduitType
+Type                   Complexe ordonné
+       Élément             Type        Cardinal              Description             Obligatoire /
+                                         ité                                          Facultatif
+libelle-fiscal         LibelleFiscal     0..1     Libellé fiscal du produit (liste        F
+                       Type                       des libellés en annexes)
+code-inao              codeInaoTyp       0..1     Code INAO du produit                    F
+                       e
+libelle-personnalise   string             1       Libellé personnalisé du produit         O
+tav                    tavType           0..1     TAV du produit                          F
+premix                 Boolean           0..1     Indique si le produit est prémix        F
+observations           string            0..1     Observations apportées par le           F
+                                                  déclarant concernant la balance
+                                                  des stocks en droits suspendus
+
+3.10             Type DebutFinDocumentType
+
+
+                                  Type DebutFinDocumentType
+Type                   Complexe non ordonné
+       Élément             Type        Cardinal              Description             Obligatoire /
+                                         ité                                          Facultatif
+debut-periode          numeroDocu         1       Référence du premier document           O
+                       mentType                   de la période
+
+
+
+
+                                                                                           Page 18/35
+       Élément               Type     Cardinal                Description                Obligatoire /
+                                        ité                                               Facultatif
+fin-periode            numeroDocu          1        Référence du dernier document               O
+                       mentType                     de la période
+nombre-document-       int                 1        Nombre de références sur la                 O
+empreinte                                           période
+
+
+
+
+3.11 Type MouvementsTemporairesType
+
+                               Type MouvementsTemporairesType
+Type                   Complexe non ordonné
+       Élément               Type     Cardinal                Description                Obligatoire /
+                                        ité                                               Facultatif
+embouteillage          volumeType         0..1      Retour de prestation                        F
+                                                    d’embouteillage (uniquement si
+                                                    l’embouteillage n’a pas lieu sur
+                                                    place) (en hL)
+relogement             volumeType         0..1      Retour de relogement (en hL)                F
+travail-a-facon        volumeType         0..1      Retour de travail à façon (en hL)           F
+distillation-a-facon   volumeType         0..1      Retour de distillation à façon (en          F
+                                                    hL)
+
+4      TYPES SIMPLES
+
+4.1    Types simples basés sur le type primitif décimal
+
+                   Nombre de        Minimu
+       Type        décimales          m                               Description
+volumeType              5             0          Représente un volume positif ou nul
+volumeStockTy           5             0          Représente un volume positif, négatif ou nul
+pe
+tavType                 2             0          Représente le TAV d’un produit. Un tav ne peut être
+                                                 <=0.5 ou ≥ 100.
+
+
+4.2    Types simples basés sur le type primitif string
+
+
+
+
+                                                                                                Page 19/35
+                  Longueur Longueur
+     Type         minimale maximale    Valeurs possibles      Format              Description
+NumeroAccise        13        13                           2 lettres + 11 Numéro d’accise de
+Type                                                       caractères     l’opérateur.
+                                                           alphanumériqu
+                                                           es.
+sirenType            9        9                            Nombres        Représente le numéro
+                                                           entiers        SIREN d'une
+                                                           strictement    interprofession
+                                                           positifs
+LibelleFiscalT                        Cf 5.3 Liste des                    Représente le libellé fiscal
+ype                                   libellés fiscaux                    d’un produit
+typeCapsulesT                           • PERSONNALI                      Représente un type de
+ype                                     SEES                              capsules représentatives de
+                                        • COLLECTIVE                      droits
+                                        S_DROITS_SUS
+                                        PENDUS
+                                        • COLLECTIVE
+                                        S_DROITS_ACQ
+                                        UITTES
+categorieFiscal                        • « M » (vin                       Représente une catégorie
+eCapsuleType                             mousseux)                        fiscale de capsule
+                                       • « T » (vin                       représentative de droits
+                                         tranquille)
+                                       • « PI » (produit
+                                         intermédiaire)
+                                       • COGNAC-
+                                         ARMAGNAC
+                                       • ALCOOLS
+
+numeroDocum          1        30                           Référence d’un Numéro de référence de
+entType                                                    document       document
+                                                                          d'accompagnement d'une
+                                                                          DRM. En cas de valeur
+                                                                          numérique indiquée, seul
+                                                                          les entiers positifs sont
+                                                                          autorisés.
+numeroRnaTyp         1        30                           Chaîne de      Numéro de référence du
+e                                                          caractères     daa-dac-dae
+
+
+
+
+                                                                                          Page 20/35
+                  Longueur Longueur
+     Type         minimale maximale   Valeurs possibles      Format              Description
+centilisationTy                         •   CL_10                        Représente la centilisation
+pe                                      •   CL_12_5                      de capsules représentatives
+                                        •   CL_18_7                      de droits. Valeur
+                                                                         obligatoire.
+                                        •   CL_20
+                                        •   CL_25
+                                        •   CL_35
+                                        •   CL_37_5
+                                        •   CL_50
+                                        •   CL_62
+                                        •   CL_70
+                                        •   CL_75
+                                        •   CL_100
+                                        •   CL_150
+                                        •   CL_175
+                                        •   CL_200
+                                        •   BIB_225
+                                        •   BIB_300
+                                        •   BIB_400
+                                        •   BIB_500
+                                        •   BIB_800
+                                        •   BIB_1000
+                                        •   AUTRE
+volumePerson                                              Nombre           Volume indiqué pour une
+nalise                                                    décimal (1       centilisation AUTRE
+                                                          chiffre après la
+                                                          virgule)
+codeInaoType         6        8                                          Représente un code INAO
+                                                                         d’un produit.
+                                                                         Un code INAO doit
+                                                                         contenir entre 6 et 8
+                                                                         caractères. Si le code est sur
+                                                                         5 caractères, il faut ajouter
+                                                                         un espace.
+
+
+
+
+                                                                                         Page 21/35
+5       REGLES DE GESTION
+CIEL met en place une série de contrôles pour vérifier la validité et la cohérence des données
+contenues. Chaque élément ci-dessous reprend la teneur de la vérification ainsi que le message
+d’erreur associé.
+Important : une seule erreur, quelle qu’elle soit, est suffisante pour justifier le rejet du fichier.
+Hormis les erreurs de format (non-respect du XSD) et les erreurs sur la période ou le numéro
+d’agrément, qui bloquent immédiatement l’exécution des contrôles, l’ensemble des tests doit
+être passé pour effectuer un contrôle complet de la déclaration.
+
+5.1 Déclaration précédente
+Certains contrôles sont effectués par rapport à la télé-déclaration de la période immédiatement
+précédente. Ces contrôles sont levés dans les cas suivants :
+
+RG_DecPrécédente_1                    S’il n’existe aucune DRM pour le numéro d’agrément
+                                      transmis, les contrôles relatifs à la DRM précédente ne sont
+                                      pas appliqués.
+RG_DecPrécédente_2                    Les contrôles sur les données (produits, stocks ...) ne peuvent
+                                      s’appliquer que si la DRM précédente est une télé-
+                                      déclaration.
+
+
+5.2 Cohérence des méta-données
+
+
+ Code                      Test et condition(s)                           Message si erreur
+  RG
+ RG1 Le flux transmis doit respecter le schéma XSD prévu.         Une erreur est survenue pendant
+                                                                  le téléversement du fichier. Le
+         NB : si cette condition n’est pas vérifiée, les
+                                                                  fichier ne respecte pas le
+         contrôles suivants ne seront pas exécutés.
+                                                                  formalisme attendu et ne peut pas
+                                                                  être intégré en l'état.
+
+ RG2 Le numéro d’identification du redevable présent dans         Le fichier importé ne correspond
+     le fichier doit correspondre au numéro d’agrément de         pas au numéro d’agrément de
+     l’opérateur.                                                 cette déclaration.
+
+ RG3 La période de taxation indiquée dans le fichier doit         Le fichier importé ne correspond
+     correspondre au mois proposé à la saisie dans CIEL.          pas à la période de taxation de
+                                                                  cette déclaration.
+         NB : si cette condition n’est pas vérifiée, les
+         contrôles suivants ne seront pas exécutés.
+ RG4 Un nouveau produit dans une déclaration doit être Le produit dont le libellé
+     identifié par son libellé personnalisé et soit son libellé commercial est "<libellé
+     fiscal, soit son code INAO.
+
+
+                                                                                             Page 22/35
+       Pour chaque nouveau produit déclaré, un libellé personnalisé> n'a pas été reporté
+       personnalisé doit être défini par l’opérateur. Le libellé dans le fichier alors que son stock
+       personnalisé servira d’unique identifiant produit pour de fin de période est différent de
+       les déclarations futures, et n’est par conséquent plus
+       modifiable une fois définie. Le libellé fiscal ou le code zéro.
+       INAO, ainsi que le libellé personnalisé devront être
+       transmis dans tous les cas. CIEL vérifiera que le
+       produit (retrouvé par son libellé personnalisé) a bien
+       les mêmes caractéristiques.
+
+5.3 Balances des stocks
+
+Code                         Tests et conditions                               Message si erreur
+ RG
+RG5 Si la déclaration précédente pour ce numéro d’agrément existe,                      /
+    CIEL pré remplit la déclaration avec les produits renseignés
+    dans la déclaration précédente.
+RG6 Si l’indicateur « déclaration-néant » est vrai, alors les objets     Des éléments de la balance
+    « droits-suspendus » et « droits-acquittes » ne peuvent pas          des stocks en droits
+    contenir de « produit » (liste vide ou nulle).                       suspendus et/ou acquittés ont
+    ‘Neant’ correspond à ‘Pas de mouvement sur le mois écoulé’. Il       été saisis alors que
+    n’y a donc pas d’entrées et sorties même il y a des stocks pour      l'opérateur a indiqué
+    les produits                                                         effectuer une déclaration
+                                                                         néant.
+RG7 Si l’agrément n’autorise pas les mouvements de stock en droits       Le fichier comporte une
+    suspendus (agrément de type « Entrepositaire national en droits      balance des stocks en droits
+    acquittés », contient la lettre « A »), alors l’objet « droits-      suspendus alors que
+                                                                         l'agrément ne le prévoit pas.
+    suspendus » ne peut pas contenir de « produit » (liste vide ou
+    nulle).
+
+RG8 Si l’agrément n’autorise pas les mouvements en droits                L'agrément n'autorise pas les
+    suspendus, il ne doit pas y avoir de document                        types de documents
+    d’accompagnement « daa-dca » dans le « relevé-non-                   d'accompagnement saisis.
+    apurement ».
+
+RG9 Avec la déclaration précédente, CIEL effectue un contrôle de         Erreurs en balance des
+    correspondance avec les produits (identifiés par leur libellé        stocks, droits suspendus
+    personnalisé), pour la balance des stocks en droits suspendus.       (stocks déclaration
+    Pour chaque produit retrouvé, la valeur de « stock-début-            précédente) : Le produit
+    période » doit être égale au stock de fin de période de la           <libellé personnalisé> a un
+    déclaration précédente.                                              stock de début de période
+    Cette règle n’est pas appliquée pour la première période de          différent du stock de fin de
+    l’exercice de l’opérateur.                                           période renseigné dans la
+                                                                         déclaration précédente.
+RG10 Avec la déclaration précédente, CIEL effectue un contrôle de        Erreurs en balance des
+     correspondance avec les produits (identifiés par leur libellé       stocks, droits acquittés
+     personnalisé), pour la balance des stocks en droits acquittés.      (stocks déclaration
+     Pour chaque produit retrouvé, la valeur de « stock-début-           précédente) : Le produit
+
+
+                                                                                            Page 23/35
+Code                          Tests et conditions                            Message si erreur
+ RG
+        période » doit être égale au stock de fin de période de la      <libellé personnalisé> a un
+        déclaration précédente.                                         stock de début de période
+        Cette règle n’est pas appliquée pour la première période de     différent du stock de fin de
+        l’exercice de l’opérateur.                                      période renseigné dans la
+                                                                        déclaration précédente.
+RG11 Pour chaque produit en droits suspendus de la déclaration          Erreurs en balance des
+     transmise, la valeur « stock-fin-période » doit être égale à :     stocks, droits suspendus
+     « stock-début-période » + « entrées-période » - « sorties-         (calcul du stock de fin de
+     période ».                                                         période) : Pour le produit
+                                                                        <libellé personnalisé> le
+                                                                        stock de fin de période
+                                                                        précisé dans le fichier ne
+                                                                        correspond pas à la valeur
+                                                                        calculée à partir des entrées
+                                                                        et des sorties renseignées.
+RG12 Pour chaque produit en droits acquittés de la déclaration          Erreurs en balance des
+     transmise, la valeur « stock-fin-période » doit être égale à :     stocks, droits acquittés
+     « stock-début-période » + « entrées-période » - « sorties-         (calcul du stock de fin de
+     période ».                                                         période) : Pour le produit
+                                                                        <libellé personnalisé> le
+                                                                        stock de fin de période
+                                                                        précisé dans le fichier ne
+                                                                        correspond pas à la valeur
+                                                                        calculée à partir des entrées
+                                                                        et des sorties renseignées.
+IRG13 Dans CIEL, il est interdit d’avoir un stock théorique de fin de     Le stock de fin de période
+      période négatif.                                                    théorique pour le produit
+                                                                        « <libellé personnalisé> » ne
+                                                                            peut pas être négatif.
+RG14 Si le produit nécessite la saisie d’un TAV, CIEL contrôle que Le        produit       <libellé
+     cette donnée est présente.                                    personnalisé> se réfère au
+                                                                   libellé fiscal <libellé fiscal>,
+     Cette règle concerne les libellés fiscaux ci-dessous : pour lequel le TAV est
+     BOISSONS_FERMENTEES_AUTRES_PREMIX                             obligatoire. Le TAV doit être
+     BOISSONS_FERMENTEES_AUTRES_PREMIX_DOM                         renseigné pour ce produit.
+        HYDROMELS_PREMIX
+        HYDROMELS_INF_8_5_PREMIX
+        HYDROMELS_PREMIX_DOM
+        HYDROMELS_INF_8_5_PREMIX_DOM
+        PETILLANTS_PREMIX
+        PETILLANTS_INF_8_5_PREMIX
+        PETILLANTS_PREMIX_DOM
+        PETILLANTS_INF_8_5_PREMIX_DOM
+        VT_SANS_IG_CEPAGE_PREMIX
+        VT_SANS_IG_AUTRES_PREMIX
+        VM_SANS_IG_CEPAGE_PREMIX
+        VM_SANS_IG_AUTRES_PREMIX
+        VT_ETRANGERS_PREMIX
+        VM_ETRANGERS_PREMIX
+        VT_SANS_IG_CEPAGE_PREMIX_DOM
+        VT_SANS_IG_AUTRES_PREMIX_DOM
+
+
+
+                                                                                         Page 24/35
+Code                     Tests et conditions              Message si erreur
+ RG
+       VM_SANS_IG_CEPAGE_PREMIX_DOM
+       VM_SANS_IG_AUTRES_PREMIX_DOM
+       VT_ETRANGERS_PREMIX_DOM
+       VM_ETRANGERS_PREMIX_DOM
+       AUTRES_PI_INF_18_PREMIX
+       AUTRES_PI_INF_18_PREMIX_DOM
+       BIERE_INF_2_8
+       BIERE_INF_2_8_PREMIX
+       BIERE_INF_2_8_PREMIX_DOM
+       BIERE_SUP_18_BRASSERIE_TAUX_NORMAL
+       BIERE_SUP_2_8_BRASSERIE_TAUX_NORMAL
+       BIERE_SUP_2_8_BRASSERIE_TAUX_NORMAL_PREMIX
+       BIERE_SUP_2_8_BRASSERIE_TAUX_NORMAL_PREMIX_DOM
+       BIERE_PETITE_BRASSERIE_SUP_18
+       BIERE_PETITE_BRASSERIE_SUP_2_8
+       BIERE_PETITE_BRASSERIE_SUP_2_8_PREMIX
+       BIERE_PETITE_BRASSERIE_SUP_2_8_PREMIX_DOM
+       BIERE_SUP_18_PETITE_BRASSERIE_10000
+       BIERE_SUP_2_8_PETITE_BRASSERIE_10000
+       BIERE_SUP_2_8_PETITE_BRASSERIE_10000_PREMIX
+       BIERE_SUP_2_8_PETITE_BRASSERIE_10000_PREMIX_DOM
+       BIERE_SUP_18_PETITE_BRASSERIE_50000
+       BIERE_SUP_2_8_PETITE_BRASSERIE_50000
+       BIERE_SUP_2_8_PETITE_BRASSERIE_50000_PREMIX
+       BIERE_SUP_2_8_PETITE_BRASSERIE_50000_PREMIX_DOM
+       BIERE_SUP_18_PETITE_BRASSERIE_200000
+       BIERE_SUP_2_8_PETITE_BRASSERIE_200000
+       BIERE_SUP_2_8_PETITE_BRASSERIE_200000_PREMIX
+       BIERE_SUP_2_8_PETITE_BRASSERIE_200000_PREMIX_DOM
+       RHUM_TRADITIONNEL_DOM_ART_1
+       RHUM_TRADITIONNEL_DOM_ART_2
+       RHUM_TRADITIONNEL_DOM_CONTINGENT_FISCAL
+       RHUM_TRADITIONNEL_DOM_HORS_CONTINGENT_FISCAL
+       RHUM_TIERS_ET_AUTRES
+       ALCOOL_AUTRE_SUP_18
+       ALCOOL_AUTRE_SUP_18_HORS_CSS
+       ALCOOL_AUTRE_INF_18
+       ALCOOL_AUTRE_INF_18_PREMIX
+       COMPLEMENTS_ALIMENTAIRES
+       COMPLEMENTS_ALIMENTAIRES_PREMIX
+       COMPLEMENTS_ALIMENTAIRES_PREMIX_DOM
+       COMPLEMENTS_ALIMENTAIRES_CSS
+       RHUM_GUADELOUPE
+       RHUM_MARTINIQUE
+       RHUM_GUYANE
+       RHUM_REUNION
+       SPIRITUEUX_GUADELOUPE_SUP_18
+       SPIRITUEUX_GUADELOUPE_INF_18
+       SPIRITUEUX_GUADELOUPE_INF_18_PREMIX
+       SPIRITUEUX_MARTINIQUE_SUP_18
+       SPIRITUEUX_MARTINIQUE_INF_18
+       SPIRITUEUX_MARTINIQUE_INF_18_PREMIX
+       SPIRITUEUX_GUYANE_SUP_18
+       SPIRITUEUX_GUYANE_INF_18
+       SPIRITUEUX_GUYANE_INF_18_PREMIX
+       SPIRITUEUX_REUNION_SUP_18
+       SPIRITUEUX_REUNION_INF_18
+       SPIRITUEUX_REUNION_INF_18_PREMIX
+       AUTRES_ALCOOLS_SUP_18
+
+
+
+                                                                    Page 25/35
+Code                         Tests et conditions                             Message si erreur
+ RG
+       AUTRES_ALCOOLS_SUP_18_HORS_CSS
+       AUTRES_ALCOOLS_INF_18
+       AUTRES_ALCOOLS_INF_18_PREMIX
+       AUTRES_PI_SUP_18_PREMIX
+       AUTRES_PI_SUP_18_PREMIX_DOM
+       BIERE_SUP_18_BRASSERIE_TAUX_NORMAL_PREMIX
+       BIERE_SUP_18_BRASSERIE_TAUX_NORMAL_PREMIX_DOM
+       BIERE_PETITE_BRASSERIE_SUP_18_PREMIX
+       BIERE_PETITE_BRASSERIE_SUP_18_PREMIX_DOM
+       ALCOOL_AUTRE_SUP_18_PREMIX
+       AUTRES_ALCOOLS_SUP_18_PREMIX
+       SPIRITUEUX_GUADELOUPE_SUP_18_PREMIX
+       SPIRITUEUX_MARTINIQUE_SUP_18_PREMIX
+       SPIRITUEUX_GUYANE_SUP_18_PREMIX
+       SPIRITUEUX_REUNION_SUP_18_PREMIX
+RG15 Les règles suivantes s’appliquent aux produits identifiés par un Le       produit      <libellé
+     libellé fiscal :                                                 personnalisé> se réfère au
+         • La valeur du TAV saisie pour un produit doit respecter la libellé fiscal <libellé fiscal
+              tranche du TAV définie dans le libellé fiscal           PREMIX>. Pour ce libellé
+         • Si le produit choisi est un prémix, alors le TAV doit être fiscal, le TAV doit être
+              strictement supérieur à 1,2 %                           strictement supérieur à 1,2%.
+         • Les deux règles ci-dessus doivent s’appliquer
+              simultanément (ex : si le libellé fiscal choisi est
+              BIERE_INF_2_8_PREMIX, alors le TAV doit être
+              compris entre 1,2 % exclus et 2,8% inclus)
+         • Toute valorisation du champ prémix ne peut être
+              considérée car c’est le libellé fiscal qui porte cette
+              information
+         • Si le libellé fiscal indique « SUP », cela sous-entend
+              strictement supérieur. S’il indique « INF », cela sous-
+              entend inférieur ou égal.
+RG16 Si un produit existe dans la déclaration précédente et n’a pas été Le produit <libellé
+     repris dans la déclaration transmise, alors le stock de fin de     personnalisé> n’est pas
+     période de ce produit pour la déclaration précédente doit être de repris dans la déclaration
+     0.                                                                 alors que son stock théorique
+                                                                        de fin de période précédente
+                                                                        n’est pas nul.
+RG17 Si le champ « autres-entrées » contient une valeur positive dans   Produit <libellé
+     une balance des stocks (droits suspendus ou droits acquittés),     personnalisé> : d’autres
+     alors la zone observations de la balance des stocks en question    entrées ont été renseignées, le
+     ne doit pas être vide.                                             champ "observations" doit
+                                                                        être rempli.
+RG18 Si le champ « autres-sorties» contient une valeur positive dans    Produit <libellé
+     une balance des stocks (droits suspendus ou droits acquittés),     personnalisé> : d’autres
+     alors la zone observations de la balance des stocks en question    sorties ont été renseignées, le
+     ne doit pas être vide.                                             champ "observations" doit
+                                                                        être rempli.
+RG19 Si le champ "replacements" est valorisé, alors la zone             Produit <libellé
+     observations de la balance des stocks en question ne doit pas      personnalisé> : un
+
+
+
+                                                                                          Page 26/35
+Code                          Tests et conditions                               Message si erreur
+ RG
+        être vide.                                                        replacement en suspension de
+                                                                          droits a été renseigné, le
+                                                                          champ "observations" doit
+                                                                          être rempli.
+RG20 Le mois et l’année du replacement en suspension saisi ne             Produit <libellé
+     peuvent dater de plus de deux ans à compter du mois et de            personnalisé> : les
+     l’année de taxation en cours.                                        replacements en suspension
+                                                                          de droits doivent concerner
+                                                                          des périodes remontant au
+                                                                          maximum à 2 ans à compter
+                                                                          de la période de taxation en
+                                                                          cours.
+RG21 Si l'exercice commercial de l'opérateur est à cheval sur 2 années
+     civiles, alors l'opérateur bénéficiant de la DRA doit saisir les 2
+     champs qui sont dans l’ élément sorties-avec-paiement-droits :                        /
+     -sorties-avec-paiement-annee-precedente
+     -sorties-avec-paiement-annee-courante
+RG22 Pour les libellés fiscaux                                            Les libellés fiscaux de
+     « MATIERES_PREMIERES_SPIRITUEUX » et                                 matières premières
+     « MATIERES_PREMIERES_ALCOOLS », les balises :                        interdisent l'utilisation de
+         • replacements                                                   replacements et les sorties
+         • sorties-avec-paiement-droits                                   avec paiement de droits.
+      doivent être vides.
+
+RG23 Les libellés fiscaux                                                 Il est interdit de déclarer des
+     « MATIERES_PREMIERES_SPIRITUEUX » et                                 matières premières dans les
+     « MATIERES_PREMIERES_ALCOOLS » ne sont pas                           balances en droits acquittés.
+     autorisés dans les balances de stocks en droits acquittés.
+RG39 La mise sur le marché en Corse n’est autorisée que pour les vins Il est interdit de déclarer une
+     tranquilles et les vins mousseux.et uniquement si le code postal mise sur le marché en Corse si
+                                                                      le produit n’est pas un vin
+     de l’EFS est en Corse                                            tranquille ou un vin mousseux
+                                                                          ou si l’EFS n’est pas en Corse.
+RG40 Un produit indiqué comme étant prémix via la balise idoine           Le produit <libellé personnalisé>
+     ayant pour valeur true doit avoir un TAV compris entre 1,2 et        indiqué comme étant prémix n’a
+                                                                          pas un TAV cohérent.
+     12 % (bornes exclues)
+RG41 En cas d’ajout d’un nouveau produit dont le libellé                  Le produit "<libellé
+     fiscal est                                                           personnalisé>" se réfère au
+                                                                          libellé fiscal
+     RHUM_TRADITIONNEL_DOM_ART_1 ou                                       <libellé fiscal>. La valeur
+     RHUM_TRADITIONNEL_DOM_CONTINGENT_FISCAL,                             renseignée
+     le TAV doit                                                          pour le TAV est invalide. En
+     être supérieur ou égal à 39,8 %.                                     application de l'article <article de
+                                                                          loi>, la valeur du TAV doit
+                                                                          être un nombre positif supérieur
+                                                                          ou égal à 39,8 avec au plus
+                                                                          deux
+                                                                          décimales.
+RG42 A partir de 2022, les produits PETILLANTS,
+
+
+
+                                                                                               Page 27/35
+Code                         Tests et conditions                              Message si erreur
+ RG
+       PETILLANTS_PREMIX, PETILLANTS_PREMIX_DOM,
+       HYDROMELS, HYDROMELS_PREMIX,
+       HYDROMELS_PREMIX_DOM, CIDRES, POIRES,
+       RHUM_TRADITIONNEL_DOM_ART_1 et
+       RHUM_TRADITIONNEL_DOM_ART_2 ne sont plus valides
+       et doivent être remplacés respectivement par les produits
+       PETILLANTS_INF_8_5, PETILLANTS_INF_8_5_PREMIX,
+       PETILLANTS_INF_8_5_PREMIX_DOM,
+       HYDROMELS_INF_8_5, HYDROMELS_INF_8_5_PREMIX,
+       HYDROMELS_INF_8_5_PREMIX_DOM,
+       CIDRES_INF_8_5, POIRES_INF_8_5,
+       RHUM_TRADITIONNEL_DOM_CONTINGENT_FISCAL et
+       RHUM_TRADITIONNEL_DOM_HORS_CONTINGENT_FI
+       SCAL.
+       Les produits BIERE_SUP_18_PETITE_BRASSERIE_xxx,
+       BIERE_SUP_2_8_PETITE_BRASSERIE_xxx,
+       BIERE_SUP_2_8_PETITE_BRASSERIE_xxx_PREMIX et
+       BIERE_SUP_2_8_PETITE_BRASSERIE_xxx_PREMIX_DO
+       M (où xxx correspond à la production maximum de la
+       brasserie) doivent être remplacés respectivement par les
+       produits BIERE_PETITE_BRASSERIE_SUP_18,
+       BIERE_PETITE_BRASSERIE_SUP_2_8,
+       BIERE_PETITE_BRASSERIE_SUP_2_8_PREMIX et
+       BIERE_PETITE_BRASSERIE_SUP_2_8_PREMIX_DOM (la
+       production de la brasserie n’est pas précisée).
+       Si les anciens produits sont déclarés dans le fichier, ils sont
+       automatiquement remplacés par leur nouvelle version.
+
+5.4 Compte CRD
+Code                     Tests et conditions                             Message si erreur
+ RG
+RG24 Pour les EA en acquittés (l'agrément contient la lettre   Un compte CRD a été saisi alors
+     "A"), il ne doit pas y avoir de compte CRD.               que l’agrément ne l’autorise pas.
+RG25 Une même catégorie fiscale de capsules ne peut            Erreur sur les types de capsules
+     apparaître que deux fois maximum dans un même             déclarés.
+     compte CRD.
+RG26 Pour chaque catégorie de produits, il n'est possible   Erreur sur les types de capsules
+     d'avoir dans les comptes CRD que les types de capsules déclarés.
+     suivants :
+         • capsules personnalisées en DS
+         • capsules collectives en DS
+         • capsules personnalisées + collectives en DS (2
+             comptes distincts)
+         • capsules collectives en DA
+         • capsules collectives en DA + collectives en DS
+             (2 comptes distincts)
+
+
+
+
+                                                                                         Page 28/35
+Code                      Tests et conditions                            Message si erreur
+ RG
+RG27 Dans un même compte CRD, une centilisation définie           Une même centilisation est
+     ne peut apparaître qu’une seule fois (unicité de             présente plusieurs fois pour la
+     l’attribut « volume » de la centilisation pour une           catégorie CRD <catégorie>
+     catégorie fiscale donnée et un type de capsules donné).      (<type de capsule>).
+     Cette règle exclut la centilisation « AUTRE ».
+RG28 Pour une centilisation donnée, le stock de fin de période Le stock de fin de période de la
+     doit être égal « stock-debut-période » + « entrées-       centilisation <volume> pour la
+     capsules » - « sorties-capsules ».                        catégorie <catégorie> (<type de
+                                                               capsule> ne correspond pas aux
+                                                               entrées et sorties.
+RG29 Si une centilisation d’un compte existe dans la            La centilisation <volume> pour
+     déclaration précédente et n’a pas été repris dans la       la catégorie <catégorie> (<type
+     déclaration transmise, alors le stock de fin de période    de capsule>) n’est pas reprise
+     de cette centilisation pour la déclaration précédente doit dans la déclaration alors que son
+     être de 0.                                                 stock théorique de fin de période
+                                                                précédente n’est pas nul.
+RG30 Pour une centilisation ‘AUTRE’, le volume                    Une centilisation pour la
+     personnalisé et l’indicateur de ‘bag-in-box’ sont            catégorie <catégorie> (<type de
+     obligatoires.                                                capsule>) n'est pas correctement
+                                                                  renseignée.
+RG31 Pour une centilisation ‘AUTRE’, le couple « volume       Erreur sur les types de capsules
+     personnalisé + indicateur ‘bag-in-box » doit être unique déclarés.
+     dans un même compte CRD.
+RG32 Pour une centilisation ‘AUTRE’, le volume                    La centilisation personnalisée
+     personnalisé et l’indicateur bag-in-box ne doivent pas       <volume> pour la catégorie
+     être déjà prévus dans la liste définie des centilisations.   <catégorie> (<type de
+                                                                  capsule>) existe déjà dans la
+                                                                  liste de définition prévue.
+RG33 Avec la déclaration précédente, CIEL effectue un         La centilisation <volume> pour
+     contrôle de correspondance des comptes CRD.              la catégorie <catégorie> (<type
+     Pour chaque centilisation de CRD retrouvée, la valeur de capsule>) doit avoir un stock
+     de « stock-début-période » doit être égale au stock de   de début de période égal au stock
+     fin de période de la déclaration précédente.             de fin de période de la
+     Cette règle n’est pas appliquée pour la première période déclaration précédente.
+     de l’exercice.
+RG34 Élément sorties-avec-paiement-droits
+     Si l’élement sorties-avec-paiement-droits est présent,
+     alors il doit contenir au moins l’un de ces 2 éléments :
+     -sorties-avec-paiement-annee-precedente
+     -sorties-avec-paiement-annee-courante
+RG43 Si, pour une centilisation, le champ « autres-entrees » Le champ Observation doit être
+     contient une valeur positive dans un mouvement, alors renseigné pour la centilisation
+     la zone observations du mouvement en question ne doit <volume> de la catégorie
+     pas être vide.                                          <catégorie> (<type de
+                                                             capsule>) car des autres entrées
+                                                             ont été saisies.
+
+
+
+                                                                                            Page 29/35
+Code                     Tests et conditions                             Message si erreur
+ RG
+RG44 Si, pour une centilisation, le champ « autres-sorties » Le champ Observation doit être
+     contient une valeur positive dans un mouvement, alors renseigné pour la centilisation
+     la zone observations du mouvement en question ne doit <volume> de la catégorie
+     pas être vide.                                          <catégorie> (<type de
+                                                             capsule>) car des autres sorties
+                                                             ont été saisies.
+
+
+
+5.5 Autres données de la déclaration
+
+Code                     Tests et conditions                             Message si erreur
+RG
+RG35 Si le numéro d’agrément contient la lettre « A », alors      L'agrément n'autorise pas les
+     le type de document ne peut être que « DSA/DSAC ».           types de documents
+     Dans le cas contraire, il ne peut s’agir que du type de      d'accompagnement saisis.
+     document « DAA/DAC » ou « DSA/DSAC ».
+RG36 Le champ « numero-accise-destinataire » accepte :            Le numéro d’accise destinataire
+        • soit un numéro d’accises alphanumérique de 13           saisi dans le relevé de non
+           caractères                                             apurement n’est pas correct ou
+                                                                  n’existe pas dans le référentiel
+        • soit un code bureau alphanumérique de 8                 des opérateurs de la DGDDI.
+           caractères maximum
+       Si le numéro d’accise commence par « FR » et contient 13
+       caractères, alors une vérification de l’existence de
+       l’opérateur destinataire dans ROSA (référentiel edes
+       opérateurs) est effectuée.
+RG37 Pour les documents d’accompagnement, les champs              Les références des documents
+     « debut-periode » (Première référence de la période ) et     d'accompagnement ne peuvent
+     « fin-periode » (Dernière référence de la période)           pas être des nombres négatifs,
+                                                                  nuls ou décimaux.
+     acceptent :
+         • soit une chaîne de caractères
+         • soit un numérique strictement positif
+     Dans le cas de la chaîne de caractères, toute valeur est
+     acceptée.
+RG38 Pour les documents d’accompagnement, le champ                Le nombre de référence dans la
+     « nombre-document-empreinte » (nombre de                     période doit être un entier
+     référence(s) dans la période ) accepte uniquement un         strictement positif.
+     entier strictement positif.
+
+
+
+
+                                                                                           Page 30/35
+Code                     Tests et conditions                       Message si erreur
+RG
+RG39 En cas d’ajout d’un nouveau produit de la catégorie    Le produit "<libellé
+     « Alcools » le TAV doit être strictement supérieur à   personnalisé>" se réfère au
+     1,2 % vol.                                             libellé fiscal <libellé fiscal>. La
+                                                            valeur renseignée pour le TAV
+                                                            est invalide. En application de
+                                                            l'article L. 313-15 du CIBS, la
+                                                            valeur du TAV doit être un
+                                                            nombre positif strictement
+                                                            supérieur à 1,2 avec au plus
+                                                            deux décimales.
+
+
+
+
+                                                                                       Page 31/35
+6          ANNEXES
+
+6.1        Cardinalités d’élément XML
+
+Ce document utilise des cardinalités pour les éléments XML. Il s’agit du nombre d’occurrences
+d’un élément pouvant apparaître dans son élément parent. Ces cardinalités sont définies dans le
+tableau suivant :
+
+Cardinalité                                          Description
+      0..1      L’élément peut ne pas apparaître, ou apparaître une fois seulement.
+       1        L’élément doit apparaître une fois, et une fois seulement.
+      0..*      L’élément peut ne pas apparaître, apparaître une fois ou apparaître plusieurs fois.
+
+
+6.2        Types primitifs de XSD
+
+Ce document utilise plusieurs types primitifs fournis par le XSD. Ces types sont définis dans le
+tableau suivant :
+
+                Type                          Description                         Exemple
+boolean                             Booléen                            true
+date                                Date                               2014-07-21
+dateTime                            Date et heure                      2014-07-21T14:54:26
+decimal                             Nombre décimal                     1234.56789
+gMonth                              Mois                               --07
+gYear                               Année                              2014
+gYearMonth                          Mois et année                      2014-07
+int                                 Nombre entier                      12
+nonNegativeInteger                  Nombre entier positif ou nul       4
+string                              Chaîne de caractères               Ceci est un exemple.
+
+
+6.3        Liste des libellés fiscaux
+
+
+VT_IG_AOP
+VT_IG_IGP
+VT_SANS_IG_CEPAGE
+VT_SANS_IG_CEPAGE_PREMIX
+VT_SANS_IG_CEPAGE_PREMIX_DOM
+VT_SANS_IG_AUTRES
+VT_SANS_IG_AUTRES_PREMIX
+VT_SANS_IG_AUTRES_PREMIX_DOM
+VM_IG_AOP
+
+
+                                                                                                Page 32/35
+VM_IG_IGP
+VM_SANS_IG_CEPAGE
+VM_SANS_IG_CEPAGE_PREMIX
+VM_SANS_IG_CEPAGE_PREMIX_DOM
+VM_SANS_IG_AUTRES
+VM_SANS_IG_AUTRES_PREMIX
+VM_SANS_IG_AUTRES_PREMIX_DOM
+VT_ETRANGERS
+VT_ETRANGERS_PREMIX
+VT_ETRANGERS_PREMIX_DOM
+VM_ETRANGERS
+VM_ETRANGERS_PREMIX
+VM_ETRANGERS_PREMIX_DOM
+BOISSONS_FERMENTEES_AUTRES
+BOISSONS_FERMENTEES_AUTRES_PREMIX
+BOISSONS_FERMENTEES_AUTRES_PREMIX_DOM
+CIDRES
+CIDRES_INF_8_5
+POIRES
+POIRES_INF_8_5
+HYDROMELS
+HYDROMELS_INF_8_5
+HYDROMELS_PREMIX
+HYDROMELS_INF_8_5_PREMIX
+HYDROMELS_PREMIX_DOM
+HYDROMELS_INF_8_5_PREMIX_DOM
+PETILLANTS
+PETILLANTS_INF_8_5
+PETILLANTS_PREMIX
+PETILLANTS_INF_8_5_PREMIX
+PETILLANTS_PREMIX_DOM
+PETILLANTS_INF_8_5_PREMIX_DOM
+VDN_VDL_AOP_SUP_18
+VDN_VDL_AOP_INF_18
+AUTRES_PI_SUP_18
+AUTRES_PI_SUP_18_HORS_CSS
+AUTRES_PI_INF_18
+AUTRES_PI_INF_18_PREMIX
+AUTRES_PI_INF_18_PREMIX_DOM
+BIERE_INF_2_8
+BIERE_INF_2_8_PREMIX
+BIERE_INF_2_8_PREMIX_DOM
+BIERE_SUP_18_BRASSERIE_TAUX_NORMAL
+BIERE_SUP_2_8_BRASSERIE_TAUX_NORMAL
+BIERE_SUP_2_8_BRASSERIE_TAUX_NORMAL_PREMIX
+BIERE_SUP_2_8_BRASSERIE_TAUX_NORMAL_PREMIX_DOM
+BIERE_PETITE_BRASSERIE_SUP_18
+BIERE_PETITE_BRASSERIE_SUP_2_8
+BIERE_PETITE_BRASSERIE_SUP_2_8_PREMIX
+BIERE_PETITE_BRASSERIE_SUP_2_8_PREMIX_DOM
+BIERE_SUP_18_PETITE_BRASSERIE_10000
+BIERE_SUP_2_8_PETITE_BRASSERIE_10000
+
+
+
+                                                 Page 33/35
+BIERE_SUP_2_8_PETITE_BRASSERIE_10000_PREMIX
+BIERE_SUP_2_8_PETITE_BRASSERIE_10000_PREMIX_DOM
+BIERE_SUP_18_PETITE_BRASSERIE_50000
+BIERE_SUP_2_8_PETITE_BRASSERIE_50000
+BIERE_SUP_2_8_PETITE_BRASSERIE_50000_PREMIX
+BIERE_SUP_2_8_PETITE_BRASSERIE_50000_PREMIX_DOM
+BIERE_SUP_18_PETITE_BRASSERIE_200000
+BIERE_SUP_2_8_PETITE_BRASSERIE_200000
+BIERE_SUP_2_8_PETITE_BRASSERIE_200000_PREMIX
+BIERE_SUP_2_8_PETITE_BRASSERIE_200000_PREMIX_DOM
+RHUM_TRADITIONNEL_DOM_ART_1
+RHUM_TRADITIONNEL_DOM_ART_2
+RHUM_TRADITIONNEL_DOM_CONTINGENT_FISCAL
+RHUM_TRADITIONNEL_DOM_HORS_CONTINGENT_FISCAL
+RHUM_TIERS_ET_AUTRES
+ALCOOL_AUTRE_SUP_18
+ALCOOL_AUTRE_SUP_18_HORS_CSS
+ALCOOL_AUTRE_INF_18
+ALCOOL_AUTRE_INF_18_PREMIX
+COMPLEMENTS_ALIMENTAIRES
+COMPLEMENTS_ALIMENTAIRES_PREMIX
+COMPLEMENTS_ALIMENTAIRES_PREMIX_DOM
+COMPLEMENTS_ALIMENTAIRES_CSS
+RHUM_GUADELOUPE
+RHUM_MARTINIQUE
+RHUM_GUYANE
+RHUM_REUNION
+SPIRITUEUX_GUADELOUPE_SUP_18
+SPIRITUEUX_GUADELOUPE_INF_18
+SPIRITUEUX_GUADELOUPE_INF_18_PREMIX
+SPIRITUEUX_MARTINIQUE_SUP_18
+SPIRITUEUX_MARTINIQUE_INF_18
+SPIRITUEUX_MARTINIQUE_INF_18_PREMIX
+SPIRITUEUX_GUYANE_SUP_18
+SPIRITUEUX_GUYANE_INF_18
+SPIRITUEUX_GUYANE_INF_18_PREMIX
+SPIRITUEUX_REUNION_SUP_18
+SPIRITUEUX_REUNION_INF_18
+SPIRITUEUX_REUNION_INF_18_PREMIX
+AUTRES_ALCOOLS_SUP_18
+AUTRES_ALCOOLS_SUP_18_HORS_CSS
+AUTRES_ALCOOLS_INF_18
+AUTRES_ALCOOLS_INF_18_PREMIX
+AUTRES_PI_SUP_18_PREMIX
+AUTRES_PI_SUP_18_PREMIX_DOM
+BIERE_SUP_18_BRASSERIE_TAUX_NORMAL_PREMIX
+BIERE_SUP_18_BRASSERIE_TAUX_NORMAL_PREMIX_DOM
+BIERE_PETITE_BRASSERIE_SUP_18_PREMIX
+BIERE_PETITE_BRASSERIE_SUP_18_PREMIX_DOM
+ALCOOL_AUTRE_SUP_18_PREMIX
+AUTRES_ALCOOLS_SUP_18_PREMIX
+SPIRITUEUX_GUADELOUPE_SUP_18_PREMIX
+SPIRITUEUX_MARTINIQUE_SUP_18_PREMIX
+SPIRITUEUX_GUYANE_SUP_18_PREMIX
+
+
+                                                   Page 34/35
+SPIRITUEUX_REUNION_SUP_18_PREMIX
+
+
+
+
+                                   Page 35/35
+

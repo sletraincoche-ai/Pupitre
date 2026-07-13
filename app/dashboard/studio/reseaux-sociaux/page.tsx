@@ -36,7 +36,7 @@ function versContenuEdite(p: PublicationReelle): ContenuEdite {
 
 export default function ReseauxSociauxPage() {
   const { charte } = useIdentity();
-  const { connecte, info } = useMetaConnection();
+  const { connecte, instagram } = useMetaConnection();
   const { ouvrir: ouvrirConnexions } = useConnexionsModal();
   const { publications, hydrated, mettreAJour, creer } = usePublications();
   const [sourceId, setSourceId] = useState<string | null>(null);
@@ -73,7 +73,8 @@ export default function ReseauxSociauxPage() {
 
   async function publierMaintenant() {
     if (!sourceId || !edited) return;
-    if (!connecte) {
+    const canalPret = edited.plateforme === "Instagram" ? instagram.connecte : connecte;
+    if (!canalPret) {
       ouvrirConnexions();
       return;
     }
@@ -83,7 +84,18 @@ export default function ReseauxSociauxPage() {
       toast.error("Échec de la publication.");
       return;
     }
-    toast.success(`Publié sur ${edited.plateforme}${info?.demo ? " (démo)" : ""}`);
+    const endpoint = publication.plateforme === "Facebook" ? "/api/studio/publish-facebook" : "/api/studio/publish-instagram";
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ publicationId: publication.id }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      toast.error(data.error ?? `La publication ${publication.plateforme} a échoué.`);
+      return;
+    }
+    toast.success(`Publié sur ${edited.plateforme}`);
     selectionnerSuivant(traite);
   }
 

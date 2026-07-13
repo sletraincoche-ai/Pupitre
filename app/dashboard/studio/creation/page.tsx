@@ -45,7 +45,7 @@ const emailVide: EmailEdite = {
 
 export default function CreationPage() {
   const { charte } = useIdentity();
-  const { connecte, info } = useMetaConnection();
+  const { connecte, instagram } = useMetaConnection();
   const { connecte: gmailConnecte, info: gmailInfo } = useGmailConnection();
   const { ouvrir: ouvrirConnexions } = useConnexionsModal();
   const { clients } = useClients();
@@ -72,7 +72,8 @@ export default function CreationPage() {
   }
 
   async function publierReseaux(statut: StatutPublication, message: string) {
-    if (statut !== "brouillon" && !connecte) {
+    const canalPret = contenuReseaux.plateforme === "Instagram" ? instagram.connecte : connecte;
+    if (statut !== "brouillon" && !canalPret) {
       ouvrirConnexions();
       return;
     }
@@ -80,6 +81,19 @@ export default function CreationPage() {
     if (!publication) {
       toast.error("Échec de l'enregistrement.");
       return;
+    }
+    if (statut === "publiee") {
+      const endpoint = publication.plateforme === "Facebook" ? "/api/studio/publish-facebook" : "/api/studio/publish-instagram";
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ publicationId: publication.id }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? `La publication ${publication.plateforme} a échoué.`);
+        return;
+      }
     }
     toast.success(message);
     setContenuReseaux(contenuVide);
@@ -237,9 +251,7 @@ export default function CreationPage() {
                 <div className="flex flex-wrap gap-2 border-t border-white/15 pt-5">
                   <Button
                     className="rounded-lg bg-gold text-white hover:bg-gold/90"
-                    onClick={() =>
-                      publierReseaux("publiee", `Publié sur ${contenuReseaux.plateforme}${info?.demo ? " (démo)" : ""}`)
-                    }
+                    onClick={() => publierReseaux("publiee", `Publié sur ${contenuReseaux.plateforme}`)}
                   >
                     <Send className="size-4" />
                     Publier maintenant

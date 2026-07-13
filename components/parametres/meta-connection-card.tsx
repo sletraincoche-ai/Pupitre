@@ -10,25 +10,22 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { InstagramBadge, FacebookBadge } from "@/components/studio/brand-icons";
+import { FacebookBadge } from "@/components/studio/brand-icons";
 import { MetaQrModal } from "@/components/parametres/meta-qr-modal";
 import { useMetaConnection } from "@/lib/meta-connection-context";
 
 const messagesErreur: Record<string, { titre: string; description: string }> = {
-  oauth_denied: {
+  not_configured: {
+    titre: "Meta pas encore configuré",
+    description: "Les identifiants OAuth Meta ne sont pas encore renseignés côté serveur.",
+  },
+  refused: {
     titre: "Connexion annulée",
     description: "L'autorisation a été refusée ou interrompue. Vous pouvez réessayer à tout moment.",
   },
   no_page: {
     titre: "Aucune Page Facebook trouvée",
-    description:
-      "Votre compte Meta doit gérer au moins une Page Facebook pour publier depuis le Studio.",
-  },
-  no_business_account: {
-    titre: "Compte Instagram non Business",
-    description:
-      "Votre compte Instagram doit être un compte Professionnel (Business) lié à votre Page Facebook, et non un compte personnel.",
+    description: "Votre compte Meta doit gérer au moins une Page Facebook pour publier depuis le Studio.",
   },
   unknown: {
     titre: "Connexion impossible",
@@ -36,23 +33,17 @@ const messagesErreur: Record<string, { titre: string; description: string }> = {
   },
 };
 
-export function MetaConnectionCard({
-  erreur,
-  connexionEnCours,
-}: {
-  erreur?: string;
-  connexionEnCours?: boolean;
-}) {
-  const { connecte, info, deconnecter } = useMetaConnection();
+export function MetaConnectionCard({ erreur }: { erreur?: string }) {
+  const { connecte, choixPageRequis, info, deconnecter } = useMetaConnection();
   const [qrOuvert, setQrOuvert] = useState(false);
 
-  if (connexionEnCours) {
+  if (choixPageRequis) {
     return (
       <Card className="border border-border/70 bg-card shadow-none">
         <CardContent className="flex flex-col items-center gap-3 px-6 py-10 text-center">
-          <Loader2 className="size-6 animate-spin text-vine" />
-          <p className="font-medium text-ink">Connexion en cours…</p>
-          <p className="text-sm text-stone">Vérification de votre compte Instagram Business.</p>
+          <Loader2 className="size-6 text-vine" />
+          <p className="font-medium text-ink">Choisissez votre Page Facebook</p>
+          <p className="text-sm text-stone">Plusieurs Pages disponibles — la sélection se fait depuis Studio IA &gt; Connexions.</p>
         </CardContent>
       </Card>
     );
@@ -63,35 +54,17 @@ export function MetaConnectionCard({
       <Card className="border border-border/70 bg-card shadow-none">
         <CardHeader className="px-6">
           <div className="flex items-center gap-2">
-            <InstagramBadge className="size-7" />
             <FacebookBadge className="size-7" />
           </div>
-          <CardTitle>Instagram & Facebook</CardTitle>
+          <CardTitle>Facebook</CardTitle>
           <CardDescription>Connecté — publication directe active depuis le Studio</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 px-6">
-          {info.demo && (
-            <p className="flex items-center gap-1.5 rounded-lg bg-gold/10 px-3 py-2 text-xs font-medium text-gold">
-              <AlertTriangle className="size-3.5" />
-              Compte de démonstration — branchez vos vraies clés Meta pour une connexion réelle
-            </p>
-          )}
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarFallback className="bg-vine/10 text-vine">
-                {info.instagramInitiales}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="text-sm font-medium text-ink">@{info.instagramUsername}</p>
-              <p className="text-xs text-stone">Compte Instagram Business</p>
-            </div>
-          </div>
           <div className="flex items-center gap-2 text-sm text-ink">
             <Check className="size-4 text-vine" />
-            Page Facebook liée : <span className="font-medium">{info.facebookPageName}</span>
+            Page Facebook liée : <span className="font-medium">{info.pageName}</span>
           </div>
-          <p className="text-xs text-stone">Connecté le {info.dateConnexion}</p>
+          <p className="text-xs text-stone">Connecté le {info.connecteLe}</p>
           <Button variant="outline" className="self-start" onClick={deconnecter}>
             Déconnecter
           </Button>
@@ -106,12 +79,11 @@ export function MetaConnectionCard({
     <Card className="border border-border/70 bg-card shadow-none">
       <CardHeader className="px-6">
         <div className="flex items-center gap-2">
-          <InstagramBadge className="size-7" />
           <FacebookBadge className="size-7" />
         </div>
-        <CardTitle>Instagram & Facebook</CardTitle>
+        <CardTitle>Facebook</CardTitle>
         <CardDescription>
-          Connectez vos comptes pour publier directement depuis le Studio, sans repasser par les
+          Connectez votre Page pour publier directement depuis le Studio, sans repasser par les
           apps Meta.
         </CardDescription>
       </CardHeader>
@@ -138,7 +110,7 @@ export function MetaConnectionCard({
           <Button
             className="bg-vine text-white hover:bg-vine/90"
             nativeButton={false}
-            render={<a href="/api/auth/meta/start">Connecter Instagram & Facebook</a>}
+            render={<a href="/api/auth/meta/start">Connecter Facebook</a>}
           />
           <Button variant="outline" onClick={() => setQrOuvert(true)}>
             <QrCode className="size-4" />

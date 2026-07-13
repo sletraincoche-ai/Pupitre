@@ -1,25 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isMetaConfigured, buildMetaAuthUrl } from "@/lib/meta";
+import { getCurrentUser } from "@/lib/auth";
 
 // N'autorise que des chemins internes du dashboard comme page de retour —
 // jamais une URL arbitraire fournie par la query string (open redirect).
 function sanitizeRetour(valeur: string | null): string {
   if (valeur && valeur.startsWith("/dashboard/")) return valeur;
-  return "/dashboard/parametres";
+  return "/dashboard/studio";
 }
 
-// Point d'entrée unique du flux de connexion Meta — utilisé aussi bien par
-// le bouton "Connecter" que par le QR code (scanné depuis un autre
-// appareil), depuis Paramètres ou directement depuis Studio IA. Bascule
-// automatiquement entre le vrai flux OAuth et le mode simulation selon la
-// présence des variables d'environnement.
+// Point d'entrée du flux de connexion Meta (Facebook uniquement — voir
+// lib/meta.ts). Le `state` transporte la page de retour, encodée pour
+// traverser sans altération le dialogue OAuth de Facebook.
 export async function GET(request: NextRequest) {
   const origin = request.nextUrl.origin;
   const retour = sanitizeRetour(request.nextUrl.searchParams.get("retour"));
 
-  if (isMetaConfigured()) {
-    return NextResponse.redirect(buildMetaAuthUrl(retour));
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.redirect(`${origin}/dashboard/studio`);
   }
 
-  return NextResponse.redirect(`${origin}${retour}?meta_simulate=1`);
+  if (!isMetaConfigured()) {
+    return NextResponse.redirect(`${origin}${retour}?meta_error=not_configured`);
+  }
+
+  const state = Buffer.from(JSON.stringify({ retour })).toString("base64url");
+  return NextResponse.redirect(buildMetaAuthUrl(state));
 }

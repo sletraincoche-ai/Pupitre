@@ -14,6 +14,14 @@ import { useClients } from "@/lib/clients-context";
 import { visites } from "@/lib/mock-data";
 import { getMouvementsClient, getStatsClient } from "@/lib/clients";
 
+// DETTE TECHNIQUE CONNUE (2026-07-12) : cuvees/mouvements viennent
+// encore du stock mock (lib/cave-context.tsx), pas de la vraie Cave
+// reconstruite (voir app/dashboard/cave/page.tsx, lib/cave-api.ts).
+// Lecture seule ici (historique d'achats affiché), donc pas de risque
+// de corruption de données réglementaires contrairement à une écriture
+// — reporté volontairement au chantier Clients à venir plutôt que
+// traité incidemment ici. Décision utilisateur du 2026-07-12, voir
+// mémoire projet_pupitre_cave.
 export default function ClientFichePage() {
   const params = useParams<{ id: string }>();
   const { cuvees, mouvements } = useCave();

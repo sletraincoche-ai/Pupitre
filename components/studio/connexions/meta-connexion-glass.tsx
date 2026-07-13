@@ -5,15 +5,17 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { QrCode, AlertTriangle, Check, Loader2 } from "lucide-react";
 import { GlassPanel } from "@/components/glass/glass-panel";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { InstagramBadge, FacebookBadge } from "@/components/studio/brand-icons";
+import { FacebookBadge, InstagramBadge } from "@/components/studio/brand-icons";
 import { MetaQrModal } from "@/components/parametres/meta-qr-modal";
 import { useMetaConnection } from "@/lib/meta-connection-context";
-import { domaineProfile } from "@/lib/mock-data";
 
 const messagesErreur: Record<string, { titre: string; description: string }> = {
-  oauth_denied: {
+  not_configured: {
+    titre: "Meta pas encore configuré",
+    description: "Les identifiants OAuth Meta ne sont pas encore renseignés côté serveur.",
+  },
+  refused: {
     titre: "Connexion annulée",
     description: "L'autorisation a été refusée ou interrompue. Vous pouvez réessayer à tout moment.",
   },
@@ -21,83 +23,102 @@ const messagesErreur: Record<string, { titre: string; description: string }> = {
     titre: "Aucune Page Facebook trouvée",
     description: "Votre compte Meta doit gérer au moins une Page Facebook pour publier depuis le Studio.",
   },
-  no_business_account: {
-    titre: "Compte Instagram non Business",
-    description:
-      "Votre compte Instagram doit être un compte Professionnel (Business) lié à votre Page Facebook, et non un compte personnel.",
-  },
   unknown: {
     titre: "Connexion impossible",
     description: "Une erreur inattendue est survenue pendant la connexion. Réessayez dans un instant.",
   },
 };
 
-function dateDuJour() {
-  return new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
-}
+type PageFacebookOption = { id: string; name: string };
 
-// Reprend le flux OAuth (réel ou simulé) déjà géré par
-// app/api/auth/meta/*, mais lit les paramètres de retour ici pour ne
-// jamais faire quitter le Studio vers Paramètres — la connexion se fait
-// entièrement depuis Studio IA.
+// Connexion Facebook réelle (OAuth2 Facebook Login) — le bouton
+// "Connecter" est un vrai lien vers /api/auth/meta/start. Si le compte
+// gère plusieurs Pages, un sélecteur s'affiche pour choisir laquelle
+// utiliser (voir /api/studio/meta/pages) avant que la publication ne
+// soit débloquée.
 export function MetaConnexionGlass() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { connecte, info, connecter, deconnecter } = useMetaConnection();
+  const { connecte, choixPageRequis, info, instagram, deconnecter, rafraichir } = useMetaConnection();
   const [qrOuvert, setQrOuvert] = useState(false);
-  const [connexionEnCours, setConnexionEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | undefined>(undefined);
+  const [pages, setPages] = useState<PageFacebookOption[] | null>(null);
+  const [selectionEnCours, setSelectionEnCours] = useState<string | null>(null);
 
   useEffect(() => {
-    const simulate = searchParams.get("meta_simulate");
-    const connected = searchParams.get("meta_connected");
+    const connecteParam = searchParams.get("meta_connected");
     const erreurParam = searchParams.get("meta_error");
 
-    if (simulate) {
-      setConnexionEnCours(true);
-      const delai = setTimeout(() => {
-        connecter({
-          demo: true,
-          instagramUsername: domaineProfile.instagramHandle,
-          instagramInitiales: domaineProfile.initiales,
-          facebookPageName: domaineProfile.facebookHandle,
-          dateConnexion: dateDuJour(),
-        });
-        setConnexionEnCours(false);
-        router.replace(window.location.pathname);
-      }, 1500);
-      return () => clearTimeout(delai);
-    }
-
-    if (connected) {
-      const igUsername = searchParams.get("ig_username") ?? "";
-      connecter({
-        demo: false,
-        instagramUsername: igUsername,
-        instagramInitiales: igUsername.slice(0, 2).toUpperCase() || "??",
-        facebookPageName: searchParams.get("page_name") ?? "",
-        dateConnexion: dateDuJour(),
-      });
-      router.replace(window.location.pathname);
+    if (connecteParam) {
+      rafraichir();
+      router.replace(pathname);
       return;
     }
-
     if (erreurParam) {
       setErreur(erreurParam);
-      router.replace(window.location.pathname);
+      router.replace(pathname);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  if (connexionEnCours) {
+  useEffect(() => {
+    if (!choixPageRequis) {
+      setPages(null);
+      return;
+    }
+    fetch("/api/studio/meta/pages")
+      .then((r) => r.json())
+      .then((data) => setPages(data.pages ?? []))
+      .catch(() => setPages([]));
+  }, [choixPageRequis]);
+
+  async function choisirPage(pageId: string) {
+    setSelectionEnCours(pageId);
+    try {
+      const res = await fetch("/api/studio/meta/pages", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ pageId }),
+      });
+      if (res.ok) await rafraichir();
+    } finally {
+      setSelectionEnCours(null);
+    }
+  }
+
+  if (choixPageRequis) {
     return (
-      <GlassPanel intensity="light" className="p-6">
-        <div className="flex flex-col items-center gap-3 py-4 text-center">
-          <Loader2 className="size-6 animate-spin text-gold" />
-          <p className="font-medium text-white">Connexion en cours…</p>
-          <p className="text-sm text-white/60">Vérification de votre compte Instagram Business.</p>
+      <GlassPanel intensity="light" className="flex flex-col gap-4 p-6">
+        <div className="flex items-center gap-2">
+          <FacebookBadge className="size-7" />
         </div>
+        <div>
+          <p className="text-base font-semibold text-white">Choisissez votre Page Facebook</p>
+          <p className="text-sm text-white/60">
+            Votre compte gère plusieurs Pages — sélectionnez celle à utiliser pour publier depuis
+            le Studio.
+          </p>
+        </div>
+        {pages === null ? (
+          <p className="text-sm text-white/50">Chargement des Pages…</p>
+        ) : pages.length === 0 ? (
+          <p className="text-sm text-white/50">Aucune Page trouvée.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {pages.map((page) => (
+              <button
+                key={page.id}
+                onClick={() => choisirPage(page.id)}
+                disabled={selectionEnCours !== null}
+                className="flex items-center justify-between rounded-lg border border-white/20 px-3 py-2.5 text-left text-sm text-white transition-colors hover:bg-white/10 disabled:opacity-50"
+              >
+                {page.name}
+                {selectionEnCours === page.id && <Loader2 className="size-4 animate-spin" />}
+              </button>
+            ))}
+          </div>
+        )}
       </GlassPanel>
     );
   }
@@ -106,33 +127,51 @@ export function MetaConnexionGlass() {
     return (
       <GlassPanel intensity="light" className="flex flex-col gap-4 p-6">
         <div className="flex items-center gap-2">
-          <InstagramBadge className="size-7" />
           <FacebookBadge className="size-7" />
         </div>
         <div>
-          <p className="text-base font-semibold text-white">Instagram & Facebook</p>
+          <p className="text-base font-semibold text-white">Facebook</p>
           <p className="text-sm text-white/60">Connecté — publication directe active depuis le Studio</p>
-        </div>
-        {info.demo && (
-          <p className="flex items-center gap-1.5 rounded-lg bg-gold/15 px-3 py-2 text-xs font-medium text-gold">
-            <AlertTriangle className="size-3.5" />
-            Compte de démonstration — branchez vos vraies clés Meta pour une connexion réelle
-          </p>
-        )}
-        <div className="flex items-center gap-3">
-          <Avatar>
-            <AvatarFallback className="bg-white/10 text-white">{info.instagramInitiales}</AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="text-sm font-medium text-white">@{info.instagramUsername}</p>
-            <p className="text-xs text-white/55">Compte Instagram Business</p>
-          </div>
         </div>
         <div className="flex items-center gap-2 text-sm text-white/85">
           <Check className="size-4 text-gold" />
-          Page Facebook liée : <span className="font-medium">{info.facebookPageName}</span>
+          Page Facebook liée : <span className="font-medium">{info.pageName}</span>
         </div>
-        <p className="text-xs text-white/50">Connecté le {info.dateConnexion}</p>
+        <p className="text-xs text-white/50">Connecté le {info.connecteLe}</p>
+
+        <div className="flex flex-col gap-2 rounded-lg border border-white/15 p-3">
+          <div className="flex items-center gap-2">
+            <InstagramBadge className="size-6" />
+            <p className="text-sm font-semibold text-white">Instagram</p>
+          </div>
+          {instagram.connecte ? (
+            <div className="flex items-center gap-2 text-sm text-white/85">
+              <Check className="size-4 text-gold" />
+              Connecté — @{instagram.username}
+            </div>
+          ) : instagram.permissionManquante ? (
+            <>
+              <p className="text-sm text-white/60">
+                Compte Instagram Business @{instagram.username} détecté, mais la publication n&apos;est
+                pas encore autorisée.
+              </p>
+              <Button
+                className="self-start bg-gold text-white hover:bg-gold/90"
+                nativeButton={false}
+                render={
+                  <a href={`/api/auth/meta/start?retour=${encodeURIComponent(pathname)}`}>
+                    Autoriser la publication Instagram
+                  </a>
+                }
+              />
+            </>
+          ) : (
+            <p className="text-sm text-white/60">
+              Aucun compte Instagram Business lié à cette Page Facebook.
+            </p>
+          )}
+        </div>
+
         <Button
           variant="outline"
           className="self-start border-white/20 bg-transparent text-white hover:bg-white/10"
@@ -150,7 +189,6 @@ export function MetaConnexionGlass() {
     <GlassPanel intensity="light" className="flex flex-col gap-4 p-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <InstagramBadge className="size-7" />
           <FacebookBadge className="size-7" />
         </div>
         <Badge variant="outline" className="border-white/20 text-white/70">
@@ -158,10 +196,10 @@ export function MetaConnexionGlass() {
         </Badge>
       </div>
       <div>
-        <p className="text-base font-semibold text-white">Instagram & Facebook</p>
+        <p className="text-base font-semibold text-white">Facebook</p>
         <p className="text-sm text-white/60">
-          Connectez vos comptes pour publier directement depuis le Studio, sans repasser par les
-          apps Meta.
+          Connectez votre Page Facebook pour publier directement depuis le Studio, sans repasser
+          par les apps Meta.
         </p>
       </div>
 
@@ -171,14 +209,6 @@ export function MetaConnexionGlass() {
           <div>
             <p className="font-medium">{erreurInfo.titre}</p>
             <p className="mt-0.5 text-destructive/90">{erreurInfo.description}</p>
-            <a
-              href="https://www.facebook.com/business/help"
-              target="_blank"
-              rel="noreferrer"
-              className="mt-1 inline-block underline"
-            >
-              Voir l&apos;aide Meta Business
-            </a>
           </div>
         </div>
       )}
@@ -187,11 +217,7 @@ export function MetaConnexionGlass() {
         <Button
           className="bg-gold text-white hover:bg-gold/90"
           nativeButton={false}
-          render={
-            <a href={`/api/auth/meta/start?retour=${encodeURIComponent(pathname)}`}>
-              Connecter Instagram & Facebook
-            </a>
-          }
+          render={<a href={`/api/auth/meta/start?retour=${encodeURIComponent(pathname)}`}>Connecter Facebook</a>}
         />
         <Button
           variant="outline"
