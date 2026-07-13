@@ -312,6 +312,338 @@ create table if not exists cave_parametres (
   )
 );
 
+-- Identité légale du domaine, nécessaire aux mentions obligatoires sur
+-- facture (Code de commerce L441-9/L441-10, CGI art. 289) — mêmes
+-- paramètres domaine que Cave, cave_parametres étendue plutôt qu'une
+-- nouvelle table (l'énoncé du chantier Facturation le demande
+-- explicitement : "le même enregistrement minimal créé pour Cave").
+-- iban/bic : réservés pour le moyen de paiement affiché sur facture et
+-- pour BT-84 (Factur-X). mention_penalites_retard est éditable mais
+-- préremplie avec un texte conforme par défaut (taux légal supplétif
+-- BCE+10pts, indemnité forfaitaire de 40€/facture, art. D441-5 Code de
+-- commerce) au moment de la création du paramétrage côté API.
+alter table cave_parametres add column if not exists raison_sociale text;
+alter table cave_parametres add column if not exists forme_juridique text;
+alter table cave_parametres add column if not exists capital_social numeric(12,2);
+alter table cave_parametres add column if not exists siret text;
+alter table cave_parametres add column if not exists tva_intracommunautaire text;
+alter table cave_parametres add column if not exists rcs_ville text;
+alter table cave_parametres add column if not exists adresse text;
+alter table cave_parametres add column if not exists code_postal text;
+alter table cave_parametres add column if not exists ville text;
+alter table cave_parametres add column if not exists pays text not null default 'FR';
+alter table cave_parametres add column if not exists iban text;
+alter table cave_parametres add column if not exists bic text;
+alter table cave_parametres add column if not exists mention_penalites_retard text;
+
+-- ============================================================
+-- Facturation — devis, bons de livraison, factures et avoirs nés
+-- attachés au registre de Cave (jamais de saisie de vente séparée).
+-- Recherche réglementaire menée directement (BOFiP, Légifrance,
+-- economie.gouv.fr) le 13/07/2026 avant de coder — voir mémoire projet
+-- pour le détail des sources.
+-- ============================================================
+
+-- Table clients minimale et RÉELLE (pas de mock) — la catégorie Clients
+-- (CRM complet : tags, segments, origine...) reste un chantier séparé à
+-- venir, qui ÉTENDRA cette même table plutôt que de la remplacer :
+-- l'identifiant créé ici doit rester valide tel quel. profil détermine
+-- la tarification par défaut (cave_produits.prix_particulier/
+-- professionnel/chr) — voir plus bas.
+create table if not exists clients (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  nom text not null,
+  profil text not null default 'particulier' check (profil in ('particulier', 'professionnel', 'chr')),
+  email text,
+  adresse text,
+  code_postal text,
+  ville text,
+  pays text not null default 'FR',
+  -- Requis en pratique pour professionnel/chr (facture B2B), mais pas
+  -- contraint en base : un particulier peut exceptionnellement avoir un
+  -- SIRET (micro-entrepreneur acheteur professionnel occasionnel).
+  siret text,
+  tva_intracommunautaire text,
+  created_at timestamptz not null default now()
+);
+create index if not exists clients_user_id_idx on clients(user_id);
+
+-- Tarification multi-profil — colonnes ajoutées à cave_produits plutôt
+-- qu'une table de prix parallèle (même principe que le reste du
+-- chantier Cave) ; nulles = pas de tarif spécifique, retombe sur
+-- prix_vente_defaut.
+alter table cave_produits add column if not exists prix_particulier numeric(10,2);
+alter table cave_produits add column if not exists prix_professionnel numeric(10,2);
+alter table cave_produits add column if not exists prix_chr numeric(10,2);
+
+-- Compteur de numérotation légale — une séquence CONTINUE et
+-- INDÉPENDANTE par (utilisateur, type de document, année) : la loi
+-- exige une suite chronologique sans trou par série, jamais un
+-- compteur partagé entre plusieurs redevables (confirmé BOFiP
+-- BOI-TVA-DECLA-30-20-20-10). La remise à zéro est autorisée en début
+-- d'exercice, jamais en cours d'année. Incrémenté de façon atomique via
+-- INSERT ... ON CONFLICT DO UPDATE ... RETURNING (voir
+-- lib/facturation-numerotation.ts) pour éviter tout doublon en cas de
+-- création concurrente.
+create table if not exists facturation_sequences (
+  user_id uuid not null references users(id) on delete cascade,
+  type text not null check (type in ('facture', 'avoir', 'devis', 'bon_livraison')),
+  annee int not null,
+  dernier_numero int not null default 0,
+  primary key (user_id, type, annee)
+);
+
+-- Fonction serveur plutôt qu'un INSERT...ON CONFLICT exécuté depuis le
+-- client PostgREST : une fonction garantit que l'incrémentation tient
+-- dans une seule requête atomique (pas d'aller-retour réseau entre la
+-- lecture et l'écriture), donc aucune race condition possible même en
+-- cas de créations concurrentes de factures. Appelée via
+-- supabaseAdmin.rpc(...) — voir lib/facturation-numerotation.ts.
+create or replace function facturation_prochain_numero(p_user_id uuid, p_type text, p_annee int)
+returns int
+language sql
+as $$
+  insert into facturation_sequences (user_id, type, annee, dernier_numero)
+  values (p_user_id, p_type, p_annee, 1)
+  on conflict (user_id, type, annee)
+  do update set dernier_numero = facturation_sequences.dernier_numero + 1
+  returning dernier_numero;
+$$;
+
+-- Un même type de document couvre devis/BL/facture/avoir : structure
+-- quasi identique (client, lignes, montants), et une transformation
+-- (devis -> facture, BL -> facture) doit rester une simple création de
+-- ligne référençant le document source, jamais une réécriture. numero
+-- est NULL tant que le document est en brouillon (RG légale : le
+-- numéro n'existe qu'à l'émission, jamais avant, jamais modifié après)
+-- et devient définitif et immuable dès statut='emis' (appliqué côté
+-- API, pas par une contrainte SQL — voir la route d'émission).
+create table if not exists facturation_documents (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  type text not null check (type in ('facture', 'avoir', 'devis', 'bon_livraison')),
+  numero text,
+  statut text not null default 'brouillon' check (statut in ('brouillon', 'emis', 'annule')),
+  statut_paiement text check (statut_paiement in ('non_payee', 'partiellement_payee', 'payee')),
+
+  client_id uuid references clients(id),
+  -- Instantané des coordonnées client au moment de l'émission — une
+  -- facture émise ne doit jamais changer même si la fiche client change
+  -- ensuite (le client_id reste la référence stable pour la navigation,
+  -- ce snapshot est ce qui est légalement opposable).
+  client_nom_snapshot text,
+  client_adresse_snapshot text,
+  client_siret_snapshot text,
+  client_tva_snapshot text,
+
+  -- Devis transformé en facture, ou avoir référençant sa facture
+  -- d'origine — jamais de duplication, juste une chaîne de références.
+  document_source_id uuid references facturation_documents(id),
+
+  date_emission date,
+  date_echeance date,
+
+  -- Champs Factur-X réservés dès maintenant (structure prête, XML non
+  -- généré dans ce chantier — voir recherche réglementaire) :
+  -- document_type_code = UNTDID 1001 (380 facture, 381 avoir),
+  -- code_moyen_paiement = UNTDID 4461 (30 virement, 58 SEPA, 20 chèque,
+  -- 10 espèces).
+  document_type_code text,
+  devise text not null default 'EUR',
+
+  total_ht numeric(12,2) not null default 0,
+  total_tva numeric(12,2) not null default 0,
+  total_ttc numeric(12,2) not null default 0,
+
+  mode_paiement text,
+  code_moyen_paiement text,
+  mention_penalites_retard text,
+
+  observations text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists facturation_documents_user_id_idx on facturation_documents(user_id);
+create index if not exists facturation_documents_client_id_idx on facturation_documents(client_id);
+
+-- Lignes de document. cave_mouvement_id est LE lien avec Cave — pas de
+-- table parallèle : dès qu'une ligne représente une sortie de stock
+-- réelle (facture ou BL émis), le mouvement est créé via la même API
+-- que le reste de Cave (POST /api/cave/mouvements) et son id stocké
+-- ici. unite en code UN/ECE Rec 20 (C62 = "unité", pertinent pour une
+-- bouteille) — champ Factur-X réservé.
+create table if not exists facturation_lignes (
+  id uuid primary key default gen_random_uuid(),
+  document_id uuid not null references facturation_documents(id) on delete cascade,
+  designation text not null,
+  quantite numeric(10,3) not null check (quantite > 0),
+  unite text not null default 'C62',
+  prix_unitaire_ht numeric(10,2) not null,
+  taux_tva numeric(5,2) not null default 20.00,
+  -- UNCL 5305 — S = taux standard, la quasi-totalité des lignes vin.
+  code_categorie_tva text not null default 'S',
+  montant_ht numeric(12,2) not null,
+
+  cave_produit_id uuid references cave_produits(id),
+  cave_mouvement_id uuid references cave_mouvements(id),
+
+  ordre int not null default 0
+);
+create index if not exists facturation_lignes_document_id_idx on facturation_lignes(document_id);
+
+-- ============================================================
+-- Caisse conforme loi anti-fraude TVA (CGI art. 286 I 3° bis, principe
+-- ISCA) pour la vente comptoir de Cave (cave_mouvements.type =
+-- 'vente_comptoir'). Un ticket par mouvement (unique), jamais une
+-- table de ventes séparée : c'est une couche d'intégrité fiscale
+-- au-dessus du mouvement existant, pas un doublon de la vente
+-- elle-même. Inaltérabilité + sécurisation = chaînage par empreinte
+-- (hash de ce ticket = fonction du hash du ticket précédent), aucune
+-- route d'UPDATE/DELETE n'est exposée pour cette table — voir
+-- lib/caisse.ts.
+-- ============================================================
+create table if not exists caisse_tickets (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  mouvement_id uuid not null unique references cave_mouvements(id),
+  numero_ticket int not null,
+  montant_ttc numeric(12,2) not null,
+  hash text not null,
+  hash_precedent text,
+  horodatage timestamptz not null default now(),
+  unique (user_id, numero_ticket)
+);
+create index if not exists caisse_tickets_user_id_idx on caisse_tickets(user_id);
+
+-- create or replace ne peut pas changer le type d'un paramètre existant
+-- (numeric -> numeric(12,2)) : DROP explicite sur l'ancienne signature
+-- avant recréation, pour que ce fichier reste applicable de façon
+-- idempotente même après ce changement de type.
+drop function if exists caisse_creer_ticket(uuid, uuid, numeric);
+
+-- Fonction serveur (pas de logique côté client) pour le chaînage —
+-- SELECT ... FOR UPDATE verrouille la ligne du dernier ticket le temps
+-- de la transaction, empêchant deux créations concurrentes de calculer
+-- le même hash_precedent/numero_ticket. digest(...) vient de pgcrypto,
+-- déjà activée en tête de ce fichier. Le contenu haché reprend tous les
+-- champs qui doivent rester inaltérables (montant, horodatage, numéro,
+-- hash précédent) : toute modification a posteriori d'un de ces champs
+-- casserait la chaîne de manière détectable.
+--
+-- p_montant_ttc typé numeric(12,2) explicitement (pas juste "numeric") :
+-- sans cette précision fixe, ::text peut produire "120" pour un appel
+-- RPC JSON avec la valeur 120 alors que la colonne stockée
+-- caisse_tickets.montant_ttc (numeric(12,2)) donnera toujours "120.00"
+-- une fois relue — bug réel constaté à l'exécution le 13/07/2026 :
+-- caisse_verifier_chaine signalait le premier ticket comme invalide à
+-- cause de cette seule divergence de formatage, alors que rien n'avait
+-- été altéré. Corrigé en forçant le même type des deux côtés.
+create or replace function caisse_creer_ticket(p_user_id uuid, p_mouvement_id uuid, p_montant_ttc numeric(12,2))
+returns table(numero_ticket int, hash text, hash_precedent text, horodatage timestamptz)
+language plpgsql
+as $$
+declare
+  v_dernier_numero int;
+  v_dernier_hash text;
+  v_horodatage timestamptz := now();
+  v_hash text;
+begin
+  select ct.numero_ticket, ct.hash into v_dernier_numero, v_dernier_hash
+  from caisse_tickets ct
+  where ct.user_id = p_user_id
+  order by ct.numero_ticket desc
+  limit 1
+  for update;
+
+  v_dernier_numero := coalesce(v_dernier_numero, 0) + 1;
+  -- CAST EXPLICITE requis ici, pas seulement le type déclaré du
+  -- paramètre : Postgres n'applique PAS le typmod (12,2) sur les
+  -- arguments de fonction (confirmé empiriquement le 13/07/2026,
+  -- _probe(60::numeric(12,2)) renvoie "60", pas "60.00") — sans ce
+  -- cast explicite ici, le hash ne correspond pas à ce que
+  -- caisse_verifier_chaine recalcule en relisant la colonne
+  -- montant_ttc (elle, une vraie colonne numeric(12,2), donne
+  -- toujours "60.00").
+  v_hash := encode(
+    digest(
+      coalesce(v_dernier_hash, '') || '|' || p_user_id::text || '|' || p_mouvement_id::text
+        || '|' || (p_montant_ttc::numeric(12,2))::text || '|' || v_horodatage::text || '|' || v_dernier_numero::text,
+      'sha256'
+    ),
+    'hex'
+  );
+
+  insert into caisse_tickets (user_id, mouvement_id, numero_ticket, montant_ttc, hash, hash_precedent, horodatage)
+  values (p_user_id, p_mouvement_id, v_dernier_numero, p_montant_ttc, v_hash, v_dernier_hash, v_horodatage);
+
+  return query select v_dernier_numero, v_hash, v_dernier_hash, v_horodatage;
+end;
+$$;
+
+-- Vérification d'intégrité — recalcule chaque hash avec EXACTEMENT la
+-- même construction de chaîne que caisse_creer_ticket ci-dessus (même
+-- fonction SQL, donc mêmes conversions ::text, aucun risque de
+-- divergence de formatage qu'une réimplémentation côté JS aurait pu
+-- introduire) et la compare à ce qui est stocké. Utilisée par
+-- lib/caisse.ts plutôt que de recalculer les hashs en JavaScript.
+create or replace function caisse_verifier_chaine(p_user_id uuid)
+returns table(valide boolean, premiere_anomalie int)
+language plpgsql
+as $$
+declare
+  v_ticket record;
+  v_hash_attendu text := null;
+  v_hash_recalcule text;
+begin
+  for v_ticket in
+    select numero_ticket, mouvement_id, montant_ttc, hash, hash_precedent, horodatage
+    from caisse_tickets
+    where user_id = p_user_id
+    order by numero_ticket asc
+  loop
+    if v_ticket.hash_precedent is distinct from v_hash_attendu then
+      return query select false, v_ticket.numero_ticket;
+      return;
+    end if;
+
+    v_hash_recalcule := encode(
+      digest(
+        coalesce(v_hash_attendu, '') || '|' || p_user_id::text || '|' || v_ticket.mouvement_id::text
+          || '|' || v_ticket.montant_ttc::text || '|' || v_ticket.horodatage::text || '|' || v_ticket.numero_ticket::text,
+        'sha256'
+      ),
+      'hex'
+    );
+    if v_hash_recalcule is distinct from v_ticket.hash then
+      return query select false, v_ticket.numero_ticket;
+      return;
+    end if;
+
+    v_hash_attendu := v_ticket.hash;
+  end loop;
+
+  return query select true, null::int;
+end;
+$$;
+
+-- Clôtures journalière/mensuelle/annuelle cumulatives (exigence de
+-- conservation ISCA) — periode est "AAAA-MM-JJ"/"AAAA-MM"/"AAAA" selon
+-- le type. hash_cloture inclut le hash du dernier ticket de la période,
+-- ce qui rend la clôture elle-même vérifiable contre la chaîne de
+-- tickets.
+create table if not exists caisse_clotures (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  type text not null check (type in ('journaliere', 'mensuelle', 'annuelle')),
+  periode text not null,
+  total_ttc numeric(12,2) not null,
+  nombre_tickets int not null,
+  hash_cloture text not null,
+  cree_le timestamptz not null default now(),
+  unique (user_id, type, periode)
+);
+
 -- Table d'événements partagée — contrat de données central du
 -- chantier : chaque mouvement de cave significatif (dégorgement, vente,
 -- perte importante) y génère une ligne, qui alimentera Agenda.

@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Users, GlassWater, CalendarDays, Warehouse, FileText, Settings } from "lucide-react";
+import { LayoutDashboard, Users, GlassWater, CalendarDays, Warehouse, Receipt, FileText, Settings } from "lucide-react";
 import { GlassBackground } from "@/components/glass/glass-background";
 import { GlassSearchBar } from "@/components/glass/glass-search";
 import { GlassSidebar, type GlassNavGroup } from "@/components/glass/glass-sidebar";
@@ -23,6 +23,7 @@ function useNavGroups(): GlassNavGroup[] {
         { href: "/dashboard/visites", label: "Visites", icon: GlassWater },
         { href: "/dashboard/agenda", label: "Agenda", icon: CalendarDays },
         { href: "/dashboard/cave", label: "Cave", icon: Warehouse },
+        { href: "/dashboard/facturation", label: "Facturation", icon: Receipt },
       ],
     },
     {
