@@ -28,6 +28,9 @@ export type DocumentFacturation = {
   statut_paiement: "non_payee" | "partiellement_payee" | "payee" | null;
   client_id: string | null;
   client_nom_snapshot: string | null;
+  client_adresse_snapshot: string | null;
+  client_siret_snapshot: string | null;
+  client_tva_snapshot: string | null;
   document_source_id: string | null;
   date_emission: string | null;
   date_echeance: string | null;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Send, ArrowRightLeft, Trash2 } from "lucide-react";
+import { FileText, Send, ArrowRightLeft, Trash2, Eye } from "lucide-react";
 import { facturationApi, type DocumentFacturation, type TypeDocumentFacturation } from "@/lib/facturation-api";
 import { GlassEmptyState } from "@/components/glass/glass-empty-state";
 
@@ -13,7 +13,7 @@ function BadgeStatut({ document }: { document: DocumentFacturation }) {
   return <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-xs text-emerald-200">Émis — {document.numero}</span>;
 }
 
-export function DocumentsGlass({ documents, onChange }: { documents: DocumentFacturation[]; onChange: () => void }) {
+export function DocumentsGlass({ documents, onChange, onApercu }: { documents: DocumentFacturation[]; onChange: () => void; onApercu: (id: string) => void }) {
   const [enCours, setEnCours] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
 
@@ -62,14 +62,17 @@ export function DocumentsGlass({ documents, onChange }: { documents: DocumentFac
       {erreur && <p className="mb-1 text-xs text-red-300">{erreur}</p>}
       {documents.map((d) => (
         <div key={d.id} className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-white/5">
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm text-white">
+          <button onClick={() => onApercu(d.id)} className="min-w-0 flex-1 text-left">
+            <p className="truncate text-sm text-white hover:underline">
               {LABELS_TYPE[d.type]} {d.numero ? `— ${d.numero}` : ""} {d.client_nom_snapshot ? `— ${d.client_nom_snapshot}` : ""}
             </p>
             <p className="truncate text-xs text-white/55">
               {d.total_ttc.toFixed(2)} € TTC — {new Date(d.created_at).toLocaleDateString("fr-FR")}
             </p>
-          </div>
+          </button>
+          <button onClick={() => onApercu(d.id)} aria-label="Aperçu" className="flex size-7 shrink-0 items-center justify-center rounded-full text-white/50 hover:bg-white/10 hover:text-white">
+            <Eye className="size-3.5" />
+          </button>
           <BadgeStatut document={d} />
           {d.statut === "brouillon" && (
             <>

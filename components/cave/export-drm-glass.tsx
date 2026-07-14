@@ -11,6 +11,11 @@ function moisPrecedentAAAA_MM(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function moisCourantAAAA_MM(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 function derniersMois(n: number): string[] {
   const mois: string[] = [];
   const d = new Date();
@@ -58,10 +63,24 @@ export function ExportDrmGlass({ numeroAgrement }: { numeroAgrement: string | nu
     const parPeriode: Record<string, Declaration> = {};
     for (const d of liste) parPeriode[d.periode] = { periode: d.periode, statut: d.statut as StatutDeclaration, genere_le: d.genere_le, depose_le: d.depose_le };
     setDeclarations(parPeriode);
+    return parPeriode;
   }
 
+  // Le mois précédent (cadence légale normale de la DRM) est le défaut
+  // le plus pertinent une fois l'activité en régime de croisière — mais
+  // sur un compte tout juste démarré, l'activité récente est presque
+  // toujours dans le mois EN COURS, et le mois précédent peut déjà être
+  // "déposée" (verrouillée, bouton Générer désactivé) suite à un test
+  // antérieur, ce qui donnait l'impression trompeuse d'un export cassé
+  // (constaté le 13/07/2026). On ne bascule sur le mois courant que
+  // dans ce cas précis — sinon le défaut légal (mois précédent) reste
+  // inchangé.
   useEffect(() => {
-    rafraichirDeclarations();
+    rafraichirDeclarations().then((parPeriode) => {
+      const moisPrecedent = moisPrecedentAAAA_MM();
+      if (parPeriode[moisPrecedent]?.statut === "depose") setPeriode(moisCourantAAAA_MM());
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Recharge le XML déjà généré pour la période sélectionnée (s'il
@@ -104,6 +123,10 @@ export function ExportDrmGlass({ numeroAgrement }: { numeroAgrement: string | nu
           Numéro d&apos;agrément non renseigné — à saisir dans Paramètres avant de générer un export.
         </p>
       )}
+
+      <p className="text-xs text-white/50">
+        La DRM se déclare pour le mois précédent, à déposer sur CIEL avant le 10 du mois en cours — mais vous pouvez générer n&apos;importe quelle période ci-dessous.
+      </p>
 
       {/* Statut par période — la déclaration de dépôt reste déclarative :
           Pupitre ne dépose jamais sur CIEL à la place de l'utilisateur,
@@ -152,6 +175,12 @@ export function ExportDrmGlass({ numeroAgrement }: { numeroAgrement: string | nu
         </button>
       </div>
 
+      {statutActuel === "depose" && (
+        <p className="text-xs text-white/50">
+          {libellePeriode(periode)} a déjà été déposée sur CIEL — la régénération est verrouillée pour cette période. Choisissez-en une autre ci-dessus pour en générer une nouvelle.
+        </p>
+      )}
+
       {erreur && <p className="text-xs text-red-300">{erreur}</p>}
 
       {xml && (
@@ -160,6 +189,11 @@ export function ExportDrmGlass({ numeroAgrement }: { numeroAgrement: string | nu
             <p className="text-sm text-white">Export pour {libellePeriode(periode)}</p>
             {statutActuel && <span className="rounded-full border border-white/15 px-2 py-0.5 text-xs text-white/70">{statutActuel}</span>}
           </div>
+          {!xml.includes("<droits-suspendus>") && !xml.includes("<compte-crd>") && (
+            <p className="mt-1 text-xs text-amber-200/80">
+              Aucun mouvement enregistré pour {libellePeriode(periode)} — le fichier ne contient que l&apos;en-tête (période + agrément), c&apos;est normal si rien ne s&apos;est passé ce mois-ci.
+            </p>
+          )}
           <div className="mt-2 flex gap-2">
             <button
               onClick={() => telechargerFichier(xml, `DRM-${periode}.xml`)}

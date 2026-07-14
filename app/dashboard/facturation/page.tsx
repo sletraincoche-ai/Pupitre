@@ -11,6 +11,7 @@ import { NouveauClientForm } from "@/components/facturation/nouveau-client-form"
 import { ParametresLegauxForm } from "@/components/facturation/parametres-legaux-form";
 import { CaisseGlass } from "@/components/facturation/caisse-glass";
 import { ExportComptableGlass } from "@/components/facturation/export-comptable-glass";
+import { DocumentApercu } from "@/components/facturation/document-apercu";
 import { facturationApi, type Client, type DocumentFacturation, type ParametresLegaux } from "@/lib/facturation-api";
 import { caveApi, type Produit } from "@/lib/cave-api";
 
@@ -29,6 +30,7 @@ export default function FacturationPage() {
   const [modalDocument, setModalDocument] = useState(false);
   const [modalClient, setModalClient] = useState(false);
   const [modalParametres, setModalParametres] = useState(false);
+  const [apercuId, setApercuId] = useState<string | null>(null);
 
   async function rafraichirDocuments() {
     const { documents } = await facturationApi.listerDocuments();
@@ -99,7 +101,7 @@ export default function FacturationPage() {
         <GlassPanel intensity="regular" className="p-4">
           <p className="mb-3 text-sm font-medium text-white/85">Devis, bons de livraison, factures</p>
           <div className="h-[320px] overflow-y-auto">
-            <DocumentsGlass documents={documents} onChange={rafraichirDocuments} />
+            <DocumentsGlass documents={documents} onChange={rafraichirDocuments} onApercu={setApercuId} />
           </div>
         </GlassPanel>
 
@@ -147,6 +149,7 @@ export default function FacturationPage() {
           }}
         />
       </GlassModal>
+      {apercuId && <DocumentApercu documentId={apercuId} parametres={parametres} onClose={() => setApercuId(null)} />}
     </GlassPageShell>
   );
 }
