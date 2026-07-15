@@ -46,6 +46,7 @@ export type Mouvement = {
   annule_le: string | null;
   annule_par: string | null;
   motif_annulation: string | null;
+  visite_id: string | null;
   cave_produits?: { nom: string; millesime: string | null };
 };
 
@@ -124,6 +125,7 @@ export const caveApi = {
     prixUnitaire?: number;
     observations?: string;
     compteCapsuleId?: string;
+    visiteId?: string;
   }) =>
     appelJson<{ mouvement: Mouvement }>("/api/cave/mouvements", {
       method: "POST",

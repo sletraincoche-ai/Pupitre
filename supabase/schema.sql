@@ -682,3 +682,86 @@ create index if not exists evenements_type_idx on evenements(type_evenement);
 -- existe). "clients.inactif" échouait silencieusement sans ce correctif.
 alter table evenements drop constraint if exists evenements_source_check;
 alter table evenements add constraint evenements_source_check check (source in ('cave', 'facturation', 'agenda', 'studio', 'clients'));
+
+-- Chantier Visites — catalogue de formules, créneaux réels ouverts
+-- explicitement par le domaine (pas de moteur de récurrence — la
+-- "gestion avancée du planning" est hors périmètre), réservations en
+-- ligne/walk-in/manuelles. Paiement en ligne Stripe non câblé pour
+-- l'instant (aucune clé réelle disponible, décision explicite de
+-- l'utilisateur : construire le reste, laisser le paiement en attente
+-- réelle plutôt que de le simuler) : statut_paiement reste
+-- 'a_configurer' tant que la config Stripe n'existe pas.
+create table if not exists visites_formules (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  nom text not null,
+  description text,
+  duree_minutes integer not null check (duree_minutes > 0),
+  prix_par_personne numeric(10,2) not null check (prix_par_personne >= 0),
+  capacite_max integer not null check (capacite_max > 0),
+  archive boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists visites_formules_user_id_idx on visites_formules(user_id);
+
+-- Capacité restante calculée à la volée depuis les réservations actives
+-- (jamais stockée) — source de vérité unique, pas de compteur à
+-- resynchroniser.
+create table if not exists visites_creneaux (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  formule_id uuid not null references visites_formules(id) on delete cascade,
+  date date not null,
+  heure text not null,
+  capacite_max integer not null check (capacite_max > 0),
+  created_at timestamptz not null default now(),
+  unique (formule_id, date, heure)
+);
+create index if not exists visites_creneaux_user_id_idx on visites_creneaux(user_id);
+create index if not exists visites_creneaux_date_idx on visites_creneaux(date);
+
+create table if not exists visites_reservations (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  formule_id uuid not null references visites_formules(id) on delete restrict,
+  creneau_id uuid references visites_creneaux(id) on delete set null,
+  date date not null,
+  heure text not null,
+  personnes integer not null check (personnes > 0),
+  visiteur_nom text not null,
+  visiteur_email text,
+  visiteur_telephone text,
+  langue text not null default 'Français',
+  -- Association facultative et automatique par email/téléphone, jamais
+  -- bloquante, jamais de création forcée de fiche — même principe que la
+  -- "vente sans identité" de Cave étendu aux visiteurs.
+  client_id uuid references clients(id) on delete set null,
+  statut text not null default 'confirmee' check (statut in ('confirmee', 'arrivee', 'terminee', 'annulee')),
+  origine text not null default 'walk_in' check (origine in ('en_ligne', 'walk_in', 'manuel')),
+  statut_paiement text not null default 'a_configurer' check (statut_paiement in ('a_configurer', 'paye_sur_place', 'paye_ligne', 'rembourse')),
+  moyen_paiement text,
+  montant_du numeric(10,2),
+  note_anecdote text,
+  checkin_le timestamptz,
+  annule boolean not null default false,
+  annule_le timestamptz,
+  motif_annulation text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists visites_reservations_user_id_idx on visites_reservations(user_id);
+create index if not exists visites_reservations_date_idx on visites_reservations(date);
+create index if not exists visites_reservations_creneau_idx on visites_reservations(creneau_id);
+
+-- Lien optionnel vers la visite à l'origine d'une vente Cave — pour
+-- affichage seulement ("vente enregistrée" sur la carte réservation),
+-- jamais une deuxième source de vérité du stock/DRM.
+alter table cave_mouvements add column if not exists visite_id uuid references visites_reservations(id) on delete set null;
+
+-- Slug public de réservation — réutilise cave_parametres (même principe
+-- que l'extension faite pour Facturation : un seul enregistrement
+-- minimal par domaine, pas de table dédiée pour un champ).
+alter table cave_parametres add column if not exists slug_public text unique;
+
+alter table evenements drop constraint if exists evenements_source_check;
+alter table evenements add constraint evenements_source_check check (source in ('cave', 'facturation', 'agenda', 'studio', 'clients', 'visites'));

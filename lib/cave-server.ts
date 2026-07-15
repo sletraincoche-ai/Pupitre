@@ -70,6 +70,10 @@ export type ParametresMouvementCave = {
   prixUnitaire?: number;
   observations?: string;
   compteCapsuleId?: string;
+  // Lien d'affichage uniquement (chantier Visites) — permet de montrer
+  // "vente enregistrée" sur la carte réservation. Ne change rien au
+  // calcul du stock ni au DTI+, qui restent indifférents à ce champ.
+  visiteId?: string;
 };
 
 // Point d'entrée UNIQUE pour créer un mouvement de cave — utilisé par
@@ -145,6 +149,7 @@ export async function creerMouvementCave(userId: string, auteur: string, params:
       observations: observations || null,
       sous_categorie_dti: mapping.champDti ?? "aucune",
       auteur,
+      visite_id: params.visiteId ?? null,
     })
     .select("*")
     .single();

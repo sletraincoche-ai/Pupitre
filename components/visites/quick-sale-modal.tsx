@@ -2,32 +2,33 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Modal } from "@/components/ui/modal";
+import { GlassModal } from "@/components/glass/glass-modal";
 import { SaisieMouvement } from "@/components/cave/saisie-mouvement";
 import { caveApi, type Produit } from "@/lib/cave-api";
-import type { Visite } from "@/lib/mock-data";
 
-// Écrit désormais dans la vraie Cave (voir app/dashboard/cave/page.tsx
-// et lib/cave-api.ts) au lieu du stock mock (lib/cave-context.tsx) —
-// laisser une vente de dégustation sur le mock aurait recréé exactement
-// le problème que la reconstruction de Cave corrige : un stock réel et
-// un stock affiché déconnectés, et une DRM qui ignorerait ces ventes.
-// Le reste de Visites (planning, fiches client affichées ici) reste sur
-// mock-data.ts — seul ce point d'écriture a été rebranché, à la demande
-// explicite de l'utilisateur.
+// Écrit dans la vraie Cave (voir app/dashboard/cave/page.tsx et
+// lib/cave-api.ts) — un seul point d'écriture, réutilisé tel quel par le
+// chantier Visites (V1). Type découplé de lib/mock-data.ts : la
+// réservation transmise ici vient désormais du vrai backend Visites
+// (visites_reservations), plus jamais du mock.
 //
-// visite.clientId est un identifiant mock (ex. "c8", propre à
-// lib/mock-data.ts / clients-context.tsx) — jamais un uuid de la table
-// clients réelle. cave_mouvements.client_id est une colonne uuid : lui
-// transmettre cet id mock ferait échouer l'insertion (invalid input
-// syntax for type uuid). Seul le nom est donc transmis, en tant
-// qu'association libre (client_nom, colonne texte) — cohérent avec le
-// principe Clients : l'association reste toujours facultative.
+// clientId n'est transmis que s'il s'agit d'un vrai uuid de la table
+// clients (association automatique par email/téléphone, faite côté
+// serveur lors de la création de la réservation — voir
+// lib/visites-server.ts). visiteId permet d'afficher "vente enregistrée"
+// sur la carte réservation (cave_mouvements.visite_id, lien d'affichage
+// uniquement).
+export type CibleVenteVisite = {
+  id: string;
+  visiteurNom: string;
+  clientId?: string | null;
+};
+
 export function QuickSaleModal({
   visite,
   onClose,
 }: {
-  visite: Visite | null;
+  visite: CibleVenteVisite | null;
   onClose: () => void;
 }) {
   const [produits, setProduits] = useState<Produit[]>([]);
@@ -37,33 +38,29 @@ export function QuickSaleModal({
   }, [visite]);
 
   return (
-    <Modal open={!!visite} onClose={onClose} title="Enregistrer une vente" maxWidthClassName="max-w-2xl">
+    <GlassModal open={!!visite} onClose={onClose} title="Enregistrer une vente" maxWidthClassName="max-w-2xl">
       {visite &&
         (produits.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/60">
             Aucune cuvée déclarée en Cave pour l&apos;instant — créez-en une dans Cave avant d&apos;enregistrer une vente.
           </p>
         ) : (
-          // SaisieMouvement est stylé pour le fond translucide de Cave
-          // (texte blanc) — ce Modal est resté sur l'ancienne charte
-          // claire, d'où ce fond sombre local pour garder le contraste.
-          <div className="rounded-2xl bg-ink p-4">
-            <SaisieMouvement
-              produits={produits}
-              typesAutorises={["vente_comptoir", "vente_client"]}
-              typeInitial={visite.clientId ? "vente_client" : "vente_comptoir"}
-              clientPreselectionne={visite.clientId ? { nom: visite.client } : undefined}
-              compact
-              onCree={(mouvement) => {
-                toast.success("Vente enregistrée", {
-                  description: `${mouvement.quantite_bouteilles} bout. — se propage à la Cave et à la DRM`,
-                });
-                onClose();
-              }}
-              onAnnuler={onClose}
-            />
-          </div>
+          <SaisieMouvement
+            produits={produits}
+            typesAutorises={["vente_comptoir", "vente_client"]}
+            typeInitial={visite.clientId ? "vente_client" : "vente_comptoir"}
+            clientPreselectionne={{ id: visite.clientId ?? undefined, nom: visite.visiteurNom }}
+            visiteId={visite.id}
+            compact
+            onCree={(mouvement) => {
+              toast.success("Vente enregistrée", {
+                description: `${mouvement.quantite_bouteilles} bout. — se propage à la Cave et à la DRM`,
+              });
+              onClose();
+            }}
+            onAnnuler={onClose}
+          />
         ))}
-    </Modal>
+    </GlassModal>
   );
 }

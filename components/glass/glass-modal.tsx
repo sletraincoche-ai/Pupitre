@@ -6,9 +6,9 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Variante Liquid Glass du Modal générique (components/ui/modal.tsx) —
-// utilisée par le Studio IA et par la Cave reconstruite. Le Modal clair
-// reste utilisé tel quel par Agenda/Clients/Visites, non concernés par
-// cette conversion.
+// utilisée par le Studio IA, la Cave, Clients, Visites et la
+// Facturation reconstruits. Le Modal clair reste utilisé tel quel par
+// Agenda, non concerné par ces conversions.
 export function GlassModal({
   open,
   onClose,

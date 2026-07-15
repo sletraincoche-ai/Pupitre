@@ -29,6 +29,7 @@ export function SaisieMouvement({
   produitIdInitial,
   typeInitial,
   clientPreselectionne,
+  visiteId,
   compact = false,
   onCree,
   onAnnuler,
@@ -38,6 +39,7 @@ export function SaisieMouvement({
   produitIdInitial?: string;
   typeInitial?: TypeMouvement;
   clientPreselectionne?: { id?: string; nom: string };
+  visiteId?: string;
   compact?: boolean;
   onCree: (mouvement: Mouvement) => void;
   onAnnuler?: () => void;
@@ -75,6 +77,7 @@ export function SaisieMouvement({
         clientNom: clientPreselectionne?.nom,
         prixUnitaire: prixUnitaire ? Number(prixUnitaire) : undefined,
         observations: observations || undefined,
+        visiteId,
       });
       onCree(mouvement);
       setQuantite("");

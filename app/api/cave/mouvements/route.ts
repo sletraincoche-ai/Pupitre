@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       prixUnitaire: typeof body.prixUnitaire === "number" ? body.prixUnitaire : undefined,
       observations: typeof body.observations === "string" ? body.observations : undefined,
       compteCapsuleId: typeof body.compteCapsuleId === "string" ? body.compteCapsuleId : undefined,
+      visiteId: typeof body.visiteId === "string" ? body.visiteId : undefined,
     });
     return NextResponse.json({ mouvement }, { status: 201 });
   } catch (erreur) {
