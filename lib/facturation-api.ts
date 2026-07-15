@@ -100,10 +100,14 @@ export type LignePayload = {
 };
 
 export const facturationApi = {
-  listerClients: () => appelJson<{ clients: Client[] }>("/api/facturation/clients"),
+  // Route canonique unique pour la table clients — /api/clients (chantier
+  // Clients), jamais dupliquée. Facturation consomme la même API que
+  // l'écran Clients, pas une copie parallèle ("pas de mapping fragile
+  // après coup", brief Clients).
+  listerClients: () => appelJson<{ clients: Client[] }>("/api/clients"),
 
   creerClient: (payload: { nom: string; profil: ProfilClient; email?: string; adresse?: string; codePostal?: string; ville?: string; siret?: string; tvaIntracommunautaire?: string }) =>
-    appelJson<{ client: Client }>("/api/facturation/clients", {
+    appelJson<{ client: Client }>("/api/clients", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),

@@ -369,6 +369,20 @@ create table if not exists clients (
 );
 create index if not exists clients_user_id_idx on clients(user_id);
 
+-- Extension pour le chantier Clients (2026-07-15), comme annoncé
+-- ci-dessus au moment de la création de la table pendant Facturation —
+-- ALTER explicite plutôt qu'ajout dans le create table, la table existe
+-- déjà en prod. Pas de colonne "segment" : la segmentation est calculée
+-- à la lecture depuis Cave/Facturation (règles simples et transparentes,
+-- voir lib/clients-server.ts), jamais stockée ni resynchronisée pour
+-- éviter qu'elle devienne fausse avec le temps. tags reste un champ
+-- libre assigné par l'utilisateur (distinct de la segmentation
+-- automatique).
+alter table clients add column if not exists telephone text;
+alter table clients add column if not exists notes text;
+alter table clients add column if not exists tags jsonb not null default '[]'::jsonb;
+alter table clients add column if not exists origine text;
+
 -- Tarification multi-profil — colonnes ajoutées à cave_produits plutôt
 -- qu'une table de prix parallèle (même principe que le reste du
 -- chantier Cave) ; nulles = pas de tarif spécifique, retombe sur
@@ -655,10 +669,16 @@ create table if not exists evenements (
   user_id uuid not null references users(id) on delete cascade,
   type_evenement text not null,
   date date not null,
-  source text not null default 'cave' check (source in ('cave', 'facturation', 'agenda', 'studio')),
+  source text not null default 'cave' check (source in ('cave', 'facturation', 'agenda', 'studio', 'clients')),
   payload jsonb not null default '{}'::jsonb,
   declenche_contenu boolean not null default false,
   created_at timestamptz not null default now()
 );
 create index if not exists evenements_user_id_idx on evenements(user_id);
 create index if not exists evenements_type_idx on evenements(type_evenement);
+
+-- Clients (segmentation, grosse commande) écrit aussi dans evenements —
+-- contrainte élargie après coup (posée trop tôt, avant que ce chantier
+-- existe). "clients.inactif" échouait silencieusement sans ce correctif.
+alter table evenements drop constraint if exists evenements_source_check;
+alter table evenements add constraint evenements_source_check check (source in ('cave', 'facturation', 'agenda', 'studio', 'clients'));

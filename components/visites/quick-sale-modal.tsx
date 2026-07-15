@@ -15,6 +15,14 @@ import type { Visite } from "@/lib/mock-data";
 // Le reste de Visites (planning, fiches client affichées ici) reste sur
 // mock-data.ts — seul ce point d'écriture a été rebranché, à la demande
 // explicite de l'utilisateur.
+//
+// visite.clientId est un identifiant mock (ex. "c8", propre à
+// lib/mock-data.ts / clients-context.tsx) — jamais un uuid de la table
+// clients réelle. cave_mouvements.client_id est une colonne uuid : lui
+// transmettre cet id mock ferait échouer l'insertion (invalid input
+// syntax for type uuid). Seul le nom est donc transmis, en tant
+// qu'association libre (client_nom, colonne texte) — cohérent avec le
+// principe Clients : l'association reste toujours facultative.
 export function QuickSaleModal({
   visite,
   onClose,
@@ -44,7 +52,7 @@ export function QuickSaleModal({
               produits={produits}
               typesAutorises={["vente_comptoir", "vente_client"]}
               typeInitial={visite.clientId ? "vente_client" : "vente_comptoir"}
-              clientPreselectionne={visite.clientId ? { id: visite.clientId, nom: visite.client } : undefined}
+              clientPreselectionne={visite.clientId ? { nom: visite.client } : undefined}
               compact
               onCree={(mouvement) => {
                 toast.success("Vente enregistrée", {

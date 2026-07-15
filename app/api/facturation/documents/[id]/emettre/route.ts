@@ -80,6 +80,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       payload: { document_id: id, numero, montant_ttc: document.total_ttc, client_nom: document.client_nom_snapshot },
       declenche_contenu: Number(document.total_ttc) >= SEUIL_MONTANT_SIGNIFICATIF,
     });
+
+    // Événement distinct côté "clients" (chantier Clients) — une grosse
+    // commande est un jalon de relation client, pas seulement un
+    // événement comptable ; source: "clients" pour qu'Agenda/Studio IA
+    // puisse le traiter différemment d'une simple émission de facture.
+    if (document.client_id && Number(document.total_ttc) >= SEUIL_MONTANT_SIGNIFICATIF) {
+      await supabaseAdmin.from("evenements").insert({
+        user_id: user.id,
+        type_evenement: "clients.grosse_commande",
+        date: new Date().toISOString().slice(0, 10),
+        source: "clients",
+        payload: { client_id: document.client_id, client_nom: document.client_nom_snapshot, document_id: id, montant_ttc: document.total_ttc },
+        declenche_contenu: true,
+      });
+    }
   }
 
   return NextResponse.json({ document: documentEmis });
