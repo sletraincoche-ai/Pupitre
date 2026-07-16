@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -9,6 +10,16 @@ import { cn } from "@/lib/utils";
 // utilisée par le Studio IA, la Cave, Clients, Visites et la
 // Facturation reconstruits. Le Modal clair reste utilisé tel quel par
 // Agenda, non concerné par ces conversions.
+//
+// Rendu via portail (createPortal vers document.body) — jamais un enfant
+// direct de l'arbre React à l'endroit de son appel. Raison concrète : un
+// GlassModal ouvert depuis un composant imbriqué dans un GlassPanel (qui
+// pose backdrop-blur-xl) se retrouvait avec son "position: fixed" recadré
+// sur la boîte du panneau au lieu du viewport entier — le CSS
+// backdrop-filter établit un containing block pour ses descendants fixed
+// (même règle que "transform"), cassant le plein écran et coupant
+// visuellement le contenu du modal. Un portail rend ce bug impossible,
+// quel que soit l'endroit d'où GlassModal est appelé.
 export function GlassModal({
   open,
   onClose,
@@ -22,6 +33,9 @@ export function GlassModal({
   children: React.ReactNode;
   maxWidthClassName?: string;
 }) {
+  const [monte, setMonte] = useState(false);
+  useEffect(() => setMonte(true), []);
+
   useEffect(() => {
     if (!open) return;
     function handleKeydown(event: KeyboardEvent) {
@@ -31,7 +45,9 @@ export function GlassModal({
     return () => document.removeEventListener("keydown", handleKeydown);
   }, [open, onClose]);
 
-  return (
+  if (!monte) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto p-4 pt-[8vh] sm:p-6 sm:pt-[8vh]">
@@ -67,6 +83,7 @@ export function GlassModal({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

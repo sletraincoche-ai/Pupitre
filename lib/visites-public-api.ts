@@ -7,7 +7,9 @@ export type FormulePublique = {
   nom: string;
   description: string | null;
   duree_minutes: number;
+  mode_tarification: "gratuit" | "total" | "par_personne";
   prix_par_personne: number;
+  prix_total: number | null;
   capacite_max: number;
 };
 
@@ -15,7 +17,8 @@ export type CreneauPublic = {
   id: string;
   formule_id: string;
   date: string;
-  heure: string;
+  heureDebut: string;
+  heureFin: string;
   capaciteMax: number;
   restante: number;
 };
@@ -45,7 +48,7 @@ export const visitesPublicApi = {
       langue?: string;
     }
   ) =>
-    appelJson<{ reservation: { id: string; date: string; heure: string } }>(`/api/public/visites/${slug}/reserver`, {
+    appelJson<{ reservation: { id: string; date: string; heure_debut: string; heure_fin: string } }>(`/api/public/visites/${slug}/reserver`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),

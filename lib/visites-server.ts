@@ -36,23 +36,24 @@ export type CreneauDisponible = {
   id: string;
   formule_id: string;
   date: string;
-  heure: string;
+  heureDebut: string;
+  heureFin: string;
   capaciteMax: number;
   restante: number;
 };
 
 // Créneaux à venir (aujourd'hui inclus) avec au moins une place —
 // utilisé par la page publique de réservation. Pas de moteur de
-// récurrence : le domaine ouvre ses créneaux explicitement (Configuration).
+// récurrence : le domaine ouvre ses créneaux explicitement.
 export async function listerCreneauxDisponibles(userId: string, formuleId?: string): Promise<CreneauDisponible[]> {
   const aujourdhui = new Date().toISOString().slice(0, 10);
   let requete = supabaseAdmin
     .from("visites_creneaux")
-    .select("id, formule_id, date, heure, capacite_max")
+    .select("id, formule_id, date, heure_debut, heure_fin, capacite_max")
     .eq("user_id", userId)
     .gte("date", aujourdhui)
     .order("date", { ascending: true })
-    .order("heure", { ascending: true });
+    .order("heure_debut", { ascending: true });
   if (formuleId) requete = requete.eq("formule_id", formuleId);
 
   const { data: creneaux, error } = await requete;
@@ -79,7 +80,8 @@ export async function listerCreneauxDisponibles(userId: string, formuleId?: stri
       id: c.id,
       formule_id: c.formule_id,
       date: c.date,
-      heure: c.heure,
+      heureDebut: c.heure_debut,
+      heureFin: c.heure_fin,
       capaciteMax: c.capacite_max,
       restante: c.capacite_max - (reserveesParCreneau.get(c.id) ?? 0),
     }))
@@ -112,17 +114,45 @@ export async function matcherClient(userId: string, email?: string | null, telep
   return null;
 }
 
+type FormuleTarification = {
+  mode_tarification: "gratuit" | "total" | "par_personne";
+  prix_par_personne: number;
+  prix_total: number | null;
+};
+
+// Trois modes explicites (V2) — jamais un calcul opaque : gratuit (0€),
+// total (prix fixe du créneau, indépendant du nombre de participants),
+// par_personne (prix × participants, comportement historique).
+function calculerMontant(formule: FormuleTarification, personnes: number): number {
+  if (formule.mode_tarification === "gratuit") return 0;
+  if (formule.mode_tarification === "total") return formule.prix_total ?? 0;
+  return formule.prix_par_personne * personnes;
+}
+
+// "10:00" + 45 -> "10:45" — sert à déduire une heure de fin par défaut
+// pour les visites sans créneau explicite (walk-in), à partir de la
+// durée déclarée de la formule.
+function ajouterMinutes(heure: string, minutes: number): string {
+  const [h, m] = heure.split(":").map(Number);
+  const total = ((h * 60 + m + minutes) % (24 * 60) + 24 * 60) % (24 * 60);
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
 export type ParametresReservation = {
   formuleId: string;
   creneauId?: string;
-  date: string;
-  heure: string;
+  date?: string;
+  heureDebut?: string;
+  heureFin?: string;
   personnes: number;
   visiteurNom: string;
   visiteurEmail?: string;
   visiteurTelephone?: string;
   langue?: string;
   origine: "en_ligne" | "walk_in" | "manuel";
+  // Sélection explicite d'une fiche existante (choisie dans une liste,
+  // pas devinée) — prioritaire sur le matching automatique par email/tél.
+  clientId?: string;
 };
 
 async function emettreEvenementVisite(
@@ -145,7 +175,11 @@ async function emettreEvenementVisite(
 // Best-effort : une réservation ne doit jamais échouer parce que l'envoi
 // d'email échoue (Gmail non connecté, token révoqué…) — voir
 // lib/google.ts, déjà utilisé par Studio IA de la même façon.
-async function envoyerConfirmation(userId: string, reservation: { visiteur_nom: string; visiteur_email: string | null; date: string; heure: string }, nomFormule: string): Promise<void> {
+async function envoyerConfirmation(
+  userId: string,
+  reservation: { visiteur_nom: string; visiteur_email: string | null; date: string; heure_debut: string; heure_fin: string },
+  nomFormule: string
+): Promise<void> {
   if (!reservation.visiteur_email) return;
   try {
     const { accessToken, email } = await obtenirAccessTokenValide(userId);
@@ -154,7 +188,7 @@ async function envoyerConfirmation(userId: string, reservation: { visiteur_nom: 
       from: email,
       to: reservation.visiteur_email,
       subject: "Confirmation de votre visite",
-      corpsHtml: `<p>Bonjour ${reservation.visiteur_nom},</p><p>Votre visite (${nomFormule}) est confirmée pour le ${reservation.date} à ${reservation.heure}.</p><p>Le paiement en ligne n'est pas encore disponible : le règlement se fera sur place.</p><p>À très bientôt !</p>`,
+      corpsHtml: `<p>Bonjour ${reservation.visiteur_nom},</p><p>Votre visite (${nomFormule}) est confirmée pour le ${reservation.date} de ${reservation.heure_debut} à ${reservation.heure_fin}.</p><p>Le paiement en ligne n'est pas encore disponible : le règlement se fera sur place.</p><p>À très bientôt !</p>`,
     });
   } catch (erreur) {
     if (erreur instanceof GmailNonConnecteError || erreur instanceof GmailRevoqueError) return;
@@ -162,8 +196,8 @@ async function envoyerConfirmation(userId: string, reservation: { visiteur_nom: 
   }
 }
 
-// Point d'entrée unique pour créer une réservation, en ligne ou walk-in
-// — mêmes vérifications de capacité, même matching client, même
+// Point d'entrée unique pour créer une réservation, en ligne, walk-in ou
+// manuelle — mêmes vérifications de capacité, même matching client, même
 // événement Agenda, quel que soit l'appelant.
 // Vérification puis écriture (pas de verrou de ligne Postgres) — même
 // niveau de rigueur que la vérification de stock Cave (RG13, voir
@@ -178,29 +212,42 @@ export async function creerReservation(userId: string, params: ParametresReserva
     throw new VisiteError("Email ou téléphone requis pour une réservation en ligne.", 400);
   }
 
-  const { data: formule } = await supabaseAdmin.from("visites_formules").select("id, nom, prix_par_personne").eq("id", params.formuleId).eq("user_id", userId).maybeSingle();
+  const { data: formule } = await supabaseAdmin
+    .from("visites_formules")
+    .select("id, nom, mode_tarification, prix_par_personne, prix_total, duree_minutes")
+    .eq("id", params.formuleId)
+    .eq("user_id", userId)
+    .maybeSingle();
   if (!formule) throw new VisiteError("Formule introuvable.", 404);
 
   // Quand un créneau est fourni, sa date/heure fait foi — jamais celle
   // envoyée par l'appelant (évite une réservation dont la date affichée
   // et le créneau décompté divergent si le client a un cache périmé).
   let date = params.date;
-  let heure = params.heure;
+  let heureDebut = params.heureDebut;
+  let heureFin = params.heureFin;
   if (params.creneauId) {
-    const { data: creneau } = await supabaseAdmin.from("visites_creneaux").select("date, heure, formule_id").eq("id", params.creneauId).eq("user_id", userId).maybeSingle();
+    const { data: creneau } = await supabaseAdmin
+      .from("visites_creneaux")
+      .select("date, heure_debut, heure_fin, formule_id")
+      .eq("id", params.creneauId)
+      .eq("user_id", userId)
+      .maybeSingle();
     if (!creneau) throw new VisiteError("Créneau introuvable.", 404);
     if (creneau.formule_id !== params.formuleId) throw new VisiteError("Ce créneau n'appartient pas à cette formule.", 400);
     date = creneau.date;
-    heure = creneau.heure;
+    heureDebut = creneau.heure_debut;
+    heureFin = creneau.heure_fin;
 
     const { restante } = await getCapaciteRestante(params.creneauId);
     if (params.personnes > restante) {
       throw new VisiteError(`Capacité insuffisante sur ce créneau : ${restante} place(s) restante(s), ${params.personnes} demandée(s).`, 409);
     }
   }
-  if (!date || !heure) throw new VisiteError("Date et heure requises.", 400);
+  if (!date || !heureDebut) throw new VisiteError("Date et heure requises.", 400);
+  if (!heureFin) heureFin = ajouterMinutes(heureDebut, formule.duree_minutes);
 
-  const clientId = await matcherClient(userId, params.visiteurEmail, params.visiteurTelephone);
+  const clientId = params.clientId ?? (await matcherClient(userId, params.visiteurEmail, params.visiteurTelephone));
 
   const { data: reservation, error } = await supabaseAdmin
     .from("visites_reservations")
@@ -209,7 +256,8 @@ export async function creerReservation(userId: string, params: ParametresReserva
       formule_id: params.formuleId,
       creneau_id: params.creneauId ?? null,
       date,
-      heure,
+      heure_debut: heureDebut,
+      heure_fin: heureFin,
       personnes: params.personnes,
       visiteur_nom: params.visiteurNom.trim(),
       visiteur_email: params.visiteurEmail?.trim() || null,
@@ -219,7 +267,7 @@ export async function creerReservation(userId: string, params: ParametresReserva
       statut: params.origine === "walk_in" ? "arrivee" : "confirmee",
       origine: params.origine,
       statut_paiement: "a_configurer",
-      montant_du: formule.prix_par_personne * params.personnes,
+      montant_du: calculerMontant(formule, params.personnes),
       checkin_le: params.origine === "walk_in" ? new Date().toISOString() : null,
     })
     .select("*")
@@ -230,6 +278,73 @@ export async function creerReservation(userId: string, params: ParametresReserva
   if (params.origine === "en_ligne") await envoyerConfirmation(userId, reservation, formule.nom);
 
   return reservation;
+}
+
+export type ParametresAjouterVisite = {
+  formuleId: string;
+  date: string;
+  heureDebut: string;
+  heureFin: string;
+  personnes: number;
+  visiteurNom?: string;
+  visiteurEmail?: string;
+  visiteurTelephone?: string;
+  clientId?: string;
+};
+
+// Geste unique de l'onglet "Créneaux ouverts" (V2) : ouvrir un créneau
+// ET, si un nom ou une fiche client est donné, y rattacher immédiatement
+// une réservation pour ce même nombre de personnes — une réservation
+// prise par téléphone ou un groupe déjà convenu, en une seule action. Si
+// aucun nom n'est donné, seul le créneau est créé : il reste ouvert,
+// disponible pour la page de réservation publique ("réservation libre").
+export async function ajouterVisite(userId: string, params: ParametresAjouterVisite) {
+  if (!params.formuleId) throw new VisiteError("Formule requise.", 400);
+  if (!params.date || !params.heureDebut || !params.heureFin) throw new VisiteError("Date, heure de début et heure de fin requises.", 400);
+  if (!Number.isInteger(params.personnes) || params.personnes <= 0) throw new VisiteError("Nombre de personnes invalide.", 400);
+
+  const { data: formule } = await supabaseAdmin.from("visites_formules").select("id").eq("id", params.formuleId).eq("user_id", userId).maybeSingle();
+  if (!formule) throw new VisiteError("Formule introuvable.", 404);
+
+  const { data: creneau, error } = await supabaseAdmin
+    .from("visites_creneaux")
+    .insert({
+      user_id: userId,
+      formule_id: params.formuleId,
+      date: params.date,
+      heure_debut: params.heureDebut,
+      heure_fin: params.heureFin,
+      capacite_max: params.personnes,
+    })
+    .select("*")
+    .single();
+  if (error) {
+    if (error.code === "23505") throw new VisiteError("Un créneau existe déjà pour cette formule à cette date et heure.", 409);
+    throw new VisiteError(error.message, 500);
+  }
+
+  let nomVisiteur = params.visiteurNom?.trim() || "";
+  if (!nomVisiteur && params.clientId) {
+    const { data: client } = await supabaseAdmin.from("clients").select("nom").eq("id", params.clientId).eq("user_id", userId).maybeSingle();
+    nomVisiteur = client?.nom ?? "";
+  }
+
+  if (!nomVisiteur) {
+    return { creneau, reservation: null };
+  }
+
+  const reservation = await creerReservation(userId, {
+    formuleId: params.formuleId,
+    creneauId: creneau.id,
+    personnes: params.personnes,
+    visiteurNom: nomVisiteur,
+    visiteurEmail: params.visiteurEmail,
+    visiteurTelephone: params.visiteurTelephone,
+    clientId: params.clientId,
+    origine: "manuel",
+  });
+
+  return { creneau, reservation };
 }
 
 export async function checkin(userId: string, reservationId: string) {

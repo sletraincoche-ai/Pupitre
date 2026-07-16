@@ -27,7 +27,10 @@ function memeJour(a: Date, b: Date) {
 
 // Calendrier mensuel Liquid Glass, dans le même esprit que la grille
 // d'Agenda (components/agenda/month-view.tsx) mais dédié à la sélection
-// d'une seule date, sans dépendance à react-day-picker.
+// d'une seule date, sans dépendance à react-day-picker. Partagé
+// (components/glass/, pas components/studio/) : utilisé par Studio IA
+// (programmer une publication) et par Visites (ouvrir un créneau) — même
+// sélecteur partout plutôt qu'un input natif du navigateur par module.
 export function GlassCalendar({
   selection,
   onSelect,

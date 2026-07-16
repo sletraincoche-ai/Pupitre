@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireUser } from "@/lib/auth";
 
+const MODES_TARIFICATION = ["gratuit", "total", "par_personne"] as const;
+
 export async function GET() {
   const { user, response } = await requireUser();
   if (!user) return response;
@@ -23,13 +25,20 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const nom = typeof body.nom === "string" ? body.nom.trim() : "";
   const dureeMinutes = Number(body.dureeMinutes);
-  const prixParPersonne = Number(body.prixParPersonne);
   const capaciteMax = Number(body.capaciteMax);
+  const modeTarification = (MODES_TARIFICATION as readonly string[]).includes(body.modeTarification) ? body.modeTarification : "par_personne";
+  const prixParPersonne = modeTarification === "par_personne" ? Number(body.prixParPersonne) : 0;
+  const prixTotal = modeTarification === "total" ? Number(body.prixTotal) : null;
 
   if (!nom) return NextResponse.json({ error: "Nom requis." }, { status: 400 });
   if (!Number.isInteger(dureeMinutes) || dureeMinutes <= 0) return NextResponse.json({ error: "Durée invalide." }, { status: 400 });
-  if (!Number.isFinite(prixParPersonne) || prixParPersonne < 0) return NextResponse.json({ error: "Prix invalide." }, { status: 400 });
   if (!Number.isInteger(capaciteMax) || capaciteMax <= 0) return NextResponse.json({ error: "Capacité invalide." }, { status: 400 });
+  if (modeTarification === "par_personne" && (!Number.isFinite(prixParPersonne) || prixParPersonne < 0)) {
+    return NextResponse.json({ error: "Prix par personne invalide." }, { status: 400 });
+  }
+  if (modeTarification === "total" && (!Number.isFinite(prixTotal) || (prixTotal as number) < 0)) {
+    return NextResponse.json({ error: "Prix total invalide." }, { status: 400 });
+  }
 
   const { data, error } = await supabaseAdmin
     .from("visites_formules")
@@ -38,7 +47,9 @@ export async function POST(request: NextRequest) {
       nom,
       description: typeof body.description === "string" ? body.description.trim() || null : null,
       duree_minutes: dureeMinutes,
+      mode_tarification: modeTarification,
       prix_par_personne: prixParPersonne,
+      prix_total: prixTotal,
       capacite_max: capaciteMax,
     })
     .select("*")

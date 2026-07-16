@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarClock, CheckCircle2, LogIn, Wine, Euro, X } from "lucide-react";
+import { CalendarClock, CheckCircle2, LogIn, Wine, Euro, X, Users } from "lucide-react";
 import { GlassEmptyState } from "@/components/glass/glass-empty-state";
 import { GlassModal } from "@/components/glass/glass-modal";
-import { visitesApi, type Reservation } from "@/lib/visites-api";
+import { visitesApi, type Reservation, type Creneau } from "@/lib/visites-api";
 import type { CibleVenteVisite } from "@/components/visites/quick-sale-modal";
 
 const LABELS_STATUT: Record<Reservation["statut"], string> = {
@@ -34,12 +34,24 @@ const LABELS_ORIGINE: Record<Reservation["origine"], string> = {
   manuel: "Manuel",
 };
 
+// "10:00" -> "10h", "10:30" -> "10h30" — plus lisible en un coup d'œil
+// que le format HH:MM brut (exigence explicite du brief).
+function formatHeure(heure: string): string {
+  const [h, m] = heure.split(":");
+  const heureNum = String(Number(h));
+  return m === "00" ? `${heureNum}h` : `${heureNum}h${m}`;
+}
+
 export function AccueilJourGlass({
   reservations,
+  creneauxDuJour,
   onMaj,
   onOuvrirVente,
 }: {
   reservations: Reservation[];
+  // Créneaux du jour sans aucune réservation rattachée — affichés comme
+  // "Réservation libre" (créneau ouvert au public, pas encore pris).
+  creneauxDuJour: Creneau[];
   onMaj: (reservation: Reservation) => void;
   onOuvrirVente: (cible: CibleVenteVisite) => void;
 }) {
@@ -110,21 +122,52 @@ export function AccueilJourGlass({
     }
   }
 
-  if (reservations.length === 0) {
-    return <GlassEmptyState icon={CalendarClock} title="Aucune visite ce jour" description="Les réservations en ligne et les walk-ins apparaîtront ici." />;
+  // Une ligne par réservation, plus une ligne par créneau du jour sans
+  // aucune réservation ("réservation libre") — triées ensemble par heure
+  // de début pour lire le planning du jour d'un coup d'œil.
+  type Ligne = { heureDebut: string; reservation: Reservation } | { heureDebut: string; creneauLibre: Creneau };
+  const lignes: Ligne[] = [
+    ...reservations.map((r) => ({ heureDebut: r.heure_debut, reservation: r })),
+    ...creneauxDuJour.filter((c) => !reservations.some((r) => r.creneau_id === c.id)).map((c) => ({ heureDebut: c.heure_debut, creneauLibre: c })),
+  ].sort((a, b) => a.heureDebut.localeCompare(b.heureDebut));
+
+  if (lignes.length === 0) {
+    return <GlassEmptyState icon={CalendarClock} title="Aucune visite ce jour" description="Les réservations en ligne, walk-ins et créneaux ouverts apparaîtront ici." />;
   }
 
   return (
     <>
       <div className="flex flex-col gap-1">
-        {reservations.map((r) => {
+        {lignes.map((ligne) => {
+          if ("creneauLibre" in ligne) {
+            const c = ligne.creneauLibre;
+            return (
+              <div key={c.id} className="flex flex-wrap items-center gap-3 rounded-xl px-3 py-2.5 opacity-70 hover:bg-white/5 hover:opacity-100">
+                <span className="w-24 shrink-0 font-mono text-sm text-white/70 tabular-nums">
+                  {formatHeure(c.heure_debut)}–{formatHeure(c.heure_fin)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-white/70 italic">{c.visites_formules?.nom ?? "Formule"} · Réservation libre</p>
+                </div>
+                <span className="shrink-0 flex items-center gap-1 text-xs text-white/50">
+                  <Users className="size-3.5" /> 0/{c.capacite_max} pers.
+                </span>
+              </div>
+            );
+          }
+
+          const r = ligne.reservation;
           const venteEnregistree = (r.cave_mouvements?.length ?? 0) > 0;
+          const creneauAssocie = creneauxDuJour.find((c) => c.id === r.creneau_id);
+          const jauge = creneauAssocie ? `${r.personnes}/${creneauAssocie.capacite_max} pers.` : `${r.personnes} pers.`;
           return (
             <div key={r.id} className={`flex flex-wrap items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-white/5 ${r.annule ? "opacity-45" : ""}`}>
-              <span className="w-14 shrink-0 font-mono text-sm text-white/70 tabular-nums">{r.heure}</span>
+              <span className="w-24 shrink-0 font-mono text-sm text-white/70 tabular-nums">
+                {formatHeure(r.heure_debut)}–{formatHeure(r.heure_fin)}
+              </span>
               <div className="min-w-0 flex-1">
                 <p className={`truncate text-sm text-white ${r.annule ? "line-through" : ""}`}>
-                  {r.visiteur_nom} — {r.visites_formules?.nom ?? "Formule"} ({r.personnes} pers.)
+                  {r.visites_formules?.nom ?? "Formule"} · {r.visiteur_nom} · {jauge}
                 </p>
                 <p className="truncate text-xs text-white/55">
                   {LABELS_ORIGINE[r.origine]} · {LABELS_PAIEMENT[r.statut_paiement]}

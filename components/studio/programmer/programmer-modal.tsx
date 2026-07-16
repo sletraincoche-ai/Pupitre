@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CalendarClock } from "lucide-react";
 import { GlassModal } from "@/components/glass/glass-modal";
-import { GlassCalendar } from "@/components/studio/programmer/glass-calendar";
+import { GlassCalendar } from "@/components/glass/glass-calendar";
 import { Button } from "@/components/ui/button";
 import { InstagramBadge, FacebookBadge } from "@/components/studio/brand-icons";
 import { cn } from "@/lib/utils";

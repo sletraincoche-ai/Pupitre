@@ -677,11 +677,12 @@ create table if not exists evenements (
 create index if not exists evenements_user_id_idx on evenements(user_id);
 create index if not exists evenements_type_idx on evenements(type_evenement);
 
--- Clients (segmentation, grosse commande) écrit aussi dans evenements —
--- contrainte élargie après coup (posée trop tôt, avant que ce chantier
--- existe). "clients.inactif" échouait silencieusement sans ce correctif.
-alter table evenements drop constraint if exists evenements_source_check;
-alter table evenements add constraint evenements_source_check check (source in ('cave', 'facturation', 'agenda', 'studio', 'clients'));
+-- Clients (segmentation, grosse commande) puis Visites écrivent aussi
+-- dans evenements — contrainte élargie après coup (posée trop tôt, avant
+-- que ces chantiers existent). Définition finale unique plus bas
+-- (evenements_source_check) : un premier élargissement intermédiaire
+-- (sans 'visites') existait ici mais cassait le replay du schéma dès
+-- qu'une vraie ligne source='visites' existait déjà — supprimé.
 
 -- Chantier Visites — catalogue de formules, créneaux réels ouverts
 -- explicitement par le domaine (pas de moteur de récurrence — la
@@ -698,6 +699,12 @@ create table if not exists visites_formules (
   description text,
   duree_minutes integer not null check (duree_minutes > 0),
   prix_par_personne numeric(10,2) not null check (prix_par_personne >= 0),
+  -- V2 : mode de tarification explicite. 'par_personne' réutilise
+  -- prix_par_personne (comportement V1 inchangé) ; 'total' ignore
+  -- prix_par_personne au profit de prix_total (prix fixe du créneau,
+  -- indépendant du nombre de participants) ; 'gratuit' ignore les deux.
+  mode_tarification text not null default 'par_personne' check (mode_tarification in ('gratuit', 'total', 'par_personne')),
+  prix_total numeric(10,2),
   capacite_max integer not null check (capacite_max > 0),
   archive boolean not null default false,
   created_at timestamptz not null default now()
@@ -706,16 +713,18 @@ create index if not exists visites_formules_user_id_idx on visites_formules(user
 
 -- Capacité restante calculée à la volée depuis les réservations actives
 -- (jamais stockée) — source de vérité unique, pas de compteur à
--- resynchroniser.
+-- resynchroniser. heure_fin (V2) : l'accueil du jour affiche une plage
+-- ("11h-12h"), pas juste une heure de début.
 create table if not exists visites_creneaux (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
   formule_id uuid not null references visites_formules(id) on delete cascade,
   date date not null,
-  heure text not null,
+  heure_debut text not null,
+  heure_fin text not null,
   capacite_max integer not null check (capacite_max > 0),
   created_at timestamptz not null default now(),
-  unique (formule_id, date, heure)
+  unique (formule_id, date, heure_debut)
 );
 create index if not exists visites_creneaux_user_id_idx on visites_creneaux(user_id);
 create index if not exists visites_creneaux_date_idx on visites_creneaux(date);
@@ -726,7 +735,8 @@ create table if not exists visites_reservations (
   formule_id uuid not null references visites_formules(id) on delete restrict,
   creneau_id uuid references visites_creneaux(id) on delete set null,
   date date not null,
-  heure text not null,
+  heure_debut text not null,
+  heure_fin text not null,
   personnes integer not null check (personnes > 0),
   visiteur_nom text not null,
   visiteur_email text,
@@ -765,3 +775,42 @@ alter table cave_parametres add column if not exists slug_public text unique;
 
 alter table evenements drop constraint if exists evenements_source_check;
 alter table evenements add constraint evenements_source_check check (source in ('cave', 'facturation', 'agenda', 'studio', 'clients', 'visites'));
+
+-- Chantier Visites V2 — migration des colonnes déjà en base (le create
+-- table if not exists ci-dessus ne rejoue pas pour une table existante).
+-- rename column n'est pas idempotent : gardé par un test d'existence
+-- pour que ce fichier reste rejouable tel quel, comme le reste du schéma.
+alter table visites_formules add column if not exists mode_tarification text not null default 'par_personne' check (mode_tarification in ('gratuit', 'total', 'par_personne'));
+alter table visites_formules add column if not exists prix_total numeric(10,2);
+
+do $$
+begin
+  if exists (select 1 from information_schema.columns where table_name = 'visites_creneaux' and column_name = 'heure') then
+    alter table visites_creneaux rename column heure to heure_debut;
+  end if;
+end $$;
+alter table visites_creneaux add column if not exists heure_fin text;
+-- Backfill : les créneaux déjà en base n'ont pas de fin connue,
+-- approximée depuis la durée de la formule au moment de la migration
+-- (jamais recalculée ensuite).
+update visites_creneaux c
+set heure_fin = to_char((c.heure_debut::time + (f.duree_minutes || ' minutes')::interval), 'HH24:MI')
+from visites_formules f
+where f.id = c.formule_id and c.heure_fin is null;
+alter table visites_creneaux alter column heure_fin set not null;
+alter table visites_creneaux drop constraint if exists visites_creneaux_formule_id_date_heure_key;
+alter table visites_creneaux drop constraint if exists visites_creneaux_formule_id_date_heure_debut_key;
+alter table visites_creneaux add constraint visites_creneaux_formule_id_date_heure_debut_key unique (formule_id, date, heure_debut);
+
+do $$
+begin
+  if exists (select 1 from information_schema.columns where table_name = 'visites_reservations' and column_name = 'heure') then
+    alter table visites_reservations rename column heure to heure_debut;
+  end if;
+end $$;
+alter table visites_reservations add column if not exists heure_fin text;
+update visites_reservations r
+set heure_fin = to_char((r.heure_debut::time + (f.duree_minutes || ' minutes')::interval), 'HH24:MI')
+from visites_formules f
+where f.id = r.formule_id and r.heure_fin is null;
+alter table visites_reservations alter column heure_fin set not null;

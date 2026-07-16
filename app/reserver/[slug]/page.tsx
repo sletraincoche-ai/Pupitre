@@ -28,7 +28,7 @@ export default function ReserverPage() {
   const [visiteurTelephone, setVisiteurTelephone] = useState("");
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
-  const [reservationConfirmee, setReservationConfirmee] = useState<{ date: string; heure: string } | null>(null);
+  const [reservationConfirmee, setReservationConfirmee] = useState<{ date: string; heureDebut: string; heureFin: string } | null>(null);
 
   useEffect(() => {
     visitesPublicApi
@@ -73,7 +73,7 @@ export default function ReserverPage() {
         visiteurEmail: visiteurEmail.trim() || undefined,
         visiteurTelephone: visiteurTelephone.trim() || undefined,
       });
-      setReservationConfirmee({ date: reservation.date, heure: reservation.heure });
+      setReservationConfirmee({ date: reservation.date, heureDebut: reservation.heure_debut, heureFin: reservation.heure_fin });
       setEtape("confirmation");
     } catch (err) {
       setErreur(err instanceof Error ? err.message : "La réservation a échoué.");
@@ -112,7 +112,7 @@ export default function ReserverPage() {
                           <span className="flex items-center gap-1">
                             <Clock className="size-3.5" /> {f.duree_minutes} min
                           </span>
-                          <span>{f.prix_par_personne} € / pers.</span>
+                          <span>{f.mode_tarification === "gratuit" ? "Gratuit" : f.mode_tarification === "total" ? `${f.prix_total} € / total` : `${f.prix_par_personne} € / pers.`}</span>
                           <span className="flex items-center gap-1">
                             <Users className="size-3.5" /> {f.capacite_max} pers. max
                           </span>
@@ -140,7 +140,7 @@ export default function ReserverPage() {
                           className="flex items-center justify-between rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-left transition-colors hover:bg-white/10"
                         >
                           <span className="text-sm text-white">
-                            {new Date(c.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} à {c.heure}
+                            {new Date(c.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} de {c.heureDebut} à {c.heureFin}
                           </span>
                           <span className="text-xs text-white/55">{c.restante} place{c.restante > 1 ? "s" : ""}</span>
                         </button>
@@ -156,7 +156,7 @@ export default function ReserverPage() {
                     ← Changer de créneau
                   </button>
                   <p className="text-sm text-white/70">
-                    {formule.nom} — {new Date(creneau.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })} à {creneau.heure}
+                    {formule.nom} — {new Date(creneau.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })} de {creneau.heureDebut} à {creneau.heureFin}
                   </p>
 
                   <div>
@@ -221,8 +221,8 @@ export default function ReserverPage() {
                   </span>
                   <h3 className="text-xl font-semibold text-white">Réservation confirmée</h3>
                   <p className="max-w-sm text-sm text-white/60">
-                    Rendez-vous le {new Date(reservationConfirmee.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} à{" "}
-                    {reservationConfirmee.heure}. {visiteurEmail ? "Un email de confirmation vous a été envoyé." : ""}
+                    Rendez-vous le {new Date(reservationConfirmee.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} de{" "}
+                    {reservationConfirmee.heureDebut} à {reservationConfirmee.heureFin}. {visiteurEmail ? "Un email de confirmation vous a été envoyé." : ""}
                   </p>
                 </div>
               )}

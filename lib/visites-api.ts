@@ -1,12 +1,16 @@
 // Client léger pour /api/visites/* — pas de contexte global, même
 // principe que lib/cave-api.ts / lib/clients-api.ts.
 
+export type ModeTarification = "gratuit" | "total" | "par_personne";
+
 export type Formule = {
   id: string;
   nom: string;
   description: string | null;
   duree_minutes: number;
+  mode_tarification: ModeTarification;
   prix_par_personne: number;
+  prix_total: number | null;
   capacite_max: number;
   archive: boolean;
 };
@@ -15,7 +19,8 @@ export type Creneau = {
   id: string;
   formule_id: string;
   date: string;
-  heure: string;
+  heure_debut: string;
+  heure_fin: string;
   capacite_max: number;
   reservees: number;
   restante: number;
@@ -31,7 +36,8 @@ export type Reservation = {
   formule_id: string;
   creneau_id: string | null;
   date: string;
-  heure: string;
+  heure_debut: string;
+  heure_fin: string;
   personnes: number;
   visiteur_nom: string;
   visiteur_email: string | null;
@@ -59,17 +65,39 @@ async function appelJson<T>(url: string, options?: RequestInit): Promise<T> {
   return data as T;
 }
 
+export type PayloadFormule = {
+  nom: string;
+  description?: string;
+  dureeMinutes: number;
+  modeTarification: ModeTarification;
+  prixParPersonne?: number;
+  prixTotal?: number;
+  capaciteMax: number;
+};
+
+export type PayloadAjouterVisite = {
+  formuleId: string;
+  date: string;
+  heureDebut: string;
+  heureFin: string;
+  personnes: number;
+  visiteurNom?: string;
+  visiteurEmail?: string;
+  visiteurTelephone?: string;
+  clientId?: string;
+};
+
 export const visitesApi = {
   listerFormules: () => appelJson<{ formules: Formule[] }>("/api/visites/formules"),
 
-  creerFormule: (payload: { nom: string; description?: string; dureeMinutes: number; prixParPersonne: number; capaciteMax: number }) =>
+  creerFormule: (payload: PayloadFormule) =>
     appelJson<{ formule: Formule }>("/api/visites/formules", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
     }),
 
-  modifierFormule: (id: string, payload: Partial<{ nom: string; description: string; dureeMinutes: number; prixParPersonne: number; capaciteMax: number; archive: boolean }>) =>
+  modifierFormule: (id: string, payload: Partial<PayloadFormule> & { archive?: boolean }) =>
     appelJson<{ formule: Formule }>(`/api/visites/formules/${id}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -78,8 +106,10 @@ export const visitesApi = {
 
   listerCreneaux: (depuis?: string) => appelJson<{ creneaux: Creneau[] }>(`/api/visites/creneaux${depuis ? `?depuis=${depuis}` : ""}`),
 
-  creerCreneau: (payload: { formuleId: string; date: string; heure: string; capaciteMax?: number }) =>
-    appelJson<{ creneau: Creneau }>("/api/visites/creneaux", {
+  // "Ajouter une visite" — ouvre le créneau et, si un nom/une fiche
+  // client est donné, y rattache immédiatement une réservation.
+  ajouterVisite: (payload: PayloadAjouterVisite) =>
+    appelJson<{ creneau: Creneau; reservation: Reservation | null }>("/api/visites/creneaux", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
@@ -93,7 +123,7 @@ export const visitesApi = {
     formuleId: string;
     creneauId?: string;
     date?: string;
-    heure?: string;
+    heureDebut?: string;
     personnes: number;
     visiteurNom: string;
     visiteurEmail?: string;

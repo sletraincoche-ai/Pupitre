@@ -12,7 +12,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
 
   const { data, error } = await supabaseAdmin
     .from("visites_formules")
-    .select("id, nom, description, duree_minutes, prix_par_personne, capacite_max")
+    .select("id, nom, description, duree_minutes, mode_tarification, prix_par_personne, prix_total, capacite_max")
     .eq("user_id", userId)
     .eq("archive", false)
     .order("prix_par_personne", { ascending: true });

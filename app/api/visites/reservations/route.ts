@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     .select("*, visites_formules(nom, duree_minutes), cave_mouvements(id, montant, quantite_bouteilles)")
     .eq("user_id", user.id)
     .eq("date", date)
-    .order("heure", { ascending: true });
+    .order("heure_debut", { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ reservations: data ?? [] });
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       formuleId: typeof body.formuleId === "string" ? body.formuleId : "",
       creneauId: typeof body.creneauId === "string" ? body.creneauId : undefined,
       date: typeof body.date === "string" ? body.date : new Date().toISOString().slice(0, 10),
-      heure: typeof body.heure === "string" ? body.heure : new Date().toTimeString().slice(0, 5),
+      heureDebut: typeof body.heureDebut === "string" ? body.heureDebut : new Date().toTimeString().slice(0, 5),
       personnes: Number(body.personnes),
       visiteurNom: typeof body.visiteurNom === "string" ? body.visiteurNom : "",
       visiteurEmail: typeof body.visiteurEmail === "string" ? body.visiteurEmail : undefined,

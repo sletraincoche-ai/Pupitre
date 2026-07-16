@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { GlassPageShell } from "@/components/glass/glass-page-shell";
 import { GlassPanel } from "@/components/glass/glass-panel";
 import { GlassModal } from "@/components/glass/glass-modal";
+import { GlassDatePopover } from "@/components/glass/glass-date-popover";
 import { AccueilJourGlass } from "@/components/visites/accueil-jour-glass";
 import { NouvelleVisiteFormGlass } from "@/components/visites/nouvelle-visite-form-glass";
 import { FormulesGlass } from "@/components/visites/formules-glass";
@@ -15,8 +16,18 @@ import { visitesApi, type Formule, type Creneau, type Reservation } from "@/lib/
 
 type Onglet = "accueil" | "configuration";
 
+function versDateISO(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function aujourdhui(): string {
-  return new Date().toISOString().slice(0, 10);
+  return versDateISO(new Date());
+}
+
+function demain(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return versDateISO(d);
 }
 
 // Reconstruction réelle de Visites — remplace l'ancienne simulation
@@ -66,6 +77,11 @@ export default function VisitesPage() {
 
   if (chargement) return null;
 
+  const estAujourdhui = date === aujourdhui();
+  const estDemain = date === demain();
+  const labelToggle = estAujourdhui ? "Demain" : "Aujourd'hui";
+  const creneauxDuJour = creneaux.filter((c) => c.date === date);
+
   return (
     <GlassPageShell>
       <div className="flex flex-col gap-4 pb-10">
@@ -103,20 +119,17 @@ export default function VisitesPage() {
             <div className="mb-3 flex items-center justify-between gap-3">
               <p className="text-sm font-medium text-white/85">
                 {new Date(date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+                {estAujourdhui && <span className="ml-2 text-xs text-white/50">(aujourd&apos;hui)</span>}
+                {estDemain && <span className="ml-2 text-xs text-white/50">(demain)</span>}
               </p>
               <div className="flex gap-1.5">
-                <button onClick={() => setDate(aujourdhui())} className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10">
-                  Aujourd&apos;hui
+                <button onClick={() => setDate(estAujourdhui ? demain() : aujourdhui())} className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10">
+                  {labelToggle}
                 </button>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white outline-none"
-                />
+                <GlassDatePopover date={new Date(`${date}T00:00:00`)} onSelect={(d) => setDate(versDateISO(d))} />
               </div>
             </div>
-            <AccueilJourGlass reservations={reservations} onMaj={majReservation} onOuvrirVente={setCibleVente} />
+            <AccueilJourGlass reservations={reservations} creneauxDuJour={creneauxDuJour} onMaj={majReservation} onOuvrirVente={setCibleVente} />
           </GlassPanel>
         ) : (
           <div className="flex flex-col gap-4">
@@ -127,7 +140,7 @@ export default function VisitesPage() {
               <CreneauxGlass
                 creneaux={creneaux}
                 formules={formules.filter((f) => !f.archive)}
-                onCree={(c) => setCreneaux((prev) => [...prev, c])}
+                onAjoute={() => rafraichirTout()}
                 onSupprime={(id) => setCreneaux((prev) => prev.filter((c) => c.id !== id))}
               />
             </GlassPanel>

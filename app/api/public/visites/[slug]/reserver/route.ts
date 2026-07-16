@@ -12,8 +12,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const reservation = await creerReservation(userId, {
       formuleId: typeof body.formuleId === "string" ? body.formuleId : "",
       creneauId: typeof body.creneauId === "string" ? body.creneauId : undefined,
-      date: typeof body.date === "string" ? body.date : "",
-      heure: typeof body.heure === "string" ? body.heure : "",
+      date: typeof body.date === "string" ? body.date : undefined,
+      heureDebut: typeof body.heureDebut === "string" ? body.heureDebut : undefined,
       personnes: Number(body.personnes),
       visiteurNom: typeof body.visiteurNom === "string" ? body.visiteurNom : "",
       visiteurEmail: typeof body.visiteurEmail === "string" ? body.visiteurEmail : undefined,
