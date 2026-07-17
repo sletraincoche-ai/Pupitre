@@ -53,6 +53,11 @@ function minutesVersHeure(minutes: number): string {
   return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 }
 
+function heureActuelle(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
 // V4 — une disponibilité récurrente couvre désormais une PLAGE large
 // (ex: 10h-18h), pas un seul créneau fixe. Cette fonction découpe la
 // plage en créneaux de départ possibles pour UNE formule donnée, dos à
@@ -88,6 +93,31 @@ export async function getCapaciteRestante(creneauId: string): Promise<{ capacite
   return { capaciteMax: creneau.capacite_max, reservees, restante: creneau.capacite_max - reservees };
 }
 
+// V5 — un créneau réel (ponctuel ou matérialisé depuis une règle
+// récurrente) dont la date/heure de fin est dépassée n'a plus lieu
+// d'apparaître dans "Mes disponibilités" : vérification opportuniste à
+// chaque affichage de l'onglet (même principe que
+// verifierEtRelancerDemandes, pas de job cron), jamais de suppression
+// réelle — juste archive=true, la ligne reste consultable en base pour
+// l'historique.
+export async function archiverCreneauxPasses(userId: string): Promise<void> {
+  const aujourdhui = dateDuJour();
+  const heure = heureActuelle();
+
+  const { data: creneaux } = await supabaseAdmin
+    .from("visites_creneaux")
+    .select("id, date, heure_fin")
+    .eq("user_id", userId)
+    .eq("archive", false)
+    .lte("date", aujourdhui);
+  if (!creneaux?.length) return;
+
+  const aArchiver = creneaux.filter((c) => c.date < aujourdhui || (c.date === aujourdhui && c.heure_fin <= heure)).map((c) => c.id);
+  if (!aArchiver.length) return;
+
+  await supabaseAdmin.from("visites_creneaux").update({ archive: true }).in("id", aArchiver);
+}
+
 // Point de jonction entre une règle récurrente (jamais matérialisée à
 // l'avance) et une réservation réelle : cherche un visites_creneaux déjà
 // existant pour cette (formule, date, heure) ; à défaut, cherche une
@@ -110,6 +140,7 @@ export async function resoudreCreneauPourReservation(
     .eq("formule_id", formuleId)
     .eq("date", date)
     .eq("heure_debut", heureDebut)
+    .eq("archive", false)
     .maybeSingle();
   if (existant) return { id: existant.id, heureFin: existant.heure_fin, capaciteMax: existant.capacite_max };
 
@@ -203,6 +234,7 @@ export async function listerCreneauxDisponibles(userId: string, formuleId?: stri
     .from("visites_creneaux")
     .select("id, formule_id, date, heure_debut, heure_fin, capacite_max")
     .eq("user_id", userId)
+    .eq("archive", false)
     .gte("date", aujourdhui)
     .lte("date", horizon);
   if (formuleId) requeteReels = requeteReels.eq("formule_id", formuleId);

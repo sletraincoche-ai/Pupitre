@@ -869,3 +869,24 @@ alter table visites_creneaux add column if not exists disponibilite_id uuid refe
 alter table visites_reservations add column if not exists relance_envoyee_le timestamptz;
 alter table visites_reservations drop constraint if exists visites_reservations_statut_check;
 alter table visites_reservations add constraint visites_reservations_statut_check check (statut in ('confirmee', 'arrivee', 'terminee', 'annulee', 'en_attente', 'refusee'));
+
+-- Chantier Visites V5 — archivage auto des créneaux ponctuels passés
+-- (jamais de suppression réelle, même principe de traçabilité que les
+-- annulations de visites/mouvements Cave) + tutoriel spotlight de
+-- l'onglet Disponibilités.
+alter table visites_creneaux add column if not exists archive boolean not null default false;
+create index if not exists visites_creneaux_archive_idx on visites_creneaux(archive);
+
+-- Statut "déjà vu" du tutoriel, par utilisateur — même mécanique de
+-- persistance que le tunnel Studio IA (onboarding_state : un flag lu au
+-- premier chargement, marqué côté serveur). Table dédiée plutôt qu'une
+-- colonne ajoutée à onboarding_state : ce dernier utilise l'ABSENCE de
+-- rang pour détecter le tout premier accès à Studio IA
+-- (app/api/studio/onboarding/route.ts) — y insérer un rang depuis
+-- Visites casserait silencieusement cette détection pour tout compte
+-- qui ouvrirait Disponibilités avant Studio IA.
+create table if not exists visites_dispo_tutoriel_state (
+  user_id uuid primary key references users(id) on delete cascade,
+  vu boolean not null default false,
+  updated_at timestamptz not null default now()
+);

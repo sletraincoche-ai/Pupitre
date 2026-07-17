@@ -105,6 +105,17 @@ export default function VisitesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onglet]);
 
+  // V5 — un créneau ponctuel passé est archivé côté serveur de façon
+  // opportuniste (jamais un cron) : redemander la liste à chaque
+  // affichage de l'onglet Disponibilités, pas seulement au chargement
+  // initial de la page, pour que l'archivage se déclenche vraiment "à
+  // chaque affichage de l'onglet" comme demandé.
+  useEffect(() => {
+    if (onglet !== "disponibilites" || chargement) return;
+    visitesApi.listerCreneaux().then((r) => setCreneaux(r.creneaux));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onglet]);
+
   function majReservation(r: Reservation) {
     setReservations((prev) => prev.map((x) => (x.id === r.id ? { ...x, ...r } : x)));
   }
@@ -134,6 +145,7 @@ export default function VisitesPage() {
                 {(Object.keys(LABELS_ONGLET) as Onglet[]).map((o) => (
                   <button
                     key={o}
+                    data-tutoriel={o === "demandes" ? "onglet-demandes" : undefined}
                     onClick={() => setOnglet(o)}
                     className={`relative rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${onglet === o ? "bg-gold/20 text-gold" : "text-white/60 hover:text-white"}`}
                   >

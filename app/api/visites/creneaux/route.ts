@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireUser } from "@/lib/auth";
-import { getCapaciteRestante, creerCreneauPonctuel, VisiteError } from "@/lib/visites-server";
+import { getCapaciteRestante, creerCreneauPonctuel, archiverCreneauxPasses, VisiteError } from "@/lib/visites-server";
 
 // Créneaux ponctuels réels — utilisé par l'onglet "Mes disponibilités"
 // (section Créneau ponctuel) et par l'accueil du jour. Ne couvre pas les
@@ -11,12 +11,18 @@ export async function GET(request: NextRequest) {
   const { user, response } = await requireUser();
   if (!user) return response;
 
+  // V5 — vérification opportuniste à chaque affichage de l'onglet
+  // Disponibilités (déclenche ce GET) : archive (jamais ne supprime) les
+  // créneaux dont la date/heure de fin est passée.
+  await archiverCreneauxPasses(user.id);
+
   const depuis = request.nextUrl.searchParams.get("depuis") ?? new Date().toISOString().slice(0, 10);
 
   const { data: creneaux, error } = await supabaseAdmin
     .from("visites_creneaux")
     .select("*, visites_formules(nom)")
     .eq("user_id", user.id)
+    .eq("archive", false)
     .gte("date", depuis)
     .order("date", { ascending: true })
     .order("heure_debut", { ascending: true });

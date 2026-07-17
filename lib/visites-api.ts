@@ -23,6 +23,7 @@ export type Creneau = {
   heure_debut: string;
   heure_fin: string;
   capacite_max: number;
+  archive: boolean;
   reservees: number;
   restante: number;
   visites_formules?: { nom: string };
@@ -238,4 +239,12 @@ export const visitesApi = {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ slugPublic }),
     }),
+
+  // Tutoriel spotlight de l'onglet "Mes disponibilités" — statut "déjà
+  // vu" persisté par utilisateur (même mécanique que l'onboarding Studio
+  // IA, réutilise sa table onboarding_state).
+  tutorielDisponibilitesVu: () => appelJson<{ vu: boolean }>("/api/visites/tutoriel-disponibilites"),
+
+  marquerTutorielDisponibilitesVu: () =>
+    appelJson<{ ok: true }>("/api/visites/tutoriel-disponibilites", { method: "PUT" }),
 };

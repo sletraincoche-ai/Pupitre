@@ -1,14 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, CalendarPlus, CalendarOff, Repeat } from "lucide-react";
+import { Plus, Trash2, CalendarPlus, CalendarOff, Repeat, HelpCircle } from "lucide-react";
 import { GlassEmptyState } from "@/components/glass/glass-empty-state";
 import { GlassModal } from "@/components/glass/glass-modal";
 import { GlassCalendar } from "@/components/glass/glass-calendar";
 import { GlassContextMenu } from "@/components/glass/glass-context-menu";
 import { GlassNumberInput } from "@/components/glass/glass-number-input";
+import { GlassTutorielSpotlight, type EtapeTutoriel } from "@/components/glass/glass-tutoriel-spotlight";
 import { visitesApi, type Creneau, type Formule, type DisponibiliteRecurrente, type ExceptionDisponibilite, type FormuleEcartee } from "@/lib/visites-api";
 import { JOURS_SEMAINE_ISO, formatDateCourte, versDateISO } from "@/lib/date-fr";
+
+// 4 étapes max — cible des sélecteurs data-tutoriel plutôt que des refs
+// (l'étape 4 pointe vers l'onglet "Demandes en ligne", rendu par le
+// composant parent page.tsx, pas par DisponibilitesGlass lui-même).
+const ETAPES_TUTORIEL_DISPONIBILITES: EtapeTutoriel[] = [
+  { selector: '[data-tutoriel="creneau-ponctuel-btn"]', texte: "Ouvrez une date précise, une seule fois." },
+  { selector: '[data-tutoriel="disponibilite-recurrente-btn"]', texte: "Ou définissez vos horaires qui se répètent chaque semaine." },
+  { selector: '[data-tutoriel="creneaux-liste"]', texte: "Cliquez sur un créneau pour le modifier ou le supprimer." },
+  { selector: '[data-tutoriel="onglet-demandes"]', texte: "Les réservations de vos visiteurs arrivent ici, à valider avant confirmation." },
+];
 
 // "Mes disponibilités" — deux actions strictement séparées : un créneau
 // ponctuel (une date précise) et une disponibilité récurrente (règle
@@ -36,12 +47,36 @@ export function DisponibilitesGlass({
   const [modalPonctuel, setModalPonctuel] = useState(false);
   const [modalRecurrente, setModalRecurrente] = useState(false);
   const [exceptionPour, setExceptionPour] = useState<DisponibiliteRecurrente | null>(null);
+  const [tutorielOuvert, setTutorielOuvert] = useState(false);
+
+  useEffect(() => {
+    visitesApi.tutorielDisponibilitesVu().then((r) => {
+      if (!r.vu) {
+        setTutorielOuvert(true);
+        // Marqué comme vu dès l'affichage (pas seulement à la fin) —
+        // "se déclenche une seule fois" au tout premier accès, le bouton
+        // "?" reste le seul moyen de le revoir ensuite.
+        visitesApi.marquerTutorielDisponibilitesVu();
+      }
+    });
+  }, []);
 
   const creneauxPonctuels = creneaux.filter((c) => !c.disponibilite_id);
   const disponibilitesActives = disponibilites.filter((d) => d.actif);
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex justify-end">
+        <button
+          onClick={() => setTutorielOuvert(true)}
+          aria-label="Revoir le tutoriel"
+          title="Revoir le tutoriel"
+          className="flex size-6 items-center justify-center rounded-full border border-white/15 text-white/45 hover:border-white/30 hover:text-white/80"
+        >
+          <HelpCircle className="size-3.5" />
+        </button>
+      </div>
+
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div>
@@ -49,6 +84,7 @@ export function DisponibilitesGlass({
             <p className="text-xs text-white/55">Une date précise, ouverte à la réservation en ligne tant que personne n&apos;a réservé dessus.</p>
           </div>
           <button
+            data-tutoriel="creneau-ponctuel-btn"
             onClick={() => setModalPonctuel(true)}
             disabled={formules.length === 0}
             className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs text-white/80 hover:bg-white/15 disabled:opacity-40"
@@ -58,9 +94,11 @@ export function DisponibilitesGlass({
         </div>
 
         {creneauxPonctuels.length === 0 ? (
-          <GlassEmptyState icon={CalendarPlus} title="Aucun créneau ponctuel" description="Ouvrez une date précise pour la réservation en ligne." />
+          <div data-tutoriel="creneaux-liste">
+            <GlassEmptyState icon={CalendarPlus} title="Aucun créneau ponctuel" description="Ouvrez une date précise pour la réservation en ligne." />
+          </div>
         ) : (
-          <div className="flex flex-col gap-1">
+          <div data-tutoriel="creneaux-liste" className="flex flex-col gap-1">
             {creneauxPonctuels.map((c) => (
               <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-3 py-2.5 hover:bg-white/5">
                 <p className="text-sm text-white">
@@ -94,6 +132,7 @@ export function DisponibilitesGlass({
             <p className="text-xs text-white/55">Plage horaire hebdomadaire — génère automatiquement des créneaux ouverts, découpés selon la durée de chaque formule.</p>
           </div>
           <button
+            data-tutoriel="disponibilite-recurrente-btn"
             onClick={() => setModalRecurrente(true)}
             disabled={formules.length === 0}
             className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs text-white/80 hover:bg-white/15 disabled:opacity-40"
@@ -130,6 +169,7 @@ export function DisponibilitesGlass({
       <ModalCreneauPonctuel open={modalPonctuel} onClose={() => setModalPonctuel(false)} formules={formules} onCree={onCreneauCree} />
       <ModalDisponibiliteRecurrente open={modalRecurrente} onClose={() => setModalRecurrente(false)} formules={formules} onCree={onDisponibilitesCreees} />
       <ModalExceptions disponibilite={exceptionPour} onClose={() => setExceptionPour(null)} />
+      <GlassTutorielSpotlight etapes={ETAPES_TUTORIEL_DISPONIBILITES} ouvert={tutorielOuvert} onFermer={() => setTutorielOuvert(false)} />
     </div>
   );
 }
