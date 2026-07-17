@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { GlassNumberInput } from "@/components/glass/glass-number-input";
 import { facturationApi, type ParametresLegaux } from "@/lib/facturation-api";
 
 // Identité légale du domaine — mentions obligatoires sur facture
@@ -71,12 +72,7 @@ export function ParametresLegauxForm({ parametres, onEnregistre }: { parametres:
         {champTexte("RCS + ville", "rcs_ville", "RCS Reims 123 456 789")}
         <div className="flex-1">
           <label className="mb-1 block text-xs text-white/55">Capital social (€)</label>
-          <input
-            type="number"
-            value={champ.capital_social ?? ""}
-            onChange={(e) => set("capital_social", e.target.value ? Number(e.target.value) : null)}
-            className="h-10 w-full rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none focus:border-white/30"
-          />
+          <GlassNumberInput value={champ.capital_social ?? 0} onChange={(v) => set("capital_social", v || null)} />
         </div>
       </div>
       {champTexte("Adresse du siège", "adresse")}

@@ -6,12 +6,14 @@ import { GlassEmptyState } from "@/components/glass/glass-empty-state";
 import { GlassModal } from "@/components/glass/glass-modal";
 import { GlassCalendar } from "@/components/glass/glass-calendar";
 import { GlassContextMenu } from "@/components/glass/glass-context-menu";
-import { visitesApi, type Creneau, type Formule, type DisponibiliteRecurrente, type ExceptionDisponibilite } from "@/lib/visites-api";
+import { GlassNumberInput } from "@/components/glass/glass-number-input";
+import { visitesApi, type Creneau, type Formule, type DisponibiliteRecurrente, type ExceptionDisponibilite, type FormuleEcartee } from "@/lib/visites-api";
 import { JOURS_SEMAINE_ISO, formatDateCourte, versDateISO } from "@/lib/date-fr";
 
-// "Mes disponibilités" (V3) — deux actions strictement séparées : un
-// créneau ponctuel (une date précise) et une disponibilité récurrente
-// (règle hebdomadaire, jamais matérialisée à l'avance — voir
+// "Mes disponibilités" — deux actions strictement séparées : un créneau
+// ponctuel (une date précise) et une disponibilité récurrente (règle
+// hebdomadaire sur plusieurs jours × plusieurs formules à la fois,
+// jamais matérialisée à l'avance — voir
 // lib/visites-server.ts:resoudreCreneauPourReservation). Ni l'une ni
 // l'autre ne rattache de nom : c'est le rôle de "Nouvelle visite".
 export function DisponibilitesGlass({
@@ -20,7 +22,7 @@ export function DisponibilitesGlass({
   disponibilites,
   onCreneauCree,
   onCreneauSupprime,
-  onDisponibiliteCreee,
+  onDisponibilitesCreees,
   onDisponibiliteMaj,
 }: {
   creneaux: Creneau[];
@@ -28,7 +30,7 @@ export function DisponibilitesGlass({
   disponibilites: DisponibiliteRecurrente[];
   onCreneauCree: (c: Creneau) => void;
   onCreneauSupprime: (id: string) => void;
-  onDisponibiliteCreee: (d: DisponibiliteRecurrente) => void;
+  onDisponibilitesCreees: (d: DisponibiliteRecurrente[]) => void;
   onDisponibiliteMaj: (d: DisponibiliteRecurrente) => void;
 }) {
   const [modalPonctuel, setModalPonctuel] = useState(false);
@@ -89,7 +91,7 @@ export function DisponibilitesGlass({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-white/85">Disponibilités récurrentes</p>
-            <p className="text-xs text-white/55">Règle hebdomadaire — génère automatiquement des créneaux ouverts chaque semaine.</p>
+            <p className="text-xs text-white/55">Plage horaire hebdomadaire — génère automatiquement des créneaux ouverts, découpés selon la durée de chaque formule.</p>
           </div>
           <button
             onClick={() => setModalRecurrente(true)}
@@ -101,13 +103,14 @@ export function DisponibilitesGlass({
         </div>
 
         {disponibilitesActives.length === 0 ? (
-          <GlassEmptyState icon={Repeat} title="Aucune disponibilité récurrente" description="Ex : tous les lundis 10h-12h — générée automatiquement chaque semaine." />
+          <GlassEmptyState icon={Repeat} title="Aucune disponibilité récurrente" description="Ex : lundis et mercredis 10h-18h — générée automatiquement chaque semaine." />
         ) : (
           <div className="flex flex-col gap-1">
             {disponibilitesActives.map((d) => (
               <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-3 py-2.5 hover:bg-white/5">
                 <p className="text-sm text-white">
                   Tous les {JOURS_SEMAINE_ISO.find((j) => j.valeur === d.jour_semaine)?.label.toLowerCase()} · {d.heure_debut}–{d.heure_fin} — {d.visites_formules?.nom ?? "Formule"}
+                  {d.visites_formules?.duree_minutes ? <span className="text-white/50"> ({d.visites_formules.duree_minutes} min)</span> : null}
                 </p>
                 <div className="flex shrink-0 items-center gap-3 text-xs text-white/55">
                   <span>Jauge {d.capacite_max}</span>
@@ -125,7 +128,7 @@ export function DisponibilitesGlass({
       </div>
 
       <ModalCreneauPonctuel open={modalPonctuel} onClose={() => setModalPonctuel(false)} formules={formules} onCree={onCreneauCree} />
-      <ModalDisponibiliteRecurrente open={modalRecurrente} onClose={() => setModalRecurrente(false)} formules={formules} onCree={onDisponibiliteCreee} />
+      <ModalDisponibiliteRecurrente open={modalRecurrente} onClose={() => setModalRecurrente(false)} formules={formules} onCree={onDisponibilitesCreees} />
       <ModalExceptions disponibilite={exceptionPour} onClose={() => setExceptionPour(null)} />
     </div>
   );
@@ -198,13 +201,7 @@ function ModalCreneauPonctuel({ open, onClose, formules, onCree }: { open: boole
           </div>
           <div className="w-28">
             <label className="mb-1 block text-xs text-white/55">Jauge</label>
-            <input
-              type="number"
-              min={1}
-              value={capaciteMax}
-              onChange={(e) => setCapaciteMax(Number(e.target.value))}
-              className="h-10 w-full rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none focus:border-white/30"
-            />
+            <GlassNumberInput min={1} value={capaciteMax} onChange={setCapaciteMax} />
           </div>
         </div>
         {erreur && <p className="text-xs text-red-300">{erreur}</p>}
@@ -221,33 +218,49 @@ function ModalCreneauPonctuel({ open, onClose, formules, onCree }: { open: boole
   );
 }
 
-function ModalDisponibiliteRecurrente({ open, onClose, formules, onCree }: { open: boolean; onClose: () => void; formules: Formule[]; onCree: (d: DisponibiliteRecurrente) => void }) {
-  const [formuleId, setFormuleId] = useState(formules[0]?.id ?? "");
-  const [jourSemaine, setJourSemaine] = useState(1);
+function ModalDisponibiliteRecurrente({ open, onClose, formules, onCree }: { open: boolean; onClose: () => void; formules: Formule[]; onCree: (d: DisponibiliteRecurrente[]) => void }) {
+  const [formuleIds, setFormuleIds] = useState<string[]>(formules[0] ? [formules[0].id] : []);
+  const [joursSemaine, setJoursSemaine] = useState<number[]>([1]);
   const [heureDebut, setHeureDebut] = useState("10:00");
-  const [heureFin, setHeureFin] = useState("12:00");
+  const [heureFin, setHeureFin] = useState("18:00");
   const [capaciteMax, setCapaciteMax] = useState(12);
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [ecartees, setEcartees] = useState<FormuleEcartee[]>([]);
 
   useEffect(() => {
     if (open) {
-      setFormuleId(formules[0]?.id ?? "");
+      setFormuleIds(formules[0] ? [formules[0].id] : []);
+      setJoursSemaine([1]);
       setCapaciteMax(formules[0]?.capacite_max ?? 12);
       setErreur(null);
+      setEcartees([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  function toggleFormule(id: string) {
+    setFormuleIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  function toggleJour(valeur: number) {
+    setJoursSemaine((prev) => (prev.includes(valeur) ? prev.filter((x) => x !== valeur) : [...prev, valeur]));
+  }
+
   async function soumettre(e: React.FormEvent) {
     e.preventDefault();
-    if (!formuleId) return setErreur("Choisissez une formule.");
+    if (formuleIds.length === 0) return setErreur("Choisissez au moins une formule.");
+    if (joursSemaine.length === 0) return setErreur("Choisissez au moins un jour.");
     setEnvoi(true);
     setErreur(null);
     try {
-      const { disponibilite } = await visitesApi.creerDisponibiliteRecurrente({ formuleId, jourSemaine, heureDebut, heureFin, capaciteMax });
-      onCree(disponibilite);
-      onClose();
+      const { creees, ecartees } = await visitesApi.creerDisponibilitesRecurrentes({ formuleIds, joursSemaine, heureDebut, heureFin, capaciteMax });
+      onCree(creees);
+      if (ecartees.length > 0) {
+        setEcartees(ecartees);
+      } else {
+        onClose();
+      }
     } catch (err) {
       setErreur(err instanceof Error ? err.message : "Échec de la création.");
     } finally {
@@ -257,67 +270,82 @@ function ModalDisponibiliteRecurrente({ open, onClose, formules, onCree }: { ope
 
   return (
     <GlassModal open={open} onClose={onClose} title="Disponibilité récurrente">
-      <form onSubmit={soumettre} className="flex flex-col gap-4">
-        <div>
-          <label className="mb-1 block text-xs text-white/55">Formule</label>
-          <div className="flex flex-wrap gap-1.5">
-            {formules.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setFormuleId(f.id)}
-                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${formuleId === f.id ? "border-gold/40 bg-gold/20 text-gold" : "border-white/15 bg-white/5 text-white/70 hover:bg-white/10"}`}
-              >
-                {f.nom}
-              </button>
+      {ecartees.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-white/80">Les créneaux ont été créés. Ces formules n&apos;ont pas été proposées car leur durée dépasse la plage horaire choisie :</p>
+          <ul className="flex flex-col gap-1 text-sm text-white/60">
+            {ecartees.map((f) => (
+              <li key={f.formuleId}>
+                {f.formuleNom} ({f.dureeMinutes} min)
+              </li>
             ))}
+          </ul>
+          <div className="flex justify-end">
+            <button onClick={onClose} className="rounded-full bg-gold px-5 py-2 text-sm font-medium text-ink hover:bg-gold/90">
+              Compris
+            </button>
           </div>
         </div>
-        <div>
-          <label className="mb-1 block text-xs text-white/55">Jour de la semaine</label>
-          <div className="flex flex-wrap gap-1.5">
-            {JOURS_SEMAINE_ISO.map((j) => (
-              <button
-                key={j.valeur}
-                type="button"
-                onClick={() => setJourSemaine(j.valeur)}
-                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${jourSemaine === j.valeur ? "border-gold/40 bg-gold/20 text-gold" : "border-white/15 bg-white/5 text-white/70 hover:bg-white/10"}`}
-              >
-                {j.abrege}
-              </button>
-            ))}
+      ) : (
+        <form onSubmit={soumettre} className="flex flex-col gap-4">
+          <div>
+            <label className="mb-1 block text-xs text-white/55">Formules (plusieurs possibles)</label>
+            <div className="flex flex-wrap gap-1.5">
+              {formules.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => toggleFormule(f.id)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${formuleIds.includes(f.id) ? "border-gold/40 bg-gold/20 text-gold" : "border-white/15 bg-white/5 text-white/70 hover:bg-white/10"}`}
+                >
+                  {f.nom} <span className="text-white/50">({f.duree_minutes} min)</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <p className="mb-1.5 text-xs font-medium tracking-wide text-white/60 uppercase">Début</p>
-            <input type="time" value={heureDebut} onChange={(e) => setHeureDebut(e.target.value)} className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white [color-scheme:dark]" />
+          <div>
+            <label className="mb-1 block text-xs text-white/55">Jours de la semaine (plusieurs possibles)</label>
+            <div className="flex flex-wrap gap-1.5">
+              {JOURS_SEMAINE_ISO.map((j) => (
+                <button
+                  key={j.valeur}
+                  type="button"
+                  onClick={() => toggleJour(j.valeur)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${joursSemaine.includes(j.valeur) ? "border-gold/40 bg-gold/20 text-gold" : "border-white/15 bg-white/5 text-white/70 hover:bg-white/10"}`}
+                >
+                  {j.abrege}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex-1">
-            <p className="mb-1.5 text-xs font-medium tracking-wide text-white/60 uppercase">Fin</p>
-            <input type="time" value={heureFin} onChange={(e) => setHeureFin(e.target.value)} className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white [color-scheme:dark]" />
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <p className="mb-1.5 text-xs font-medium tracking-wide text-white/60 uppercase">Début de la plage</p>
+              <input type="time" value={heureDebut} onChange={(e) => setHeureDebut(e.target.value)} className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white [color-scheme:dark]" />
+            </div>
+            <div className="flex-1">
+              <p className="mb-1.5 text-xs font-medium tracking-wide text-white/60 uppercase">Fin de la plage</p>
+              <input type="time" value={heureFin} onChange={(e) => setHeureFin(e.target.value)} className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white [color-scheme:dark]" />
+            </div>
+            <div className="w-28">
+              <label className="mb-1 block text-xs text-white/55">Jauge</label>
+              <GlassNumberInput min={1} value={capaciteMax} onChange={setCapaciteMax} />
+            </div>
           </div>
-          <div className="w-28">
-            <label className="mb-1 block text-xs text-white/55">Jauge</label>
-            <input
-              type="number"
-              min={1}
-              value={capaciteMax}
-              onChange={(e) => setCapaciteMax(Number(e.target.value))}
-              className="h-10 w-full rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none focus:border-white/30"
-            />
+          <p className="text-xs text-white/50">
+            Chaque formule sera découpée en créneaux dos à dos selon sa propre durée dans cette plage (ex : plage 10h-18h, formule 1h → 10h, 11h… 17h). Une formule trop longue pour la plage ne sera pas proposée.
+          </p>
+          {erreur && <p className="text-xs text-red-300">{erreur}</p>}
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={onClose} className="rounded-full border border-white/15 px-4 py-2 text-sm text-white/70 hover:bg-white/10">
+              Annuler
+            </button>
+            <button type="submit" disabled={envoi} className="rounded-full bg-gold px-5 py-2 text-sm font-medium text-ink hover:bg-gold/90 disabled:opacity-50">
+              {envoi ? "Création…" : "Créer la règle"}
+            </button>
           </div>
-        </div>
-        {erreur && <p className="text-xs text-red-300">{erreur}</p>}
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-full border border-white/15 px-4 py-2 text-sm text-white/70 hover:bg-white/10">
-            Annuler
-          </button>
-          <button type="submit" disabled={envoi} className="rounded-full bg-gold px-5 py-2 text-sm font-medium text-ink hover:bg-gold/90 disabled:opacity-50">
-            {envoi ? "Création…" : "Créer la règle"}
-          </button>
-        </div>
-      </form>
+        </form>
+      )}
     </GlassModal>
   );
 }

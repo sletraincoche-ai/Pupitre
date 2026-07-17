@@ -36,8 +36,10 @@ export type DisponibiliteRecurrente = {
   heure_fin: string;
   capacite_max: number;
   actif: boolean;
-  visites_formules?: { nom: string };
+  visites_formules?: { nom: string; duree_minutes: number };
 };
+
+export type FormuleEcartee = { formuleId: string; formuleNom: string; dureeMinutes: number };
 
 export type ExceptionDisponibilite = {
   id: string;
@@ -104,9 +106,9 @@ export type PayloadCreneauPonctuel = {
   capaciteMax: number;
 };
 
-export type PayloadDisponibiliteRecurrente = {
-  formuleId: string;
-  jourSemaine: number;
+export type PayloadDisponibilitesRecurrentes = {
+  formuleIds: string[];
+  joursSemaine: number[];
   heureDebut: string;
   heureFin: string;
   capaciteMax: number;
@@ -156,8 +158,8 @@ export const visitesApi = {
 
   listerDisponibilitesRecurrentes: () => appelJson<{ disponibilites: DisponibiliteRecurrente[] }>("/api/visites/disponibilites/recurrentes"),
 
-  creerDisponibiliteRecurrente: (payload: PayloadDisponibiliteRecurrente) =>
-    appelJson<{ disponibilite: DisponibiliteRecurrente }>("/api/visites/disponibilites/recurrentes", {
+  creerDisponibilitesRecurrentes: (payload: PayloadDisponibilitesRecurrentes) =>
+    appelJson<{ creees: DisponibiliteRecurrente[]; ecartees: FormuleEcartee[] }>("/api/visites/disponibilites/recurrentes", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),

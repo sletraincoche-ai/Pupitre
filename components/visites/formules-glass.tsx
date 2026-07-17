@@ -5,6 +5,7 @@ import { Plus, Wine, Pencil, Archive } from "lucide-react";
 import { GlassEmptyState } from "@/components/glass/glass-empty-state";
 import { GlassModal } from "@/components/glass/glass-modal";
 import { GlassContextMenu } from "@/components/glass/glass-context-menu";
+import { GlassNumberInput } from "@/components/glass/glass-number-input";
 import { visitesApi, type Formule, type ModeTarification } from "@/lib/visites-api";
 
 type Brouillon = {
@@ -162,23 +163,11 @@ export function FormulesGlass({ formules, onMaj }: { formules: Formule[]; onMaj:
           <div className="flex gap-3">
             <div className="flex-1">
               <label className="mb-1 block text-xs text-white/55">Durée (min)</label>
-              <input
-                type="number"
-                min={1}
-                value={brouillon.dureeMinutes}
-                onChange={(e) => setBrouillon((b) => ({ ...b, dureeMinutes: Number(e.target.value) }))}
-                className="h-10 w-full rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none focus:border-white/30"
-              />
+              <GlassNumberInput min={1} value={brouillon.dureeMinutes} onChange={(v) => setBrouillon((b) => ({ ...b, dureeMinutes: v }))} />
             </div>
             <div className="flex-1">
               <label className="mb-1 block text-xs text-white/55">Jauge max</label>
-              <input
-                type="number"
-                min={1}
-                value={brouillon.capaciteMax}
-                onChange={(e) => setBrouillon((b) => ({ ...b, capaciteMax: Number(e.target.value) }))}
-                className="h-10 w-full rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none focus:border-white/30"
-              />
+              <GlassNumberInput min={1} value={brouillon.capaciteMax} onChange={(v) => setBrouillon((b) => ({ ...b, capaciteMax: v }))} />
             </div>
           </div>
 
@@ -201,27 +190,13 @@ export function FormulesGlass({ formules, onMaj }: { formules: Formule[]; onMaj:
           {brouillon.modeTarification === "par_personne" && (
             <div>
               <label className="mb-1 block text-xs text-white/55">Prix / pers. (€)</label>
-              <input
-                type="number"
-                min={0}
-                step="any"
-                value={brouillon.prixParPersonne}
-                onChange={(e) => setBrouillon((b) => ({ ...b, prixParPersonne: Number(e.target.value) }))}
-                className="h-10 w-full rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none focus:border-white/30"
-              />
+              <GlassNumberInput min={0} step="any" value={brouillon.prixParPersonne} onChange={(v) => setBrouillon((b) => ({ ...b, prixParPersonne: v }))} />
             </div>
           )}
           {brouillon.modeTarification === "total" && (
             <div>
               <label className="mb-1 block text-xs text-white/55">Prix total du créneau (€)</label>
-              <input
-                type="number"
-                min={0}
-                step="any"
-                value={brouillon.prixTotal}
-                onChange={(e) => setBrouillon((b) => ({ ...b, prixTotal: Number(e.target.value) }))}
-                className="h-10 w-full rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none focus:border-white/30"
-              />
+              <GlassNumberInput min={0} step="any" value={brouillon.prixTotal} onChange={(v) => setBrouillon((b) => ({ ...b, prixTotal: v }))} />
             </div>
           )}
           {brouillon.modeTarification === "gratuit" && <p className="text-xs text-white/50">Aucun paiement ne sera demandé pour cette formule.</p>}

@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { GlassCalendar } from "@/components/glass/glass-calendar";
+import { GlassNumberInput } from "@/components/glass/glass-number-input";
 import { visitesApi, type Formule, type Reservation } from "@/lib/visites-api";
 import { clientsApi, type Client } from "@/lib/clients-api";
-import { versDateISO } from "@/lib/date-fr";
+import { versDateISO, ajouterMinutes } from "@/lib/date-fr";
 
 // "Nouvelle visite" (V3, remplace "Nouveau visiteur") — le viticulteur
 // programme lui-même une visite : confirmée immédiatement, aucune
@@ -17,6 +18,7 @@ export function NouvelleVisiteFormGlass({ formules, onCree, onAnnuler }: { formu
   const [date, setDate] = useState(() => new Date());
   const [heureDebut, setHeureDebut] = useState(() => new Date().toTimeString().slice(0, 5));
   const [heureFin, setHeureFin] = useState("");
+  const [heureFinTouchee, setHeureFinTouchee] = useState(false);
   const [personnes, setPersonnes] = useState(1);
   const [visiteurNom, setVisiteurNom] = useState("");
   const [visiteurEmail, setVisiteurEmail] = useState("");
@@ -26,9 +28,21 @@ export function NouvelleVisiteFormGlass({ formules, onCree, onAnnuler }: { formu
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
 
+  const formuleChoisie = formules.find((f) => f.id === formuleId);
+
   useEffect(() => {
     clientsApi.lister().then((r) => setClients(r.clients));
   }, []);
+
+  // Heure de fin auto-remplie dès que la formule (ou l'heure de début)
+  // change, calculée depuis la durée pré-configurée de la formule —
+  // ajustable manuellement ensuite (dès que l'utilisateur y touche, on
+  // arrête de la recalculer automatiquement).
+  useEffect(() => {
+    if (heureFinTouchee || !formuleChoisie) return;
+    setHeureFin(ajouterMinutes(heureDebut, formuleChoisie.duree_minutes));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formuleId, heureDebut, formuleChoisie]);
 
   async function soumettre(e: React.FormEvent) {
     e.preventDefault();
@@ -88,18 +102,20 @@ export function NouvelleVisiteFormGlass({ formules, onCree, onAnnuler }: { formu
           <input type="time" value={heureDebut} onChange={(e) => setHeureDebut(e.target.value)} className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white [color-scheme:dark]" />
         </div>
         <div className="flex-1">
-          <p className="mb-1.5 text-xs font-medium tracking-wide text-white/60 uppercase">Fin (facultatif)</p>
-          <input type="time" value={heureFin} onChange={(e) => setHeureFin(e.target.value)} className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white [color-scheme:dark]" />
+          <p className="mb-1.5 text-xs font-medium tracking-wide text-white/60 uppercase">Fin</p>
+          <input
+            type="time"
+            value={heureFin}
+            onChange={(e) => {
+              setHeureFin(e.target.value);
+              setHeureFinTouchee(true);
+            }}
+            className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white [color-scheme:dark]"
+          />
         </div>
         <div className="w-24">
           <label className="mb-1 block text-xs text-white/55">Pers.</label>
-          <input
-            type="number"
-            min={1}
-            value={personnes}
-            onChange={(e) => setPersonnes(Number(e.target.value))}
-            className="h-10 w-full rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none focus:border-white/30"
-          />
+          <GlassNumberInput min={1} max={formuleChoisie?.capacite_max} value={personnes} onChange={setPersonnes} />
         </div>
       </div>
 

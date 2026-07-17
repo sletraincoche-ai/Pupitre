@@ -1,23 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { Check, X, Inbox } from "lucide-react";
+import { Check, X, Inbox, RotateCw } from "lucide-react";
 import { GlassEmptyState } from "@/components/glass/glass-empty-state";
 import { GlassModal } from "@/components/glass/glass-modal";
 import { visitesApi, type Reservation } from "@/lib/visites-api";
 import { formatDateCourte } from "@/lib/date-fr";
 
-// "Demandes en ligne" (V3) — toute réservation publique naît en_attente
+// "Demandes en ligne" (V4) — toute réservation publique naît en_attente
 // (jamais confirmée directement) ; la place reste bloquée pendant
 // l'attente (voir lib/visites-server.ts:getCapaciteRestante, qui ne
 // filtre que sur annule=true). Valider -> confirmee (apparaît dans
 // Accueil du jour). Refuser -> refusee, libère le créneau, email
-// d'excuse automatique.
-export function DemandesGlass({ demandes, onMaj }: { demandes: Reservation[]; onMaj: (id: string) => void }) {
+// d'excuse automatique. Rafraîchi automatiquement toutes les 30s par le
+// parent (page.tsx) tant que cet onglet est ouvert, en plus du bouton
+// "Recharger" ci-dessous.
+export function DemandesGlass({ demandes, onMaj, onRecharger }: { demandes: Reservation[]; onMaj: (id: string) => void; onRecharger: () => Promise<void> }) {
   const [aRefuser, setARefuser] = useState<Reservation | null>(null);
   const [motif, setMotif] = useState("");
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [rechargement, setRechargement] = useState(false);
+
+  async function recharger() {
+    setRechargement(true);
+    try {
+      await onRecharger();
+    } finally {
+      setRechargement(false);
+    }
+  }
 
   async function valider(r: Reservation) {
     try {
@@ -46,12 +58,29 @@ export function DemandesGlass({ demandes, onMaj }: { demandes: Reservation[]; on
     }
   }
 
+  const boutonRecharger = (
+    <button
+      onClick={recharger}
+      disabled={rechargement}
+      className="flex items-center gap-1.5 self-end rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs text-white/80 hover:bg-white/15 disabled:opacity-50"
+    >
+      <RotateCw className={`size-3.5 ${rechargement ? "animate-spin" : ""}`} />
+      Recharger
+    </button>
+  );
+
   if (demandes.length === 0) {
-    return <GlassEmptyState icon={Inbox} title="Aucune demande en attente" description="Les réservations faites depuis la page publique apparaîtront ici, en attente de votre validation." />;
+    return (
+      <div className="flex flex-col gap-3">
+        {boutonRecharger}
+        <GlassEmptyState icon={Inbox} title="Aucune demande en attente" description="Les réservations faites depuis la page publique apparaîtront ici, en attente de votre validation." />
+      </div>
+    );
   }
 
   return (
     <>
+      <div className="mb-3 flex justify-end">{boutonRecharger}</div>
       <div className="flex flex-col gap-1">
         {demandes.map((d) => (
           <div key={d.id} className="flex flex-wrap items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-white/5">

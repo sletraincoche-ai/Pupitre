@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { GlassNumberInput } from "@/components/glass/glass-number-input";
 import { caveApi, type Produit } from "@/lib/cave-api";
 
 const LIBELLES_FISCAUX_CHAMPAGNE = [
@@ -17,8 +18,8 @@ export function NouveauProduitForm({ onCree, onAnnuler }: { onCree: (produit: Pr
   const [millesime, setMillesime] = useState("NV");
   const [libellePersonnalise, setLibellePersonnalise] = useState("");
   const [libelleFiscal, setLibelleFiscal] = useState(LIBELLES_FISCAUX_CHAMPAGNE[0].valeur);
-  const [tav, setTav] = useState("12.5");
-  const [prixVenteDefaut, setPrixVenteDefaut] = useState("");
+  const [tav, setTav] = useState(12.5);
+  const [prixVenteDefaut, setPrixVenteDefaut] = useState(0);
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
 
@@ -35,8 +36,8 @@ export function NouveauProduitForm({ onCree, onAnnuler }: { onCree: (produit: Pr
         millesime: millesime.trim() || undefined,
         libellePersonnalise: libellePersonnalise.trim(),
         libelleFiscal,
-        tav: tav ? Number(tav) : undefined,
-        prixVenteDefaut: prixVenteDefaut ? Number(prixVenteDefaut) : undefined,
+        tav: tav || undefined,
+        prixVenteDefaut: prixVenteDefaut || undefined,
       });
       onCree(produit);
     } catch (err) {
@@ -73,13 +74,7 @@ export function NouveauProduitForm({ onCree, onAnnuler }: { onCree: (produit: Pr
         </div>
         <div className="flex-1">
           <label className="mb-1 block text-xs text-white/55">TAV (%)</label>
-          <input
-            type="number"
-            step={0.1}
-            value={tav}
-            onChange={(e) => setTav(e.target.value)}
-            className="h-10 w-full rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none focus:border-white/30"
-          />
+          <GlassNumberInput step={0.1} min={0} value={tav} onChange={setTav} />
         </div>
       </div>
 
@@ -111,13 +106,7 @@ export function NouveauProduitForm({ onCree, onAnnuler }: { onCree: (produit: Pr
 
       <div>
         <label className="mb-1 block text-xs text-white/55">Prix de vente par défaut (€)</label>
-        <input
-          type="number"
-          step={0.01}
-          value={prixVenteDefaut}
-          onChange={(e) => setPrixVenteDefaut(e.target.value)}
-          className="h-10 w-full rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none focus:border-white/30"
-        />
+        <GlassNumberInput step={0.01} min={0} value={prixVenteDefaut} onChange={setPrixVenteDefaut} />
       </div>
 
       {erreur && <p className="text-xs text-red-300">{erreur}</p>}

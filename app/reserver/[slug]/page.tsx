@@ -6,8 +6,11 @@ import { CalendarX, Check, Clock, Users, Wine } from "lucide-react";
 import { GlassBackground } from "@/components/glass/glass-background";
 import { GlassPanel } from "@/components/glass/glass-panel";
 import { GlassEmptyState } from "@/components/glass/glass-empty-state";
+import { GlassNumberInput } from "@/components/glass/glass-number-input";
 import { visitesPublicApi, type FormulePublique, type CreneauPublic } from "@/lib/visites-public-api";
 import { formatDateLongue } from "@/lib/date-fr";
+
+const SEUIL_PLACES_LIMITEES = 3;
 
 type Etape = "formule" | "creneau" | "coordonnees" | "confirmation";
 
@@ -61,7 +64,7 @@ export default function ReserverPage() {
     e.preventDefault();
     if (!formule || !creneau) return;
     if (!visiteurNom.trim()) return setErreur("Nom requis.");
-    if (!visiteurEmail.trim() && !visiteurTelephone.trim()) return setErreur("Email ou téléphone requis pour confirmer la réservation.");
+    if (!visiteurEmail.trim() || !visiteurTelephone.trim()) return setErreur("Email et numéro de téléphone sont tous les deux requis.");
 
     setEnvoi(true);
     setErreur(null);
@@ -144,7 +147,9 @@ export default function ReserverPage() {
                           <span className="text-sm text-white">
                             {formatDateLongue(c.date)} de {c.heureDebut} à {c.heureFin}
                           </span>
-                          <span className="text-xs text-white/55">{c.restante} place{c.restante > 1 ? "s" : ""}</span>
+                          <span className={`text-xs ${c.restante <= SEUIL_PLACES_LIMITEES ? "font-medium text-amber-300" : "text-white/55"}`}>
+                            {c.restante <= SEUIL_PLACES_LIMITEES ? `Plus que ${c.restante} place${c.restante > 1 ? "s" : ""} !` : `${c.restante} places`}
+                          </span>
                         </button>
                       ))}
                     </div>
@@ -160,17 +165,15 @@ export default function ReserverPage() {
                   <p className="text-sm text-white/70">
                     {formule.nom} — {formatDateLongue(creneau.date, { day: "numeric", month: "long" })} de {creneau.heureDebut} à {creneau.heureFin}
                   </p>
+                  {creneau.restante <= SEUIL_PLACES_LIMITEES && (
+                    <p className="text-xs font-medium text-amber-300">
+                      Plus que {creneau.restante} place{creneau.restante > 1 ? "s" : ""} sur ce créneau !
+                    </p>
+                  )}
 
                   <div>
-                    <label className="mb-1 block text-xs text-white/55">Nombre de personnes</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={creneau.restante}
-                      value={personnes}
-                      onChange={(e) => setPersonnes(Number(e.target.value))}
-                      className="h-10 w-full rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none focus:border-white/30"
-                    />
+                    <label className="mb-1 block text-xs text-white/55">Nombre de personnes (max {creneau.restante})</label>
+                    <GlassNumberInput min={1} max={creneau.restante} value={personnes} onChange={setPersonnes} />
                   </div>
                   <div>
                     <label className="mb-1 block text-xs text-white/55">Nom</label>
@@ -182,17 +185,20 @@ export default function ReserverPage() {
                   </div>
                   <div className="flex gap-3">
                     <div className="flex-1">
-                      <label className="mb-1 block text-xs text-white/55">Email</label>
+                      <label className="mb-1 block text-xs text-white/55">Email (obligatoire)</label>
                       <input
                         type="email"
+                        required
                         value={visiteurEmail}
                         onChange={(e) => setVisiteurEmail(e.target.value)}
                         className="h-10 w-full rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none focus:border-white/30"
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="mb-1 block text-xs text-white/55">Téléphone</label>
+                      <label className="mb-1 block text-xs text-white/55">Téléphone (obligatoire)</label>
                       <input
+                        type="tel"
+                        required
                         value={visiteurTelephone}
                         onChange={(e) => setVisiteurTelephone(e.target.value)}
                         className="h-10 w-full rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white outline-none focus:border-white/30"
@@ -200,9 +206,11 @@ export default function ReserverPage() {
                     </div>
                   </div>
 
-                  <p className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60">
-                    Le paiement en ligne n&apos;est pas encore disponible — le règlement se fera sur place.
-                  </p>
+                  {formule.mode_tarification !== "gratuit" && (
+                    <p className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60">
+                      Le paiement en ligne n&apos;est pas encore disponible — le règlement se fera sur place.
+                    </p>
+                  )}
 
                   {erreur && <p className="text-xs text-red-300">{erreur}</p>}
 

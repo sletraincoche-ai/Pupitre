@@ -44,6 +44,32 @@ function jourSemaineIso(dateStr: string): number {
   return jsDay === 0 ? 7 : jsDay;
 }
 
+function minutesDepuisMinuit(heure: string): number {
+  const [h, m] = heure.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function minutesVersHeure(minutes: number): string {
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
+// V4 — une disponibilité récurrente couvre désormais une PLAGE large
+// (ex: 10h-18h), pas un seul créneau fixe. Cette fonction découpe la
+// plage en créneaux de départ possibles pour UNE formule donnée, dos à
+// dos selon sa durée, en s'assurant que chaque visite se termine bien
+// dans la fenêtre (ex: plage 10h-18h, formule 1h -> 10h,11h,...,17h ;
+// formule 2h -> 10h,12h,14h,16h). Une formule dont la durée dépasse la
+// plage entière ne produit aucun horaire (liste vide), jamais une erreur.
+function genererHeuresDebutPossibles(fenetreDebut: string, fenetreFin: string, dureeMinutes: number): string[] {
+  const debut = minutesDepuisMinuit(fenetreDebut);
+  const fin = minutesDepuisMinuit(fenetreFin);
+  const heures: string[] = [];
+  for (let t = debut; t + dureeMinutes <= fin; t += dureeMinutes) {
+    heures.push(minutesVersHeure(t));
+  }
+  return heures;
+}
+
 // Capacité restante calculée à la volée depuis les réservations actives
 // (annule = false, quel que soit le statut — une demande en_attente
 // bloque donc bien la place) — jamais un compteur stocké, pour ne
@@ -65,11 +91,12 @@ export async function getCapaciteRestante(creneauId: string): Promise<{ capacite
 // Point de jonction entre une règle récurrente (jamais matérialisée à
 // l'avance) et une réservation réelle : cherche un visites_creneaux déjà
 // existant pour cette (formule, date, heure) ; à défaut, cherche une
-// règle récurrente active correspondante sans exception ce jour-là et
-// matérialise alors un vrai créneau — seulement à ce moment précis,
-// jamais en avance pour toutes les semaines futures (exigence explicite
-// du brief). Retourne null si rien ne correspond (date/heure hors de
-// toute disponibilité ouverte).
+// règle récurrente active dont la plage horaire contient cet horaire de
+// départ EXACT pour la durée de cette formule (découpage dos à dos, voir
+// genererHeuresDebutPossibles), sans exception ce jour-là, et matérialise
+// alors un vrai créneau — seulement à ce moment précis, jamais en avance
+// pour toutes les semaines futures (exigence explicite du brief).
+// Retourne null si rien ne correspond.
 export async function resoudreCreneauPourReservation(
   userId: string,
   formuleId: string,
@@ -86,35 +113,46 @@ export async function resoudreCreneauPourReservation(
     .maybeSingle();
   if (existant) return { id: existant.id, heureFin: existant.heure_fin, capaciteMax: existant.capacite_max };
 
-  const { data: regle } = await supabaseAdmin
+  const { data: formule } = await supabaseAdmin.from("visites_formules").select("duree_minutes").eq("id", formuleId).eq("user_id", userId).maybeSingle();
+  if (!formule) return null;
+
+  const { data: regles } = await supabaseAdmin
     .from("visites_disponibilites_recurrentes")
-    .select("id, heure_fin, capacite_max")
+    .select("id, heure_debut, heure_fin, capacite_max")
     .eq("user_id", userId)
     .eq("formule_id", formuleId)
     .eq("jour_semaine", jourSemaineIso(date))
-    .eq("heure_debut", heureDebut)
-    .eq("actif", true)
-    .maybeSingle();
-  if (!regle) return null;
+    .eq("actif", true);
+
+  let regleCorrespondante: { id: string; capacite_max: number } | null = null;
+  for (const regle of regles ?? []) {
+    if (genererHeuresDebutPossibles(regle.heure_debut, regle.heure_fin, formule.duree_minutes).includes(heureDebut)) {
+      regleCorrespondante = regle;
+      break;
+    }
+  }
+  if (!regleCorrespondante) return null;
 
   const { data: exception } = await supabaseAdmin
     .from("visites_disponibilites_exceptions")
     .select("id")
-    .eq("disponibilite_id", regle.id)
+    .eq("disponibilite_id", regleCorrespondante.id)
     .eq("date", date)
     .maybeSingle();
   if (exception) return null;
+
+  const heureFin = minutesVersHeure(minutesDepuisMinuit(heureDebut) + formule.duree_minutes);
 
   const { data: creneau, error } = await supabaseAdmin
     .from("visites_creneaux")
     .insert({
       user_id: userId,
       formule_id: formuleId,
-      disponibilite_id: regle.id,
+      disponibilite_id: regleCorrespondante.id,
       date,
       heure_debut: heureDebut,
-      heure_fin: regle.heure_fin,
-      capacite_max: regle.capacite_max,
+      heure_fin: heureFin,
+      capacite_max: regleCorrespondante.capacite_max,
     })
     .select("id, heure_fin, capacite_max")
     .single();
@@ -196,7 +234,7 @@ export async function listerCreneauxDisponibles(userId: string, formuleId?: stri
 
   let requeteRegles = supabaseAdmin
     .from("visites_disponibilites_recurrentes")
-    .select("id, formule_id, jour_semaine, heure_debut, heure_fin, capacite_max")
+    .select("id, formule_id, jour_semaine, heure_debut, heure_fin, capacite_max, visites_formules(duree_minutes)")
     .eq("user_id", userId)
     .eq("actif", true);
   if (formuleId) requeteRegles = requeteRegles.eq("formule_id", formuleId);
@@ -204,21 +242,29 @@ export async function listerCreneauxDisponibles(userId: string, formuleId?: stri
 
   const resultatsVirtuels: CreneauDisponible[] = [];
   for (const regle of regles ?? []) {
+    const formuleAssociee = Array.isArray(regle.visites_formules) ? regle.visites_formules[0] : regle.visites_formules;
+    const dureeMinutes = formuleAssociee?.duree_minutes;
+    if (!dureeMinutes) continue;
+    const heuresPossibles = genererHeuresDebutPossibles(regle.heure_debut, regle.heure_fin, dureeMinutes);
+    if (heuresPossibles.length === 0) continue;
+
     const { data: exceptions } = await supabaseAdmin.from("visites_disponibilites_exceptions").select("date").eq("disponibilite_id", regle.id);
     const datesExceptees = new Set((exceptions ?? []).map((e) => e.date));
     for (let d = aujourdhui; d <= horizon; d = ajouterJours(d, 1)) {
       if (jourSemaineIso(d) !== regle.jour_semaine) continue;
       if (datesExceptees.has(d)) continue;
-      if (clefsReelles.has(`${regle.formule_id}|${d}|${regle.heure_debut}`)) continue;
-      resultatsVirtuels.push({
-        id: `virtuel:${regle.id}:${d}`,
-        formule_id: regle.formule_id,
-        date: d,
-        heureDebut: regle.heure_debut,
-        heureFin: regle.heure_fin,
-        capaciteMax: regle.capacite_max,
-        restante: regle.capacite_max,
-      });
+      for (const heureDebutPossible of heuresPossibles) {
+        if (clefsReelles.has(`${regle.formule_id}|${d}|${heureDebutPossible}`)) continue;
+        resultatsVirtuels.push({
+          id: `virtuel:${regle.id}:${d}:${heureDebutPossible}`,
+          formule_id: regle.formule_id,
+          date: d,
+          heureDebut: heureDebutPossible,
+          heureFin: minutesVersHeure(minutesDepuisMinuit(heureDebutPossible) + dureeMinutes),
+          capaciteMax: regle.capacite_max,
+          restante: regle.capacite_max,
+        });
+      }
     }
   }
 
@@ -312,13 +358,19 @@ async function notifierVigneronNouvelleDemande(userId: string, r: ReservationEma
   );
 }
 
-async function envoyerVisiteConfirmee(userId: string, r: ReservationEmailInfo, nomFormule: string): Promise<void> {
+// gratuite : si la formule est en mode 'gratuit', aucune mention de
+// paiement, montant ou reçu (exigence explicite du brief V4) — le texte
+// change entièrement plutôt que de simplement omettre une phrase, pour
+// ne jamais laisser une formulation ambiguë ("le règlement se fera sur
+// place" n'a aucun sens pour une visite gratuite).
+async function envoyerVisiteConfirmee(userId: string, r: ReservationEmailInfo, nomFormule: string, gratuite: boolean): Promise<void> {
   if (!r.visiteur_email) return;
+  const mentionPaiement = gratuite ? "" : "<p>Le paiement en ligne n'est pas encore disponible : le règlement se fera sur place.</p>";
   await envoyerEmailVisites(
     userId,
     r.visiteur_email,
     "Votre visite est confirmée",
-    `<p>Bonjour ${r.visiteur_nom},</p><p>Votre visite (${nomFormule}) est confirmée pour le ${r.date} de ${r.heure_debut} à ${r.heure_fin}.</p><p>Le paiement en ligne n'est pas encore disponible : le règlement se fera sur place.</p><p>À très bientôt !</p>`
+    `<p>Bonjour ${r.visiteur_nom},</p><p>Votre visite (${nomFormule}) est confirmée pour le ${r.date} de ${r.heure_debut} à ${r.heure_fin}.</p>${mentionPaiement}<p>À très bientôt !</p>`
   );
 }
 
@@ -388,8 +440,8 @@ export async function creerReservation(userId: string, params: ParametresReserva
   if (!params.formuleId) throw new VisiteError("Formule requise.", 400);
   if (!params.visiteurNom?.trim()) throw new VisiteError("Nom du visiteur requis.", 400);
   if (!Number.isInteger(params.personnes) || params.personnes <= 0) throw new VisiteError("Nombre de personnes invalide.", 400);
-  if (params.origine === "en_ligne" && !params.visiteurEmail && !params.visiteurTelephone) {
-    throw new VisiteError("Email ou téléphone requis pour une réservation en ligne.", 400);
+  if (params.origine === "en_ligne" && (!params.visiteurEmail?.trim() || !params.visiteurTelephone?.trim())) {
+    throw new VisiteError("Email et téléphone sont tous les deux requis pour une réservation en ligne.", 400);
   }
 
   const { data: formule } = await supabaseAdmin
@@ -540,40 +592,55 @@ export async function creerCreneauPonctuel(userId: string, params: ParametresCre
   return data;
 }
 
-export type ParametresDisponibiliteRecurrente = { formuleId: string; jourSemaine: number; heureDebut: string; heureFin: string; capaciteMax: number };
+export type ParametresDisponibilitesRecurrentes = { formuleIds: string[]; joursSemaine: number[]; heureDebut: string; heureFin: string; capaciteMax: number };
 
-// "Mes disponibilités" — disponibilité récurrente : règle hebdomadaire
-// ("tous les lundis 10h-12h"), jamais matérialisée à l'avance (voir
+// "Mes disponibilités" — disponibilité récurrente (V4) : plusieurs jours
+// et plusieurs formules à la fois sur une même plage large ("tous les
+// lundis+mercredis 10h-18h, formules Basic+Premium"). Une ligne par
+// (jour × formule) — même granularité que V3, mais créée en masse en un
+// seul geste. Une formule dont la durée ne rentre nulle part dans la
+// plage est silencieusement écartée (jamais d'erreur bloquante pour les
+// autres) et remontée dans `ecartees` pour que l'écran puisse informer
+// le viticulteur. Jamais matérialisée à l'avance (voir
 // resoudreCreneauPourReservation et listerCreneauxDisponibles).
-export async function creerDisponibiliteRecurrente(userId: string, params: ParametresDisponibiliteRecurrente) {
-  if (!params.formuleId) throw new VisiteError("Formule requise.", 400);
-  if (!Number.isInteger(params.jourSemaine) || params.jourSemaine < 1 || params.jourSemaine > 7) throw new VisiteError("Jour de la semaine invalide.", 400);
+export async function creerDisponibilitesRecurrentes(userId: string, params: ParametresDisponibilitesRecurrentes) {
+  if (!params.formuleIds?.length) throw new VisiteError("Au moins une formule requise.", 400);
+  if (!params.joursSemaine?.length) throw new VisiteError("Au moins un jour requis.", 400);
+  if (params.joursSemaine.some((j) => !Number.isInteger(j) || j < 1 || j > 7)) throw new VisiteError("Jour de la semaine invalide.", 400);
   if (!params.heureDebut || !params.heureFin) throw new VisiteError("Heures de début et fin requises.", 400);
+  if (minutesDepuisMinuit(params.heureFin) <= minutesDepuisMinuit(params.heureDebut)) throw new VisiteError("L'heure de fin doit être après l'heure de début.", 400);
   if (!Number.isInteger(params.capaciteMax) || params.capaciteMax <= 0) throw new VisiteError("Capacité invalide.", 400);
 
-  const { data: formule } = await supabaseAdmin.from("visites_formules").select("id").eq("id", params.formuleId).eq("user_id", userId).maybeSingle();
-  if (!formule) throw new VisiteError("Formule introuvable.", 404);
+  const { data: formules } = await supabaseAdmin.from("visites_formules").select("id, nom, duree_minutes").eq("user_id", userId).in("id", params.formuleIds);
+  if (!formules || formules.length === 0) throw new VisiteError("Formule introuvable.", 404);
 
-  const { data, error } = await supabaseAdmin
-    .from("visites_disponibilites_recurrentes")
-    .insert({
+  const formulesValides = formules.filter((f) => genererHeuresDebutPossibles(params.heureDebut, params.heureFin, f.duree_minutes).length > 0);
+  const ecartees = formules.filter((f) => !formulesValides.includes(f)).map((f) => ({ formuleId: f.id, formuleNom: f.nom, dureeMinutes: f.duree_minutes }));
+  if (formulesValides.length === 0) {
+    throw new VisiteError("Aucune formule sélectionnée ne tient dans cette plage horaire.", 400);
+  }
+
+  const lignes = params.joursSemaine.flatMap((jourSemaine) =>
+    formulesValides.map((f) => ({
       user_id: userId,
-      formule_id: params.formuleId,
-      jour_semaine: params.jourSemaine,
+      formule_id: f.id,
+      jour_semaine: jourSemaine,
       heure_debut: params.heureDebut,
       heure_fin: params.heureFin,
       capacite_max: params.capaciteMax,
-    })
-    .select("*")
-    .single();
+    }))
+  );
+
+  const { data: creees, error } = await supabaseAdmin.from("visites_disponibilites_recurrentes").insert(lignes).select("*, visites_formules(nom, duree_minutes)");
   if (error) throw new VisiteError(error.message, 500);
-  return data;
+
+  return { creees: creees ?? [], ecartees };
 }
 
 export async function listerDisponibilitesRecurrentes(userId: string) {
   const { data, error } = await supabaseAdmin
     .from("visites_disponibilites_recurrentes")
-    .select("*, visites_formules(nom)")
+    .select("*, visites_formules(nom, duree_minutes)")
     .eq("user_id", userId)
     .order("jour_semaine", { ascending: true })
     .order("heure_debut", { ascending: true });
@@ -715,7 +782,7 @@ export async function listerDemandesEnAttente(userId: string) {
 export async function validerDemande(userId: string, reservationId: string) {
   const { data: reservation } = await supabaseAdmin
     .from("visites_reservations")
-    .select("*, visites_formules(nom)")
+    .select("*, visites_formules(nom, mode_tarification)")
     .eq("id", reservationId)
     .eq("user_id", userId)
     .maybeSingle();
@@ -730,8 +797,9 @@ export async function validerDemande(userId: string, reservationId: string) {
     .single();
   if (error) throw new VisiteError(error.message, 500);
 
+  const formuleAssociee = Array.isArray(reservation.visites_formules) ? reservation.visites_formules[0] : reservation.visites_formules;
   await emettreEvenementVisite(userId, "visites.demande_validee", maj, false);
-  await envoyerVisiteConfirmee(userId, maj, reservation.visites_formules?.nom ?? "Formule");
+  await envoyerVisiteConfirmee(userId, maj, formuleAssociee?.nom ?? "Formule", formuleAssociee?.mode_tarification === "gratuit");
   return maj;
 }
 

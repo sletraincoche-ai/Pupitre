@@ -22,6 +22,14 @@ export function formatDateCourte(dateStr: string): string {
   return parseDateLocale(dateStr).toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "2-digit" });
 }
 
+// "10:00" + 45 -> "10:45" — sert à auto-remplir l'heure de fin dès
+// qu'une formule est choisie (durée pré-configurée), côté client.
+export function ajouterMinutes(heure: string, minutes: number): string {
+  const [h, m] = heure.split(":").map(Number);
+  const total = (((h * 60 + m + minutes) % (24 * 60)) + 24 * 60) % (24 * 60);
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
 export const JOURS_SEMAINE_ISO: { valeur: number; label: string; abrege: string }[] = [
   { valeur: 1, label: "Lundi", abrege: "Lun" },
   { valeur: 2, label: "Mardi", abrege: "Mar" },

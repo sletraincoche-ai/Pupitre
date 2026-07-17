@@ -95,6 +95,16 @@ export default function VisitesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
 
+  // Rafraîchissement automatique des demandes en ligne toutes les 30s
+  // tant que cet onglet est ouvert — en plus du bouton "Recharger", pour
+  // ne pas dépendre uniquement d'un geste manuel (brief V4).
+  useEffect(() => {
+    if (onglet !== "demandes") return;
+    const intervalle = setInterval(() => rafraichirDemandes(), 30_000);
+    return () => clearInterval(intervalle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onglet]);
+
   function majReservation(r: Reservation) {
     setReservations((prev) => prev.map((x) => (x.id === r.id ? { ...x, ...r } : x)));
   }
@@ -178,7 +188,7 @@ export default function VisitesPage() {
                 disponibilites={disponibilites}
                 onCreneauCree={(c) => setCreneaux((prev) => [...prev, c])}
                 onCreneauSupprime={(id) => setCreneaux((prev) => prev.filter((c) => c.id !== id))}
-                onDisponibiliteCreee={(d) => setDisponibilites((prev) => [...prev, d])}
+                onDisponibilitesCreees={(nouvelles) => setDisponibilites((prev) => [...prev, ...nouvelles])}
                 onDisponibiliteMaj={(d) => setDisponibilites((prev) => prev.map((x) => (x.id === d.id ? d : x)))}
               />
             </GlassPanel>
@@ -190,7 +200,7 @@ export default function VisitesPage() {
 
         {onglet === "demandes" && (
           <GlassPanel intensity="regular" className="p-4">
-            <DemandesGlass demandes={demandes} onMaj={majDemandeTraitee} />
+            <DemandesGlass demandes={demandes} onMaj={majDemandeTraitee} onRecharger={rafraichirDemandes} />
           </GlassPanel>
         )}
       </div>

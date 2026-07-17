@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
+import { GlassNumberInput } from "@/components/glass/glass-number-input";
 import { facturationApi, type Client, type DocumentFacturation, type LignePayload, type TypeDocumentFacturation, type VenteComptoirDisponible } from "@/lib/facturation-api";
 import type { Produit } from "@/lib/cave-api";
 
@@ -153,22 +154,20 @@ export function NouveauDocumentForm({
               placeholder="Désignation"
               className="h-9 min-w-0 flex-1 rounded-lg border border-white/15 bg-white/10 px-2 text-sm text-white outline-none focus:border-white/30"
             />
-            <input
-              type="number"
+            <GlassNumberInput
               min={0}
               step="any"
               value={l.quantite}
-              onChange={(e) => modifierLigne(l.cle, { quantite: Number(e.target.value) })}
-              className="h-9 w-16 rounded-lg border border-white/15 bg-white/10 px-2 text-sm text-white outline-none focus:border-white/30"
+              onChange={(v) => modifierLigne(l.cle, { quantite: v })}
+              className="h-9 w-16 rounded-lg px-2"
               title="Quantité"
             />
-            <input
-              type="number"
+            <GlassNumberInput
               min={0}
               step={0.01}
               value={l.prixUnitaireHt}
-              onChange={(e) => modifierLigne(l.cle, { prixUnitaireHt: Number(e.target.value) })}
-              className="h-9 w-20 rounded-lg border border-white/15 bg-white/10 px-2 text-sm text-white outline-none focus:border-white/30"
+              onChange={(v) => modifierLigne(l.cle, { prixUnitaireHt: v })}
+              className="h-9 w-20 rounded-lg px-2"
               title="Prix unitaire HT"
             />
             <button type="button" onClick={() => supprimerLigne(l.cle)} className="flex size-7 shrink-0 items-center justify-center rounded-full text-white/50 hover:bg-white/10 hover:text-red-300">
