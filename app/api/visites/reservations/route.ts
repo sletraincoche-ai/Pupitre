@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireUser } from "@/lib/auth";
-import { creerReservation, VisiteError } from "@/lib/visites-server";
+import { creerNouvelleVisite, VisiteError } from "@/lib/visites-server";
 
 // Liste du jour (accueil) — ?date=AAAA-MM-JJ, défaut aujourd'hui.
 export async function GET(request: NextRequest) {
@@ -21,8 +21,9 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ reservations: data ?? [] });
 }
 
-// Création manuelle/walk-in depuis l'accueil du jour (jamais depuis la
-// page publique, qui passe par /api/public/visites/reserver).
+// "Nouvelle visite" (V3) — le viticulteur programme lui-même une
+// visite, confirmée immédiatement (jamais depuis la page publique, qui
+// passe par /api/public/visites/reserver et naît en_attente).
 export async function POST(request: NextRequest) {
   const { user, response } = await requireUser();
   if (!user) return response;
@@ -30,17 +31,16 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
 
   try {
-    const reservation = await creerReservation(user.id, {
+    const reservation = await creerNouvelleVisite(user.id, {
       formuleId: typeof body.formuleId === "string" ? body.formuleId : "",
-      creneauId: typeof body.creneauId === "string" ? body.creneauId : undefined,
       date: typeof body.date === "string" ? body.date : new Date().toISOString().slice(0, 10),
       heureDebut: typeof body.heureDebut === "string" ? body.heureDebut : new Date().toTimeString().slice(0, 5),
+      heureFin: typeof body.heureFin === "string" ? body.heureFin : undefined,
       personnes: Number(body.personnes),
-      visiteurNom: typeof body.visiteurNom === "string" ? body.visiteurNom : "",
+      visiteurNom: typeof body.visiteurNom === "string" ? body.visiteurNom : undefined,
       visiteurEmail: typeof body.visiteurEmail === "string" ? body.visiteurEmail : undefined,
       visiteurTelephone: typeof body.visiteurTelephone === "string" ? body.visiteurTelephone : undefined,
-      langue: typeof body.langue === "string" ? body.langue : undefined,
-      origine: body.origine === "manuel" ? "manuel" : "walk_in",
+      clientId: typeof body.clientId === "string" ? body.clientId : undefined,
     });
     return NextResponse.json({ reservation }, { status: 201 });
   } catch (erreur) {

@@ -18,6 +18,7 @@ export type Formule = {
 export type Creneau = {
   id: string;
   formule_id: string;
+  disponibilite_id: string | null;
   date: string;
   heure_debut: string;
   heure_fin: string;
@@ -27,7 +28,25 @@ export type Creneau = {
   visites_formules?: { nom: string };
 };
 
-export type StatutReservation = "confirmee" | "arrivee" | "terminee" | "annulee";
+export type DisponibiliteRecurrente = {
+  id: string;
+  formule_id: string;
+  jour_semaine: number;
+  heure_debut: string;
+  heure_fin: string;
+  capacite_max: number;
+  actif: boolean;
+  visites_formules?: { nom: string };
+};
+
+export type ExceptionDisponibilite = {
+  id: string;
+  disponibilite_id: string;
+  date: string;
+  motif: string | null;
+};
+
+export type StatutReservation = "confirmee" | "arrivee" | "terminee" | "annulee" | "en_attente" | "refusee";
 export type OrigineReservation = "en_ligne" | "walk_in" | "manuel";
 export type StatutPaiement = "a_configurer" | "paye_sur_place" | "paye_ligne" | "rembourse";
 
@@ -54,6 +73,8 @@ export type Reservation = {
   annule: boolean;
   annule_le: string | null;
   motif_annulation: string | null;
+  relance_envoyee_le: string | null;
+  created_at: string;
   visites_formules?: { nom: string; duree_minutes: number };
   cave_mouvements?: { id: string; montant: number | null; quantite_bouteilles: number }[];
 };
@@ -75,11 +96,27 @@ export type PayloadFormule = {
   capaciteMax: number;
 };
 
-export type PayloadAjouterVisite = {
+export type PayloadCreneauPonctuel = {
   formuleId: string;
   date: string;
   heureDebut: string;
   heureFin: string;
+  capaciteMax: number;
+};
+
+export type PayloadDisponibiliteRecurrente = {
+  formuleId: string;
+  jourSemaine: number;
+  heureDebut: string;
+  heureFin: string;
+  capaciteMax: number;
+};
+
+export type PayloadNouvelleVisite = {
+  formuleId: string;
+  date: string;
+  heureDebut: string;
+  heureFin?: string;
   personnes: number;
   visiteurNom?: string;
   visiteurEmail?: string;
@@ -106,10 +143,10 @@ export const visitesApi = {
 
   listerCreneaux: (depuis?: string) => appelJson<{ creneaux: Creneau[] }>(`/api/visites/creneaux${depuis ? `?depuis=${depuis}` : ""}`),
 
-  // "Ajouter une visite" — ouvre le créneau et, si un nom/une fiche
-  // client est donné, y rattache immédiatement une réservation.
-  ajouterVisite: (payload: PayloadAjouterVisite) =>
-    appelJson<{ creneau: Creneau; reservation: Reservation | null }>("/api/visites/creneaux", {
+  // "Mes disponibilités" — créneau ponctuel, jamais de nom rattaché
+  // (action strictement séparée de "Nouvelle visite").
+  creerCreneauPonctuel: (payload: PayloadCreneauPonctuel) =>
+    appelJson<{ creneau: Creneau }>("/api/visites/creneaux", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
@@ -117,20 +154,39 @@ export const visitesApi = {
 
   supprimerCreneau: (id: string) => appelJson<{ ok: true }>(`/api/visites/creneaux/${id}`, { method: "DELETE" }),
 
+  listerDisponibilitesRecurrentes: () => appelJson<{ disponibilites: DisponibiliteRecurrente[] }>("/api/visites/disponibilites/recurrentes"),
+
+  creerDisponibiliteRecurrente: (payload: PayloadDisponibiliteRecurrente) =>
+    appelJson<{ disponibilite: DisponibiliteRecurrente }>("/api/visites/disponibilites/recurrentes", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+
+  modifierDisponibiliteRecurrente: (id: string, actif: boolean) =>
+    appelJson<{ disponibilite: DisponibiliteRecurrente }>(`/api/visites/disponibilites/recurrentes/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ actif }),
+    }),
+
+  listerExceptions: (disponibiliteId: string) =>
+    appelJson<{ exceptions: ExceptionDisponibilite[] }>(`/api/visites/disponibilites/recurrentes/${disponibiliteId}/exceptions`),
+
+  ajouterException: (disponibiliteId: string, date: string, motif?: string) =>
+    appelJson<{ exception: ExceptionDisponibilite }>(`/api/visites/disponibilites/recurrentes/${disponibiliteId}/exceptions`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ date, motif }),
+    }),
+
+  supprimerException: (id: string) => appelJson<{ ok: true }>(`/api/visites/disponibilites/exceptions/${id}`, { method: "DELETE" }),
+
   listerReservations: (date: string) => appelJson<{ reservations: Reservation[] }>(`/api/visites/reservations?date=${date}`),
 
-  creerReservation: (payload: {
-    formuleId: string;
-    creneauId?: string;
-    date?: string;
-    heureDebut?: string;
-    personnes: number;
-    visiteurNom: string;
-    visiteurEmail?: string;
-    visiteurTelephone?: string;
-    langue?: string;
-    origine: "walk_in" | "manuel";
-  }) =>
+  // "Nouvelle visite" — le viticulteur programme lui-même une visite,
+  // confirmée immédiatement (remplace l'ancien "Nouveau visiteur").
+  creerNouvelleVisite: (payload: PayloadNouvelleVisite) =>
     appelJson<{ reservation: Reservation }>("/api/visites/reservations", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -158,6 +214,18 @@ export const visitesApi = {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ moyenPaiement }),
+    }),
+
+  // "Demandes en ligne" — réservations publiques en attente de validation.
+  listerDemandes: () => appelJson<{ demandes: Reservation[] }>("/api/visites/demandes"),
+
+  validerDemande: (id: string) => appelJson<{ reservation: Reservation }>(`/api/visites/demandes/${id}/valider`, { method: "POST" }),
+
+  refuserDemande: (id: string, motif: string) =>
+    appelJson<{ reservation: Reservation }>(`/api/visites/demandes/${id}/refuser`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ motif }),
     }),
 
   parametres: () => appelJson<{ slugPublic: string | null }>("/api/visites/parametres"),

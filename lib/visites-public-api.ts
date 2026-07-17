@@ -36,11 +36,17 @@ export const visitesPublicApi = {
   listerCreneaux: (slug: string, formuleId: string) =>
     appelJson<{ creneaux: CreneauPublic[] }>(`/api/public/visites/${slug}/creneaux?formuleId=${formuleId}`),
 
+  // "en_attente" à la création (V3) — jamais confirmée directement, le
+  // domaine valide ou refuse depuis "Demandes en ligne". formuleId +
+  // date + heureDebut (jamais un creneauId brut) : la disponibilité
+  // choisie peut être une occurrence virtuelle d'une règle récurrente,
+  // résolue/matérialisée côté serveur au moment de la réservation.
   reserver: (
     slug: string,
     payload: {
       formuleId: string;
-      creneauId: string;
+      date: string;
+      heureDebut: string;
       personnes: number;
       visiteurNom: string;
       visiteurEmail?: string;

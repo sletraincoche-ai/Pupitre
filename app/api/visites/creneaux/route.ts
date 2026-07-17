@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireUser } from "@/lib/auth";
-import { getCapaciteRestante, ajouterVisite, VisiteError } from "@/lib/visites-server";
+import { getCapaciteRestante, creerCreneauPonctuel, VisiteError } from "@/lib/visites-server";
 
-// Créneaux à venir avec capacité restante calculée à la volée — utilisé
-// par l'onglet Configuration (liste des visites/créneaux) et par
-// l'accueil du jour.
+// Créneaux ponctuels réels — utilisé par l'onglet "Mes disponibilités"
+// (section Créneau ponctuel) et par l'accueil du jour. Ne couvre pas les
+// occurrences virtuelles des disponibilités récurrentes (voir
+// /api/visites/disponibilites/recurrentes pour les règles elles-mêmes).
 export async function GET(request: NextRequest) {
   const { user, response } = await requireUser();
   if (!user) return response;
@@ -31,11 +32,9 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ creneaux: avecCapacite });
 }
 
-// "Ajouter une visite" (V2) — un seul geste : ouvrir le créneau et,
-// si un nom ou une fiche client est donné, y rattacher immédiatement une
-// réservation. Voir lib/visites-server.ts:ajouterVisite pour le détail
-// (réservation par téléphone, groupe déjà convenu, ou créneau ouvert au
-// public si le nom reste vide).
+// "Mes disponibilités" — créneau ponctuel : ouvre une disponibilité pour
+// une date précise, sans aucun nom rattaché (action strictement séparée
+// de "Nouvelle visite" — voir /api/visites/reservations).
 export async function POST(request: NextRequest) {
   const { user, response } = await requireUser();
   if (!user) return response;
@@ -43,18 +42,14 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
 
   try {
-    const resultat = await ajouterVisite(user.id, {
+    const creneau = await creerCreneauPonctuel(user.id, {
       formuleId: typeof body.formuleId === "string" ? body.formuleId : "",
       date: typeof body.date === "string" ? body.date : "",
       heureDebut: typeof body.heureDebut === "string" ? body.heureDebut : "",
       heureFin: typeof body.heureFin === "string" ? body.heureFin : "",
-      personnes: Number(body.personnes),
-      visiteurNom: typeof body.visiteurNom === "string" ? body.visiteurNom : undefined,
-      visiteurEmail: typeof body.visiteurEmail === "string" ? body.visiteurEmail : undefined,
-      visiteurTelephone: typeof body.visiteurTelephone === "string" ? body.visiteurTelephone : undefined,
-      clientId: typeof body.clientId === "string" ? body.clientId : undefined,
+      capaciteMax: Number(body.capaciteMax),
     });
-    return NextResponse.json(resultat, { status: 201 });
+    return NextResponse.json({ creneau }, { status: 201 });
   } catch (erreur) {
     if (erreur instanceof VisiteError) return NextResponse.json({ error: erreur.message }, { status: erreur.status });
     throw erreur;

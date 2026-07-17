@@ -12,6 +12,8 @@ const LABELS_STATUT: Record<Reservation["statut"], string> = {
   arrivee: "Arrivé",
   terminee: "Terminée",
   annulee: "Annulée",
+  en_attente: "En attente",
+  refusee: "Refusée",
 };
 
 const COULEURS_STATUT: Record<Reservation["statut"], string> = {
@@ -19,6 +21,8 @@ const COULEURS_STATUT: Record<Reservation["statut"], string> = {
   arrivee: "border-gold/40 bg-gold/20 text-gold",
   terminee: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
   annulee: "border-red-400/30 bg-red-400/10 text-red-300",
+  en_attente: "border-amber-400/30 bg-amber-400/10 text-amber-300",
+  refusee: "border-red-400/30 bg-red-400/10 text-red-300",
 };
 
 const LABELS_PAIEMENT: Record<Reservation["statut_paiement"], string> = {
@@ -122,13 +126,19 @@ export function AccueilJourGlass({
     }
   }
 
-  // Une ligne par réservation, plus une ligne par créneau du jour sans
-  // aucune réservation ("réservation libre") — triées ensemble par heure
-  // de début pour lire le planning du jour d'un coup d'œil.
+  // Les demandes en_attente vivent dans l'onglet "Demandes en ligne", pas
+  // ici — le planning du jour ne montre que ce qui est déjà confirmé (ou
+  // son historique : terminée/annulée/refusée). Une ligne par réservation
+  // affichable, plus une ligne par créneau du jour sans AUCUNE réservation
+  // active (y compris en_attente, pour ne pas montrer "libre" un créneau
+  // en fait bloqué par une demande en cours) — triées par heure de début.
   type Ligne = { heureDebut: string; reservation: Reservation } | { heureDebut: string; creneauLibre: Creneau };
+  const reservationsAffichables = reservations.filter((r) => r.statut !== "en_attente");
   const lignes: Ligne[] = [
-    ...reservations.map((r) => ({ heureDebut: r.heure_debut, reservation: r })),
-    ...creneauxDuJour.filter((c) => !reservations.some((r) => r.creneau_id === c.id)).map((c) => ({ heureDebut: c.heure_debut, creneauLibre: c })),
+    ...reservationsAffichables.map((r) => ({ heureDebut: r.heure_debut, reservation: r })),
+    ...creneauxDuJour
+      .filter((c) => !reservations.some((r) => r.creneau_id === c.id && !r.annule))
+      .map((c) => ({ heureDebut: c.heure_debut, creneauLibre: c })),
   ].sort((a, b) => a.heureDebut.localeCompare(b.heureDebut));
 
   if (lignes.length === 0) {

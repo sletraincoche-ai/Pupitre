@@ -7,6 +7,7 @@ import { GlassBackground } from "@/components/glass/glass-background";
 import { GlassPanel } from "@/components/glass/glass-panel";
 import { GlassEmptyState } from "@/components/glass/glass-empty-state";
 import { visitesPublicApi, type FormulePublique, type CreneauPublic } from "@/lib/visites-public-api";
+import { formatDateLongue } from "@/lib/date-fr";
 
 type Etape = "formule" | "creneau" | "coordonnees" | "confirmation";
 
@@ -67,7 +68,8 @@ export default function ReserverPage() {
     try {
       const { reservation } = await visitesPublicApi.reserver(params.slug, {
         formuleId: formule.id,
-        creneauId: creneau.id,
+        date: creneau.date,
+        heureDebut: creneau.heureDebut,
         personnes,
         visiteurNom: visiteurNom.trim(),
         visiteurEmail: visiteurEmail.trim() || undefined,
@@ -140,7 +142,7 @@ export default function ReserverPage() {
                           className="flex items-center justify-between rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-left transition-colors hover:bg-white/10"
                         >
                           <span className="text-sm text-white">
-                            {new Date(c.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} de {c.heureDebut} à {c.heureFin}
+                            {formatDateLongue(c.date)} de {c.heureDebut} à {c.heureFin}
                           </span>
                           <span className="text-xs text-white/55">{c.restante} place{c.restante > 1 ? "s" : ""}</span>
                         </button>
@@ -156,7 +158,7 @@ export default function ReserverPage() {
                     ← Changer de créneau
                   </button>
                   <p className="text-sm text-white/70">
-                    {formule.nom} — {new Date(creneau.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })} de {creneau.heureDebut} à {creneau.heureFin}
+                    {formule.nom} — {formatDateLongue(creneau.date, { day: "numeric", month: "long" })} de {creneau.heureDebut} à {creneau.heureFin}
                   </p>
 
                   <div>
@@ -219,10 +221,10 @@ export default function ReserverPage() {
                   <span className="flex size-14 items-center justify-center rounded-full border border-white/15 bg-white/10 text-gold">
                     <Check className="size-6" />
                   </span>
-                  <h3 className="text-xl font-semibold text-white">Réservation confirmée</h3>
+                  <h3 className="text-xl font-semibold text-white">Demande envoyée</h3>
                   <p className="max-w-sm text-sm text-white/60">
-                    Rendez-vous le {new Date(reservationConfirmee.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} de{" "}
-                    {reservationConfirmee.heureDebut} à {reservationConfirmee.heureFin}. {visiteurEmail ? "Un email de confirmation vous a été envoyé." : ""}
+                    Votre demande pour le {formatDateLongue(reservationConfirmee.date)} de {reservationConfirmee.heureDebut} à {reservationConfirmee.heureFin} a bien
+                    été reçue et est en attente de confirmation par le domaine. {visiteurEmail ? "Un email vous a été envoyé, vous en recevrez un autre dès la validation." : ""}
                   </p>
                 </div>
               )}

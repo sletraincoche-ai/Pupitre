@@ -9,16 +9,21 @@ import { GlassDatePopover } from "@/components/glass/glass-date-popover";
 import { AccueilJourGlass } from "@/components/visites/accueil-jour-glass";
 import { NouvelleVisiteFormGlass } from "@/components/visites/nouvelle-visite-form-glass";
 import { FormulesGlass } from "@/components/visites/formules-glass";
-import { CreneauxGlass } from "@/components/visites/creneaux-glass";
+import { DisponibilitesGlass } from "@/components/visites/disponibilites-glass";
+import { DemandesGlass } from "@/components/visites/demandes-glass";
 import { LienReservationGlass } from "@/components/visites/lien-reservation-glass";
 import { QuickSaleModal, type CibleVenteVisite } from "@/components/visites/quick-sale-modal";
-import { visitesApi, type Formule, type Creneau, type Reservation } from "@/lib/visites-api";
+import { visitesApi, type Formule, type Creneau, type Reservation, type DisponibiliteRecurrente } from "@/lib/visites-api";
+import { formatDateLongue, versDateISO } from "@/lib/date-fr";
 
-type Onglet = "accueil" | "configuration";
+type Onglet = "accueil" | "formules" | "disponibilites" | "demandes";
 
-function versDateISO(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
+const LABELS_ONGLET: Record<Onglet, string> = {
+  accueil: "Accueil du jour",
+  formules: "Formules",
+  disponibilites: "Mes disponibilités",
+  demandes: "Demandes en ligne",
+};
 
 function aujourdhui(): string {
   return versDateISO(new Date());
@@ -39,12 +44,18 @@ function demain(): string {
 // (source: "visites"). components/visites/quick-sale-modal.tsx est
 // réutilisé tel quel (écriture Cave inchangée), seul son type de prop a
 // été adapté pour recevoir une vraie réservation.
+//
+// V3 — 4 blocs clairs : Formules, Mes disponibilités (créneau ponctuel /
+// disponibilité récurrente), Demandes en ligne (validation des
+// réservations publiques), Accueil du jour (ce qui est déjà confirmé).
 export default function VisitesPage() {
   const [onglet, setOnglet] = useState<Onglet>("accueil");
   const [date, setDate] = useState(aujourdhui());
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [formules, setFormules] = useState<Formule[]>([]);
   const [creneaux, setCreneaux] = useState<Creneau[]>([]);
+  const [disponibilites, setDisponibilites] = useState<DisponibiliteRecurrente[]>([]);
+  const [demandes, setDemandes] = useState<Reservation[]>([]);
   const [chargement, setChargement] = useState(true);
   const [modalNouvelleVisite, setModalNouvelleVisite] = useState(false);
   const [cibleVente, setCibleVente] = useState<CibleVenteVisite | null>(null);
@@ -54,11 +65,24 @@ export default function VisitesPage() {
     setReservations(reservations);
   }
 
+  async function rafraichirDemandes() {
+    const { demandes } = await visitesApi.listerDemandes();
+    setDemandes(demandes);
+  }
+
   async function rafraichirTout() {
-    const [r, f, c] = await Promise.all([visitesApi.listerReservations(date), visitesApi.listerFormules(), visitesApi.listerCreneaux()]);
+    const [r, f, c, d, dem] = await Promise.all([
+      visitesApi.listerReservations(date),
+      visitesApi.listerFormules(),
+      visitesApi.listerCreneaux(),
+      visitesApi.listerDisponibilitesRecurrentes(),
+      visitesApi.listerDemandes(),
+    ]);
     setReservations(r.reservations);
     setFormules(f.formules);
     setCreneaux(c.creneaux);
+    setDisponibilites(d.disponibilites);
+    setDemandes(dem.demandes);
   }
 
   useEffect(() => {
@@ -75,10 +99,14 @@ export default function VisitesPage() {
     setReservations((prev) => prev.map((x) => (x.id === r.id ? { ...x, ...r } : x)));
   }
 
+  function majDemandeTraitee(id: string) {
+    setDemandes((prev) => prev.filter((d) => d.id !== id));
+    rafraichirReservations(date);
+  }
+
   if (chargement) return null;
 
   const estAujourdhui = date === aujourdhui();
-  const estDemain = date === demain();
   const labelToggle = estAujourdhui ? "Demain" : "Aujourd'hui";
   const creneauxDuJour = creneaux.filter((c) => c.date === date);
 
@@ -89,17 +117,20 @@ export default function VisitesPage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-base font-semibold tracking-tight text-white">Visites</p>
-              <p className="truncate text-xs text-white/70">Accueil du jour, réservation en ligne — connecté à Cave, Clients et Agenda.</p>
+              <p className="truncate text-xs text-white/70">Formules, disponibilités, demandes en ligne et accueil du jour — connecté à Cave, Clients et Agenda.</p>
             </div>
             <div className="flex shrink-0 gap-2">
               <div className="flex rounded-full border border-white/15 bg-white/5 p-0.5">
-                {(["accueil", "configuration"] as Onglet[]).map((o) => (
+                {(Object.keys(LABELS_ONGLET) as Onglet[]).map((o) => (
                   <button
                     key={o}
                     onClick={() => setOnglet(o)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${onglet === o ? "bg-gold/20 text-gold" : "text-white/60 hover:text-white"}`}
+                    className={`relative rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${onglet === o ? "bg-gold/20 text-gold" : "text-white/60 hover:text-white"}`}
                   >
-                    {o === "accueil" ? "Accueil du jour" : "Configuration"}
+                    {LABELS_ONGLET[o]}
+                    {o === "demandes" && demandes.length > 0 && (
+                      <span className="ml-1.5 inline-flex size-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-semibold text-white">{demandes.length}</span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -108,19 +139,18 @@ export default function VisitesPage() {
                 className="flex items-center gap-1.5 rounded-full bg-gold px-3 py-1.5 text-xs font-medium text-ink hover:bg-gold/90"
               >
                 <Plus className="size-3.5" />
-                Nouveau visiteur
+                Nouvelle visite
               </button>
             </div>
           </div>
         </GlassPanel>
 
-        {onglet === "accueil" ? (
+        {onglet === "accueil" && (
           <GlassPanel intensity="regular" className="p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <p className="text-sm font-medium text-white/85">
-                {new Date(date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+                {formatDateLongue(date)}
                 {estAujourdhui && <span className="ml-2 text-xs text-white/50">(aujourd&apos;hui)</span>}
-                {estDemain && <span className="ml-2 text-xs text-white/50">(demain)</span>}
               </p>
               <div className="flex gap-1.5">
                 <button onClick={() => setDate(estAujourdhui ? demain() : aujourdhui())} className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10">
@@ -131,17 +161,25 @@ export default function VisitesPage() {
             </div>
             <AccueilJourGlass reservations={reservations} creneauxDuJour={creneauxDuJour} onMaj={majReservation} onOuvrirVente={setCibleVente} />
           </GlassPanel>
-        ) : (
+        )}
+
+        {onglet === "formules" && (
+          <GlassPanel intensity="regular" className="p-4">
+            <FormulesGlass formules={formules} onMaj={(f) => setFormules((prev) => (prev.some((x) => x.id === f.id) ? prev.map((x) => (x.id === f.id ? f : x)) : [...prev, f]))} />
+          </GlassPanel>
+        )}
+
+        {onglet === "disponibilites" && (
           <div className="flex flex-col gap-4">
             <GlassPanel intensity="regular" className="p-4">
-              <FormulesGlass formules={formules} onMaj={(f) => setFormules((prev) => (prev.some((x) => x.id === f.id) ? prev.map((x) => (x.id === f.id ? f : x)) : [...prev, f]))} />
-            </GlassPanel>
-            <GlassPanel intensity="regular" className="p-4">
-              <CreneauxGlass
+              <DisponibilitesGlass
                 creneaux={creneaux}
                 formules={formules.filter((f) => !f.archive)}
-                onAjoute={() => rafraichirTout()}
-                onSupprime={(id) => setCreneaux((prev) => prev.filter((c) => c.id !== id))}
+                disponibilites={disponibilites}
+                onCreneauCree={(c) => setCreneaux((prev) => [...prev, c])}
+                onCreneauSupprime={(id) => setCreneaux((prev) => prev.filter((c) => c.id !== id))}
+                onDisponibiliteCreee={(d) => setDisponibilites((prev) => [...prev, d])}
+                onDisponibiliteMaj={(d) => setDisponibilites((prev) => prev.map((x) => (x.id === d.id ? d : x)))}
               />
             </GlassPanel>
             <GlassPanel intensity="regular" className="p-4">
@@ -149,9 +187,15 @@ export default function VisitesPage() {
             </GlassPanel>
           </div>
         )}
+
+        {onglet === "demandes" && (
+          <GlassPanel intensity="regular" className="p-4">
+            <DemandesGlass demandes={demandes} onMaj={majDemandeTraitee} />
+          </GlassPanel>
+        )}
       </div>
 
-      <GlassModal open={modalNouvelleVisite} onClose={() => setModalNouvelleVisite(false)} title="Nouveau visiteur">
+      <GlassModal open={modalNouvelleVisite} onClose={() => setModalNouvelleVisite(false)} title="Nouvelle visite">
         <NouvelleVisiteFormGlass
           formules={formules.filter((f) => !f.archive)}
           onCree={(r) => {

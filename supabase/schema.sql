@@ -711,14 +711,53 @@ create table if not exists visites_formules (
 );
 create index if not exists visites_formules_user_id_idx on visites_formules(user_id);
 
+-- V3 : disponibilité récurrente ("tous les lundis 10h-12h") — jamais
+-- matérialisée en avance pour chaque semaine future (calcul à la volée,
+-- voir lib/visites-server.ts:resoudreCreneauPourReservation). Un vrai
+-- visites_creneaux n'est créé qu'au moment où quelqu'un réserve
+-- effectivement dessus — la règle elle-même reste la seule source de
+-- vérité pour l'affichage de "Mes disponibilités" et pour la génération
+-- des occurrences publiques futures. jour_semaine : 1=lundi..7=dimanche
+-- (ISO 8601), pas la convention JS (0=dimanche).
+create table if not exists visites_disponibilites_recurrentes (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  formule_id uuid not null references visites_formules(id) on delete cascade,
+  jour_semaine integer not null check (jour_semaine between 1 and 7),
+  heure_debut text not null,
+  heure_fin text not null,
+  capacite_max integer not null check (capacite_max > 0),
+  actif boolean not null default true,
+  created_at timestamptz not null default now()
+);
+create index if not exists visites_disponibilites_recurrentes_user_id_idx on visites_disponibilites_recurrentes(user_id);
+
+-- Suspend une occurrence précise d'une règle récurrente ("pas de visite
+-- le 25/08, absent") sans toucher à la règle elle-même.
+create table if not exists visites_disponibilites_exceptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  disponibilite_id uuid not null references visites_disponibilites_recurrentes(id) on delete cascade,
+  date date not null,
+  motif text,
+  created_at timestamptz not null default now(),
+  unique (disponibilite_id, date)
+);
+create index if not exists visites_disponibilites_exceptions_disponibilite_idx on visites_disponibilites_exceptions(disponibilite_id);
+
 -- Capacité restante calculée à la volée depuis les réservations actives
 -- (jamais stockée) — source de vérité unique, pas de compteur à
 -- resynchroniser. heure_fin (V2) : l'accueil du jour affiche une plage
--- ("11h-12h"), pas juste une heure de début.
+-- ("11h-12h"), pas juste une heure de début. disponibilite_id (V3) :
+-- non nul si ce créneau a été matérialisé depuis une règle récurrente au
+-- moment d'une réservation — distingue "créneau ponctuel" (nul) de
+-- "occurrence d'une disponibilité récurrente" pour l'affichage de "Mes
+-- disponibilités".
 create table if not exists visites_creneaux (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
   formule_id uuid not null references visites_formules(id) on delete cascade,
+  disponibilite_id uuid references visites_disponibilites_recurrentes(id) on delete set null,
   date date not null,
   heure_debut text not null,
   heure_fin text not null,
@@ -746,7 +785,13 @@ create table if not exists visites_reservations (
   -- bloquante, jamais de création forcée de fiche — même principe que la
   -- "vente sans identité" de Cave étendu aux visiteurs.
   client_id uuid references clients(id) on delete set null,
-  statut text not null default 'confirmee' check (statut in ('confirmee', 'arrivee', 'terminee', 'annulee')),
+  -- V3 : une réservation en ligne naît 'en_attente' (jamais confirmée
+  -- directement) — le créneau reste bloqué (compté dans la capacité,
+  -- voir getCapaciteRestante qui exclut seulement annule=true) le temps
+  -- que le viticulteur valide ou refuse. 'refusee' est distincte
+  -- d'annulée : email et intention différents, même mécanique de
+  -- libération (annule=true).
+  statut text not null default 'confirmee' check (statut in ('confirmee', 'arrivee', 'terminee', 'annulee', 'en_attente', 'refusee')),
   origine text not null default 'walk_in' check (origine in ('en_ligne', 'walk_in', 'manuel')),
   statut_paiement text not null default 'a_configurer' check (statut_paiement in ('a_configurer', 'paye_sur_place', 'paye_ligne', 'rembourse')),
   moyen_paiement text,
@@ -756,6 +801,9 @@ create table if not exists visites_reservations (
   annule boolean not null default false,
   annule_le timestamptz,
   motif_annulation text,
+  -- Relance à 24h (V3) — évite les relances en double, jamais de
+  -- libération automatique du créneau (exigence explicite du brief).
+  relance_envoyee_le timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -814,3 +862,10 @@ set heure_fin = to_char((r.heure_debut::time + (f.duree_minutes || ' minutes')::
 from visites_formules f
 where f.id = r.formule_id and r.heure_fin is null;
 alter table visites_reservations alter column heure_fin set not null;
+
+-- Chantier Visites V3 — colonnes/tables déjà en base (le create table if
+-- not exists ci-dessus ne rejoue pas pour une table existante).
+alter table visites_creneaux add column if not exists disponibilite_id uuid references visites_disponibilites_recurrentes(id) on delete set null;
+alter table visites_reservations add column if not exists relance_envoyee_le timestamptz;
+alter table visites_reservations drop constraint if exists visites_reservations_statut_check;
+alter table visites_reservations add constraint visites_reservations_statut_check check (statut in ('confirmee', 'arrivee', 'terminee', 'annulee', 'en_attente', 'refusee'));
